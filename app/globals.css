@@ -1,0 +1,140 @@
+/* ============================================================
+   app/globals.css  –  Global styles (from App.vue's <style> block)
+
+   In Vue, styles lived inside <style> at the bottom of App.vue.
+   In Next.js, global styles go in this file and are imported in layout.jsx.
+   ============================================================ */
+
+.nav-center {
+  text-align: center;
+}
+
+.custom-icon {
+  font-size: 3.5rem;
+}
+
+.small-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.small-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-img-top {
+  object-fit: cover;
+  height: 150px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+footer {
+  font-size: 0.9rem;
+}
+footer a:hover {
+  color: #00abe4 !important;
+  text-decoration: underline !important;
+}
+
+.navbar-brand img {
+  transition: transform 0.3s;
+}
+.navbar-brand:hover img {
+  transform: scale(1.05);
+}
+
+.navbar-nav .nav-link {
+  font-weight: 500;
+  color: #333;
+}
+.navbar-nav .nav-link:hover {
+  color: #00abe4;
+}
+
+.text-price {
+  color: #00abe4;
+}
+
+.badge {
+  font-size: 0.8rem;
+}
+
+/* Navbar shrink animation */
+.navbar {
+  transition: all 0.3s ease;
+}
+.navbar-shrink {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Logo */
+.logo-img {
+  height: 100px;
+  transition: all 0.3s ease;
+}
+.navbar-shrink .logo-img {
+  height: 100px;
+}
+
+.brand-text {
+  font-size: 1.5rem;
+  transition: font-size 0.3s ease;
+}
+.navbar-shrink .brand-text {
+  font-size: 1.1rem;
+}
+
+/* Hero */
+.hero-section {
+  background: linear-gradient(180deg, #e9f3ff 0%, #ffffff 100%);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.header-search {
+  max-width: 250px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .header-search {
+    max-width: 100%;
+  }
+  .hero-section {
+    padding: 2rem 1rem;
+  }
+  .brand-text {
+    font-size: 1.2rem;
+  }
+}
+
+/* ── SEO / Accessibility: visually-hidden but readable by crawlers ── */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Core Web Vitals: prevent layout shift on images ── */
+.card-img-top {
+  object-fit: cover;
+  height: 150px;
+  width: 100%;
+  background-color: #f0f2f5;
+}
+
+/* ── Performance: smooth font rendering ── */
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}

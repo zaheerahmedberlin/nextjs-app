@@ -1,0 +1,69 @@
+// components/LowestPriceSection.jsx
+"use client";
+
+export default function LowestPriceSection({
+  visibleLowestProducts,
+  lowestStartIndex,
+  setLowestStartIndex,
+  lowestPriceProductsLength,
+  visibleLowestCount,
+  formatPrice,
+  onOpenProduct,
+}) {
+  if (!lowestPriceProductsLength) return null;
+
+  return (
+    <div className="mt-5">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h5 className="mb-0">💸 Günstigste Produkte pro Kategorie</h5>
+        <div>
+          <button
+            className="btn btn-sm btn-outline-secondary me-2"
+            disabled={lowestStartIndex === 0}
+            onClick={() => setLowestStartIndex((i) => Math.max(0, i - visibleLowestCount))}
+          >
+            ← Zurück
+          </button>
+          <button
+            className="btn btn-sm btn-outline-secondary"
+            disabled={lowestStartIndex + visibleLowestCount >= lowestPriceProductsLength}
+            onClick={() =>
+              setLowestStartIndex((i) =>
+                Math.min(lowestPriceProductsLength - visibleLowestCount, i + visibleLowestCount)
+              )
+            }
+          >
+            Weiter →
+          </button>
+        </div>
+      </div>
+
+      <div className="row g-3">
+        {visibleLowestProducts.map((p, index) => (
+          <div key={`lowest-${p.id}-${index}`} className="col-6 col-sm-4 col-md-3 col-lg-2">
+            <div className="card h-100 shadow-sm">
+              <img
+                src={p.image || "/placeholder.png"}
+                className="card-img-top"
+                alt={p.title || "Produkt"}
+                onError={(e) => { e.target.src = "/placeholder.png"; }}
+              />
+              <div className="card-body p-2 text-center">
+                <h6 className="text-truncate" title={p.title}>{p.title}</h6>
+                <p className="small text-muted mb-1">{p.category}</p>
+                <p className="small text-muted mb-1">{p.vendor}</p>
+                <div className="fw-semibold text-price">{formatPrice(p.price)}</div>
+                <button
+                  className="btn btn-sm btn-outline-secondary mt-2"
+                  onClick={() => onOpenProduct(p)}
+                >
+                  Anzeigen
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

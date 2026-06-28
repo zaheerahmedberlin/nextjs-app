@@ -1,0 +1,33 @@
+[
+  {
+    "id": 1,
+    "title": "Ledersofa Premium",
+    "category": "Wohnzimmermöbel",
+    "price": 899.99,
+    "oldPrice": 1299.99,
+    "image": "/images/sofa.jpg",
+    "offerStart": "2025-10-01",
+    "offerEnd": "2025-10-30"
+  },
+  {
+    "id": 2,
+    "title": "Massivholztisch Eiche",
+    "category": "Esszimmermöbel",
+    "price": 499.99,
+    "oldPrice": 699.99,
+    "image": "/images/tisch.jpg",
+    "offerStart": "2025-10-10",
+    "offerEnd": "2025-10-25"
+  },
+  {
+    "id": 3,
+    "title": "Gaming Stuhl Black Edition",
+    "category": "Büromöbel",
+    "price": 159.99,
+    "oldPrice": 229.99,
+    "image": "/images/stuhl.jpg",
+    "offerStart": "2025-11-20",
+    "offerEnd": "2025-11-30",
+    "type": "Black Friday"
+  }
+]
