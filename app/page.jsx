@@ -1,7 +1,7 @@
 // app/page.jsx – Main page with full SEO: structured data, semantic HTML, meta
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import Sidebar from "@/components/Sidebar";
@@ -78,17 +78,43 @@ export default function Home() {
   const [defaultMaxPrice, setDefaultMaxPrice] = useState(0);
   const [currentPage, setCurrentPage]         = useState(1);
   const [lowestPriceProducts, setLowestPriceProducts] = useState([]);
+  const [totalProducts, setTotalProducts]       = useState(0);
+  const [pageCount, setPageCount]               = useState(1);
   const [lowestStartIndex, setLowestStartIndex] = useState(0);
   const [isNavbarShrink, setIsNavbarShrink]   = useState(false);
+  const [showOutOfStock, setShowOutOfStock]   = useState(false);
+  const [showInactiveProducts, setShowInactiveProducts] = useState(false);
+  const [activeFromFilter, setActiveFromFilter] = useState("");
+  const [activeUntilFilter, setActiveUntilFilter] = useState("");
 
   const perPage = 24;
   const visibleLowestCount = 6;
 
   useEffect(() => {
-    loadProducts();
     loadCategories();
     loadOffers();
+    fetch("/api/products?sort=priceDesc&limit=1&inStockOnly=false&includeInactive=true")
+      .then((r) => r.json())
+      .then((data) => {
+        const max = parseFloat(data.products?.[0]?.price) || 10000;
+        const rounded = Math.ceil(max / 100) * 100;
+        setDefaultMaxPrice(rounded);
+        setMaxPriceFilter(rounded);
+      })
+      .catch(() => {
+        setDefaultMaxPrice(10000);
+        setMaxPriceFilter(10000);
+      });
   }, []);
+
+  const debounceRef = useRef(null);
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      loadProducts();
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchQuery, selectedCategories, maxPriceFilter, sortOption, currentPage, showOutOfStock, showInactiveProducts, activeFromFilter, activeUntilFilter]);
 
   useEffect(() => {
     const handleScroll = () => setIsNavbarShrink(window.scrollY > 150);
@@ -96,7 +122,7 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  async function loadProducts() {
+/*  async function loadProducts() {
     try {
       const res = await fetch("/products.json");
       if (!res.ok) throw new Error("products.json not found");
@@ -115,7 +141,28 @@ export default function Home() {
       console.error(err);
       setProducts([]);
     }
-  }
+  }*/
+
+    // Instead of fetch("/products.json")
+    async function loadProducts() {
+        const params = new URLSearchParams({
+            q: searchQuery,
+            category: selectedCategories.join(","),
+            ...(maxPriceFilter > 0 ? { maxPrice: maxPriceFilter } : {}),
+            sort: sortOption,
+            page: currentPage,
+            inStockOnly: showOutOfStock ? "false" : "true",
+            includeInactive: showInactiveProducts ? "true" : "false",
+            ...(activeFromFilter ? { activeFrom: activeFromFilter } : {}),
+            ...(activeUntilFilter ? { activeUntil: activeUntilFilter } : {}),
+        });
+        const res = await fetch(`/api/products?${params}`);
+        const data = await res.json();
+        const prods = data.products ?? [];
+        setProducts(prods);
+        setTotalProducts(data.total ?? 0);
+        setPageCount(data.pageCount ?? 1);
+    }
 
   async function loadOffers() {
     try {
@@ -148,25 +195,10 @@ export default function Home() {
     }
   }
 
-  const filteredProducts = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    let filtered = products.filter((p) => {
-      const matchesSearch = p.title?.toLowerCase().includes(q);
-      const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(p.category);
-      const matchesPrice = p.price <= maxPriceFilter;
-      return matchesSearch && matchesCategory && matchesPrice;
-    });
-    if (sortOption === "priceAsc") filtered = [...filtered].sort((a, b) => (a.price || 0) - (b.price || 0));
-    if (sortOption === "priceDesc") filtered = [...filtered].sort((a, b) => (b.price || 0) - (a.price || 0));
-    return filtered;
-  }, [products, searchQuery, selectedCategories, maxPriceFilter, sortOption]);
+  const filteredProducts = products;
 
-  const pageCount = Math.ceil(filteredProducts.length / perPage);
-
-  const paginatedProducts = useMemo(() => {
-    const start = (currentPage - 1) * perPage;
-    return filteredProducts.slice(start, start + perPage);
-  }, [filteredProducts, currentPage]);
+  // Pagination is handled server-side; products is already the current page
+  const paginatedProducts = products;
 
   const visibleLowestProducts = lowestPriceProducts.slice(
     lowestStartIndex, lowestStartIndex + visibleLowestCount
@@ -218,7 +250,7 @@ export default function Home() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           setCurrentPage={setCurrentPage}
-          totalProducts={products.length}
+          totalProducts={totalProducts}
         />
       )}
 
@@ -243,11 +275,19 @@ export default function Home() {
           <Sidebar
             categories={categories}
             selectedCategories={selectedCategories}
-            setSelectedCategories={setSelectedCategories}
+            setSelectedCategories={(v) => { setSelectedCategories(v); setCurrentPage(1); }}
             maxPriceFilter={maxPriceFilter}
-            setMaxPriceFilter={setMaxPriceFilter}
+            setMaxPriceFilter={(v) => { setMaxPriceFilter(v); setCurrentPage(1); }}
             defaultMaxPrice={defaultMaxPrice}
             formatPrice={formatPrice}
+            showOutOfStock={showOutOfStock}
+            setShowOutOfStock={(v) => { setShowOutOfStock(v); setCurrentPage(1); }}
+            showInactiveProducts={showInactiveProducts}
+            setShowInactiveProducts={(v) => { setShowInactiveProducts(v); setCurrentPage(1); }}
+            activeFromFilter={activeFromFilter}
+            setActiveFromFilter={(v) => { setActiveFromFilter(v); setCurrentPage(1); }}
+            activeUntilFilter={activeUntilFilter}
+            setActiveUntilFilter={(v) => { setActiveUntilFilter(v); setCurrentPage(1); }}
           />
 
           {/* ── Semantic main landmark for accessibility & SEO ── */}
@@ -262,7 +302,7 @@ export default function Home() {
             {/* Sort + result count */}
             <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
               <p className="text-muted small mb-0">
-                <strong>{filteredProducts.length.toLocaleString("de-DE")}</strong> Produkte gefunden
+                <strong>{totalProducts.toLocaleString("de-DE")}</strong> Produkte gefunden
               </p>
               <div className="ms-auto">
                 <label htmlFor="sortSelect" className="visually-hidden">Sortierung</label>

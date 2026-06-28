@@ -1,15 +1,21 @@
 {
   "name": "preisgucken-nextjs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "db:migrate": "psql -d preisgucken -f db/migrations/001_create_tables.sql",
+    "db:import": "node scripts/import-products.js",
+    "db:setup": "npm run db:migrate && npm run db:import"
   },
   "dependencies": {
-    "next": "^16.2.9",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "@elastic/elasticsearch": "^8.10.0",
+    "ioredis": "^5.3.0",
+    "next": "^14.0.0",
+    "pg": "^8.22.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   }
 }

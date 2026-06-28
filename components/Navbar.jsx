@@ -87,29 +87,25 @@ export default function Navbar({ isNavbarShrink, searchQuery, setSearchQuery, se
             </li>
           </ul>
 
-          {/* Search bar — visible only when navbar is shrunk (user scrolled down) */}
-          {/* Vue: v-show="isNavbarShrink"
-              React: conditional rendering with && */}
-          {isNavbarShrink && (
-            <div className="d-flex header-search align-items-center">
-              <input
-                className="form-control me-2"
-                type="search"
-                placeholder="Schnellsuche"
-                value={searchQuery}
-                // In Vue: v-model binds two ways automatically.
-                // In React: we need onChange to update state manually.
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button
-                className="btn btn-outline-primary"
-                type="button"
-                onClick={() => setCurrentPage(1)}
-              >
-                <i className="bi bi-search"></i>
-              </button>
-            </div>
-          )}
+          <div
+            className="d-flex header-search align-items-center"
+            style={{ visibility: isNavbarShrink ? "visible" : "hidden", opacity: isNavbarShrink ? 1 : 0, transition: "opacity 0.2s" }}
+          >
+            <input
+              className="form-control me-2"
+              type="search"
+              placeholder="Produkt suchen…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              className="btn btn-outline-primary"
+              type="button"
+              onClick={() => setCurrentPage(1)}
+            >
+              <i className="bi bi-search"></i>
+            </button>
+          </div>
         </div>
       </div>
     </nav>
