@@ -1,5 +1,6 @@
 // components/LowestPriceSection.jsx
 "use client";
+import PriceDisplay from "@/components/PriceDisplay";
 
 export default function LowestPriceSection({
   visibleLowestProducts,
@@ -7,7 +8,6 @@ export default function LowestPriceSection({
   setLowestStartIndex,
   lowestPriceProductsLength,
   visibleLowestCount,
-  formatPrice,
   onOpenProduct,
 }) {
   if (!lowestPriceProductsLength) return null;
@@ -52,7 +52,7 @@ export default function LowestPriceSection({
                 <h6 className="text-truncate" title={p.title}>{p.title}</h6>
                 <p className="small text-muted mb-1">{p.category}</p>
                 <p className="small text-muted mb-1">{p.vendor}</p>
-                <div className="fw-semibold text-price">{formatPrice(p.price)}</div>
+                <PriceDisplay price={p.price} size="sm" />
                 <button
                   className="btn btn-sm btn-outline-secondary mt-2"
                   onClick={() => onOpenProduct(p)}

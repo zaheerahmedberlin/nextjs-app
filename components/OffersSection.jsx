@@ -1,7 +1,8 @@
 // components/OffersSection.jsx
 "use client";
+import PriceDisplay from "@/components/PriceDisplay";
 
-export default function OffersSection({ activeOffers, formatPrice, countdown }) {
+export default function OffersSection({ activeOffers, countdown }) {
   if (!activeOffers.length) return null;
 
   return (
@@ -26,12 +27,7 @@ export default function OffersSection({ activeOffers, formatPrice, countdown }) 
               <div className="card-body text-center">
                 <h6 className="text-truncate" title={offer.title}>{offer.title}</h6>
                 <p className="small text-muted">{offer.category}</p>
-                <div>
-                  <span className="text-danger fw-bold">{formatPrice(offer.price)}</span>
-                  <span className="text-muted text-decoration-line-through small ms-2">
-                    {formatPrice(offer.oldPrice)}
-                  </span>
-                </div>
+                <PriceDisplay price={offer.price} oldPrice={offer.oldPrice} size="md" />
                 <div className="small text-muted mt-1">{countdown(offer.offerEnd)}</div>
               </div>
             </div>

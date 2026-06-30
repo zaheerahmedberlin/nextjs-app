@@ -1,7 +1,7 @@
 // components/HeroSection.jsx – SEO: keyword-rich headings, product count
 "use client";
 
-export default function HeroSection({ searchQuery, setSearchQuery, setCurrentPage, totalProducts }) {
+export default function HeroSection({ searchQuery, setSearchQuery, setCurrentPage, totalProducts, popularTerms = [] }) {
   return (
     <section className="hero-section text-center py-5" aria-label="Preisvergleich Suche">
       <div className="container">
@@ -44,7 +44,7 @@ export default function HeroSection({ searchQuery, setSearchQuery, setCurrentPag
         {/* Popular search terms – internal linking opportunity & keyword signals */}
         <div className="mt-3">
           <span className="text-muted small me-2">Beliebt:</span>
-          {["Laptop", "Smartphone", "Fernseher", "Kopfhörer", "Kaffeemaschine"].map((term) => (
+          {popularTerms.map((term) => (
             <button
               key={term}
               className="btn btn-sm btn-outline-secondary me-1 mb-1"

@@ -2,8 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import PriceDisplay from "@/components/PriceDisplay";
 
-export default function LastSeen({ formatPrice, onOpenProduct }) {
+export default function LastSeen({ onOpenProduct }) {
   const [lastSeenProducts, setLastSeenProducts] = useState([]);
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function LastSeen({ formatPrice, onOpenProduct }) {
               <div className="card-body p-2">
                 <h6 className="text-truncate" title={p.title}>{p.title}</h6>
                 <h6 className="text-truncate small text-muted" title={p.vendor}>{p.vendor}</h6>
-                <div className="fw-semibold text-price">{formatPrice(p.price)}</div>
+                <PriceDisplay price={p.price} size="sm" />
               </div>
             </div>
           </div>

@@ -1,4 +1,4 @@
-// app/page.jsx – Main page with full SEO: structured data, semantic HTML, meta
+// app/page.jsx
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -10,11 +10,25 @@ import Pagination from "@/components/Pagination";
 import LastSeen from "@/components/LastSeen";
 import LowestPriceSection from "@/components/LowestPriceSection";
 import OffersSection from "@/components/OffersSection";
+import NewsletterSection from "@/components/NewsletterSection";
+import DealAlertBanner from "@/components/DealAlertBanner";
 import Footer from "@/components/Footer";
 
+// Resolve a category slug to its display name from the tree
+function slugToName(tree, slug) {
+  for (const parent of tree) {
+    if (parent.slug === slug) return parent.name;
+    for (const child of parent.children ?? []) {
+      if (child.slug === slug) return child.name;
+    }
+  }
+  return null;
+}
+
 export function formatPrice(value) {
-  if (typeof value !== "number") return value;
-  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(value);
+  const n = parseFloat(value);
+  if (isNaN(n)) return value;
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(n);
 }
 
 export function countdown(endDate) {
@@ -26,7 +40,6 @@ export function countdown(endDate) {
   return `Noch ${days}T ${hours}h`;
 }
 
-// ── ItemList schema for Google (product carousel eligibility) ──
 function buildItemListSchema(products) {
   return {
     "@context": "https://schema.org",
@@ -55,7 +68,6 @@ function buildItemListSchema(products) {
   };
 }
 
-// ── BreadcrumbList schema ──────────────────────────────────────
 const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
@@ -66,37 +78,47 @@ const breadcrumbSchema = {
 };
 
 export default function Home() {
-  const [products, setProducts]               = useState([]);
-  const [categories, setCategories]           = useState([]);
-  const [offers, setOffers]                   = useState([]);
-  const [activeOffers, setActiveOffers]       = useState([]);
-  const [, setBlackFridayOffers]              = useState([]);
-  const [searchQuery, setSearchQuery]         = useState("");
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [sortOption, setSortOption]           = useState("relevance");
-  const [maxPriceFilter, setMaxPriceFilter]   = useState(0);
-  const [defaultMaxPrice, setDefaultMaxPrice] = useState(0);
-  const [currentPage, setCurrentPage]         = useState(1);
-  const [lowestPriceProducts, setLowestPriceProducts] = useState([]);
-  const [totalProducts, setTotalProducts]       = useState(0);
-  const [pageCount, setPageCount]               = useState(1);
-  const [lowestStartIndex, setLowestStartIndex] = useState(0);
-  const [isNavbarShrink, setIsNavbarShrink]   = useState(false);
-  const [showOutOfStock, setShowOutOfStock]   = useState(false);
-  const [showInactiveProducts, setShowInactiveProducts] = useState(false);
-  const [activeFromFilter, setActiveFromFilter] = useState("");
-  const [activeUntilFilter, setActiveUntilFilter] = useState("");
+  const [products, setProducts]                         = useState([]);
+  const [categories, setCategories]                     = useState([]);
+  const [popularTerms, setPopularTerms]                 = useState([]);
+  const [activeOffers, setActiveOffers]                 = useState([]);
+  const [lowestPriceProducts, setLowestPriceProducts]   = useState([]);
+  const [totalProducts, setTotalProducts]               = useState(0);
+  const [pageCount, setPageCount]                       = useState(1);
+  const [lowestStartIndex, setLowestStartIndex]         = useState(0);
+  const [isNavbarShrink, setIsNavbarShrink]             = useState(false);
+  const [newsletterToast, setNewsletterToast]           = useState("");
 
-  const perPage = 24;
+  // Filters
+  const [searchQuery, setSearchQuery]                   = useState("");
+  const [selectedCategories, setSelectedCategories]     = useState([]);
+  const [sortOption, setSortOption]                     = useState("relevance");
+  const [maxPriceFilter, setMaxPriceFilter]             = useState(null); // null = not yet initialised
+  const [defaultMaxPrice, setDefaultMaxPrice]           = useState(0);
+  const [currentPage, setCurrentPage]                   = useState(1);
+  const [showOutOfStock, setShowOutOfStock]             = useState(false);
+  const [showInactiveProducts, setShowInactiveProducts] = useState(false);
+  const [activeFromFilter, setActiveFromFilter]         = useState("");
+  const [activeUntilFilter, setActiveUntilFilter]       = useState("");
+
   const visibleLowestCount = 6;
 
+  // ── Newsletter confirmation toast ──────────────────────────────
   useEffect(() => {
-    loadCategories();
-    loadOffers();
-    fetch("/api/products?sort=priceDesc&limit=1&inStockOnly=false&includeInactive=true")
+    const params = new URLSearchParams(window.location.search);
+    const nl = params.get("newsletter");
+    if (nl === "confirmed")         setNewsletterToast("✓ E-Mail bestätigt! Du erhältst ab jetzt unseren Newsletter.");
+    if (nl === "already-confirmed") setNewsletterToast("Du bist bereits angemeldet.");
+    if (nl) window.history.replaceState({}, "", "/");
+  }, []);
+
+  // ── Init: fetch max price + categories + offers once ──────────
+  useEffect(() => {
+    // Max price → initialises the slider and triggers the first product fetch
+    fetch("/api/products/price-range")
       .then((r) => r.json())
       .then((data) => {
-        const max = parseFloat(data.products?.[0]?.price) || 10000;
+        const max = parseFloat(data.max) || 10000;
         const rounded = Math.ceil(max / 100) * 100;
         setDefaultMaxPrice(rounded);
         setMaxPriceFilter(rounded);
@@ -105,106 +127,79 @@ export default function Home() {
         setDefaultMaxPrice(10000);
         setMaxPriceFilter(10000);
       });
+
+    // Categories from API — top 6 by product count become popular terms
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((data) => {
+        setCategories(data);
+        // Popular terms: leaf categories with most products
+        const leaves = data.flatMap((c) => c.children?.length > 0 ? c.children : [c]);
+        setPopularTerms(leaves.sort((a, b) => b.productCount - a.productCount).slice(0, 6).map((c) => c.name));
+      })
+      .catch(() => {});
+
+    // Offers from static file (optional)
+    fetch("/offers.json")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => {
+        const today = new Date();
+        setActiveOffers(
+          data.filter((o) => {
+            const start = new Date(o.offerStart);
+            const end   = new Date(o.offerEnd);
+            return start <= today && end >= today && o.type !== "Black Friday";
+          })
+        );
+      })
+      .catch(() => {});
   }, []);
 
-  const debounceRef = useRef(null);
-  useEffect(() => {
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      loadProducts();
-    }, 400);
-    return () => clearTimeout(debounceRef.current);
-  }, [searchQuery, selectedCategories, maxPriceFilter, sortOption, currentPage, showOutOfStock, showInactiveProducts, activeFromFilter, activeUntilFilter]);
-
+  // ── Scroll: shrink navbar ──────────────────────────────────────
   useEffect(() => {
     const handleScroll = () => setIsNavbarShrink(window.scrollY > 150);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-/*  async function loadProducts() {
-    try {
-      const res = await fetch("/products.json");
-      if (!res.ok) throw new Error("products.json not found");
-      const data = await res.json();
-      setProducts(data);
-      const prices = data.map((p) => p.price || 0);
-      const max = Math.max(...prices, 1000);
-      setDefaultMaxPrice(max);
-      setMaxPriceFilter(max);
-      const grouped = {};
-      data.forEach((p) => {
-        if (!grouped[p.category] || p.price < grouped[p.category].price) grouped[p.category] = p;
-      });
-      setLowestPriceProducts(Object.values(grouped));
-    } catch (err) {
-      console.error(err);
-      setProducts([]);
-    }
-  }*/
+  // ── Products: debounced fetch on any filter change ─────────────
+  // Gate on maxPriceFilter !== null so we don't fetch before init
+  const debounceRef = useRef(null);
+  useEffect(() => {
+    if (maxPriceFilter === null) return;
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(loadProducts, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchQuery, selectedCategories, maxPriceFilter, sortOption, currentPage,
+      showOutOfStock, showInactiveProducts, activeFromFilter, activeUntilFilter]);
 
-    // Instead of fetch("/products.json")
-    async function loadProducts() {
-        const params = new URLSearchParams({
-            q: searchQuery,
-            category: selectedCategories.join(","),
-            ...(maxPriceFilter > 0 ? { maxPrice: maxPriceFilter } : {}),
-            sort: sortOption,
-            page: currentPage,
-            inStockOnly: showOutOfStock ? "false" : "true",
-            includeInactive: showInactiveProducts ? "true" : "false",
-            ...(activeFromFilter ? { activeFrom: activeFromFilter } : {}),
-            ...(activeUntilFilter ? { activeUntil: activeUntilFilter } : {}),
-        });
-        const res = await fetch(`/api/products?${params}`);
-        const data = await res.json();
-        const prods = data.products ?? [];
-        setProducts(prods);
-        setTotalProducts(data.total ?? 0);
-        setPageCount(data.pageCount ?? 1);
-    }
+  async function loadProducts() {
+    const params = new URLSearchParams({
+      q:               searchQuery,
+      sort:            sortOption,
+      page:            currentPage,
+      inStockOnly:     showOutOfStock ? "false" : "true",
+      includeInactive: showInactiveProducts ? "true" : "false",
+    });
+    if (selectedCategories.length > 0) params.set("category", selectedCategories.join(","));
+    if (maxPriceFilter > 0 && maxPriceFilter < defaultMaxPrice) params.set("maxPrice", maxPriceFilter);
+    if (activeFromFilter)  params.set("activeFrom",  activeFromFilter);
+    if (activeUntilFilter) params.set("activeUntil", activeUntilFilter);
 
-  async function loadOffers() {
     try {
-      const res = await fetch("/offers.json");
-      if (!res.ok) throw new Error("offers.json not found");
+      const res  = await fetch(`/api/products?${params}`);
       const data = await res.json();
-      setOffers(data);
-      const today = new Date();
-      setActiveOffers(
-        data.filter((o) => {
-          const start = new Date(o.offerStart);
-          const end = new Date(o.offerEnd);
-          return start <= today && end >= today && (!o.type || o.type !== "Black Friday");
-        })
-      );
-      setBlackFridayOffers(data.filter((o) => o.type === "Black Friday"));
+      setProducts(data.products ?? []);
+      setTotalProducts(data.total ?? 0);
+      setPageCount(data.pageCount ?? 1);
     } catch (err) {
-      console.error(err);
+      console.error("loadProducts error:", err);
     }
   }
 
-  async function loadCategories() {
-    try {
-      const res = await fetch("/categories.txt");
-      if (!res.ok) throw new Error("categories.txt not found");
-      const txt = await res.text();
-      setCategories(txt.split(/\r?\n+/).map((s) => s.trim()).filter(Boolean));
-    } catch (err) {
-      console.error(err);
-    }
-  }
+  function resetPage() { setCurrentPage(1); }
 
-  const filteredProducts = products;
-
-  // Pagination is handled server-side; products is already the current page
-  const paginatedProducts = products;
-
-  const visibleLowestProducts = lowestPriceProducts.slice(
-    lowestStartIndex, lowestStartIndex + visibleLowestCount
-  );
-
-  function openProduct(product) {
+  async function openProduct(product) {
     try {
       if (window.gtag) {
         window.gtag("event", "select_item", {
@@ -217,44 +212,56 @@ export default function Home() {
       seen.unshift({ id: product.id, title: product.title, image: product.image, price: product.price, vendor: product.vendor, url: product.url });
       if (seen.length > 12) seen = seen.slice(0, 12);
       localStorage.setItem("lastSeenProducts", JSON.stringify(seen));
+
+      // Track click for billing (fire-and-forget — don't block the user)
+      fetch("/api/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id, vendor: product.vendor, url: product.url }),
+      }).catch(() => {});
+
       window.open(product.url, "_blank");
     } catch (e) {
       console.error(e);
     }
   }
 
-  // Build structured data from live product data
+  const visibleLowestProducts = lowestPriceProducts.slice(lowestStartIndex, lowestStartIndex + visibleLowestCount);
   const itemListSchema = useMemo(() => buildItemListSchema(lowestPriceProducts), [lowestPriceProducts]);
 
   return (
     <>
-      {/* ── Dynamic structured data (injected client-side) ── */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+
+      {/* Newsletter confirmation toast */}
+      {newsletterToast && (
+        <div
+          className="position-fixed bottom-0 end-0 m-3 alert alert-success shadow"
+          style={{ zIndex: 9999, minWidth: 300 }}
+        >
+          {newsletterToast}
+          <button className="btn-close ms-3 float-end" onClick={() => setNewsletterToast("")} />
+        </div>
+      )}
 
       <Navbar
         isNavbarShrink={isNavbarShrink}
         searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        setSearchQuery={(v) => { setSearchQuery(v); resetPage(); }}
         setCurrentPage={setCurrentPage}
       />
 
       {!isNavbarShrink && (
         <HeroSection
           searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
+          setSearchQuery={(v) => { setSearchQuery(v); resetPage(); }}
           setCurrentPage={setCurrentPage}
           totalProducts={totalProducts}
+          popularTerms={popularTerms}
         />
       )}
 
-      {/* ── SEO: Breadcrumb visible to users & crawlers ── */}
       <nav aria-label="breadcrumb" className="container-fluid px-3 pt-2">
         <ol className="breadcrumb mb-0 small" itemScope itemType="https://schema.org/BreadcrumbList">
           <li className="breadcrumb-item" itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
@@ -263,7 +270,7 @@ export default function Home() {
           </li>
           <li className="breadcrumb-item active" itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
             <span itemProp="name">
-              {selectedCategories.length === 1 ? selectedCategories[0] : "Preisvergleich"}
+              {selectedCategories.length === 1 ? (slugToName(categories, selectedCategories[0]) ?? selectedCategories[0]) : "Preisvergleich"}
             </span>
             <meta itemProp="position" content="2" />
           </li>
@@ -275,31 +282,27 @@ export default function Home() {
           <Sidebar
             categories={categories}
             selectedCategories={selectedCategories}
-            setSelectedCategories={(v) => { setSelectedCategories(v); setCurrentPage(1); }}
-            maxPriceFilter={maxPriceFilter}
-            setMaxPriceFilter={(v) => { setMaxPriceFilter(v); setCurrentPage(1); }}
+            setSelectedCategories={(v) => { setSelectedCategories(v); resetPage(); }}
+            maxPriceFilter={maxPriceFilter ?? defaultMaxPrice}
+            setMaxPriceFilter={(v) => { setMaxPriceFilter(v); resetPage(); }}
             defaultMaxPrice={defaultMaxPrice}
             formatPrice={formatPrice}
             showOutOfStock={showOutOfStock}
-            setShowOutOfStock={(v) => { setShowOutOfStock(v); setCurrentPage(1); }}
+            setShowOutOfStock={(v) => { setShowOutOfStock(v); resetPage(); }}
             showInactiveProducts={showInactiveProducts}
-            setShowInactiveProducts={(v) => { setShowInactiveProducts(v); setCurrentPage(1); }}
+            setShowInactiveProducts={(v) => { setShowInactiveProducts(v); resetPage(); }}
             activeFromFilter={activeFromFilter}
-            setActiveFromFilter={(v) => { setActiveFromFilter(v); setCurrentPage(1); }}
+            setActiveFromFilter={(v) => { setActiveFromFilter(v); resetPage(); }}
             activeUntilFilter={activeUntilFilter}
-            setActiveUntilFilter={(v) => { setActiveUntilFilter(v); setCurrentPage(1); }}
+            setActiveUntilFilter={(v) => { setActiveUntilFilter(v); resetPage(); }}
           />
 
-          {/* ── Semantic main landmark for accessibility & SEO ── */}
           <main className="col-12 col-md-9 col-lg-10" role="main">
-
-            {/* ── SEO: H1 with keyword, shown only once ── */}
             <h1 className="visually-hidden">
               Preisvergleich Deutschland – Günstige Preise für{" "}
-              {selectedCategories.length > 0 ? selectedCategories.join(", ") : "alle Produkte"}
+              {selectedCategories.length > 0 ? selectedCategories.map((s) => slugToName(categories, s) ?? s).join(", ") : "alle Produkte"}
             </h1>
 
-            {/* Sort + result count */}
             <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
               <p className="text-muted small mb-0">
                 <strong>{totalProducts.toLocaleString("de-DE")}</strong> Produkte gefunden
@@ -309,7 +312,7 @@ export default function Home() {
                 <select
                   id="sortSelect"
                   value={sortOption}
-                  onChange={(e) => { setSortOption(e.target.value); setCurrentPage(1); }}
+                  onChange={(e) => { setSortOption(e.target.value); resetPage(); }}
                   className="form-select"
                   style={{ minWidth: 200 }}
                   aria-label="Produkte sortieren"
@@ -321,19 +324,17 @@ export default function Home() {
               </div>
             </div>
 
-            <ProductGrid
-              products={paginatedProducts}
-              onOpenProduct={openProduct}
-              formatPrice={formatPrice}
+            <DealAlertBanner
+              searchQuery={searchQuery}
+              categorySlug={selectedCategories[0] ?? null}
+              maxPrice={maxPriceFilter !== defaultMaxPrice ? maxPriceFilter : null}
             />
 
-            <Pagination
-              currentPage={currentPage}
-              pageCount={pageCount}
-              setCurrentPage={setCurrentPage}
-            />
+            <ProductGrid products={products} onOpenProduct={openProduct} formatPrice={formatPrice} />
 
-            <LastSeen formatPrice={formatPrice} onOpenProduct={openProduct} />
+            <Pagination currentPage={currentPage} pageCount={pageCount} setCurrentPage={setCurrentPage} />
+
+            <LastSeen onOpenProduct={openProduct} />
 
             <LowestPriceSection
               visibleLowestProducts={visibleLowestProducts}
@@ -341,17 +342,11 @@ export default function Home() {
               setLowestStartIndex={setLowestStartIndex}
               lowestPriceProductsLength={lowestPriceProducts.length}
               visibleLowestCount={visibleLowestCount}
-              formatPrice={formatPrice}
               onOpenProduct={openProduct}
             />
 
-            <OffersSection
-              activeOffers={activeOffers}
-              formatPrice={formatPrice}
-              countdown={countdown}
-            />
+            <OffersSection activeOffers={activeOffers} countdown={countdown} />
 
-            {/* ── SEO: Static keyword-rich text block for crawlers ── */}
             <section className="mt-5 pt-4 border-top" aria-label="Über Preisgucken">
               <div className="row">
                 <div className="col-12 col-md-4 mb-3">
@@ -383,6 +378,7 @@ export default function Home() {
         </div>
       </div>
 
+      <NewsletterSection />
       <Footer />
     </>
   );
