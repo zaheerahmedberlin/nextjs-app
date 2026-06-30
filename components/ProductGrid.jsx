@@ -19,7 +19,7 @@ function ProductSchema({ product }) {
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
       url: product.url,
-      priceValidUntil: new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
+      priceValidUntil: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
       seller: { "@type": "Organization", name: product.vendor || "Händler" },
     },
   };
@@ -48,8 +48,6 @@ export default function ProductGrid({ products, onOpenProduct, formatPrice }) {
           <article
             key={`${product.id}-${index}`}
             className="col-6 col-sm-4 col-md-3 col-lg-2"
-            itemScope
-            itemType="https://schema.org/Product"
           >
             {index < 12 && <ProductSchema product={product} />}
 
@@ -60,11 +58,11 @@ export default function ProductGrid({ products, onOpenProduct, formatPrice }) {
                   src={product.image || "/placeholder.png"}
                   className="card-img-top"
                   alt={`${product.title} – Preisvergleich`}
-                  loading="lazy"
+                  loading={index < 6 ? "eager" : "lazy"}
+                  fetchPriority={index < 3 ? "high" : "auto"}
                   width={300}
                   height={150}
                   onError={(e) => { e.target.src = "/placeholder.png"; }}
-                  itemProp="image"
                   style={{ opacity: product.in_stock ? 1 : 0.5 }}
                 />
                 {/* ── Not in stock overlay badge ── */}
@@ -112,17 +110,10 @@ export default function ProductGrid({ products, onOpenProduct, formatPrice }) {
                   {product.title}
                 </h3>
                 {product.vendor && (
-                  <p className="small text-muted mb-1" itemProp="brand">{product.vendor}</p>
+                  <p className="small text-muted mb-1">{product.vendor}</p>
                 )}
 
-                <div
-                  itemProp="offers"
-                  itemScope
-                  itemType="https://schema.org/Offer"
-                >
-                  <meta itemProp="price" content={parseFloat(product.price)} />
-                  <meta itemProp="priceCurrency" content="EUR" />
-                  <meta itemProp="availability" content={product.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"} />
+                <div>
                   <PriceDisplay price={product.price} oldPrice={product.old_price} size="sm" />
                 </div>
 

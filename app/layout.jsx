@@ -12,7 +12,7 @@ export const metadata = {
     template: "%s | Preisgucken – Preisvergleich",
   },
   description:
-    "Preisvergleich für über 400 Millionen Produkte in Deutschland. Finden Sie die günstigsten Preise für Elektronik, Möbel, Mode und mehr. Kostenlos & aktuell.",
+    "Preisvergleich für Elektronik, Möbel und mehr aus deutschen Online-Shops. Günstigste Preise täglich aktualisiert – kostenlos & ohne Anmeldung.",
 
   // ── Keywords (German market focused) ──────────────────────
   keywords: [
@@ -110,7 +110,7 @@ export default function RootLayout({ children }) {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${BASE_URL}/suche?q={search_term_string}`,
+        urlTemplate: `${BASE_URL}/?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },
@@ -143,9 +143,14 @@ export default function RootLayout({ children }) {
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
         />
 
-        {/* Favicon */}
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* Favicon & PWA */}
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/preis-gucken-logo.png" />
+        <meta name="theme-color" content="#1A3A6B" />
+        <link rel="manifest" href="/manifest.json" />
+
+        {/* Preload LCP image (logo) */}
+        <link rel="preload" as="image" href="/preis-gucken-logo.png" />
       </head>
       <body>
         {children}

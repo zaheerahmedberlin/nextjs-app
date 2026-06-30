@@ -2,9 +2,16 @@
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
+  // Slugs match the real categories table
   const categories = [
-    "Elektronik", "Smartphones", "Laptops & Computer", "TV & Audio",
-    "Haushaltsgeräte", "Möbel & Wohnen", "Mode & Bekleidung", "Sport & Freizeit",
+    { name: "Schlafen",        slug: "schlafen"    },
+    { name: "Sitzen & Liegen", slug: "sitzen"      },
+    { name: "Aufbewahrung",    slug: "aufbewahrung"},
+    { name: "Tische",          slug: "tische"      },
+    { name: "Leuchten",        slug: "leuchten"    },
+    { name: "Küche",           slug: "kueche"      },
+    { name: "Bad",             slug: "bad"         },
+    { name: "Elektronik",      slug: "elektronik"  },
   ];
 
   return (
@@ -30,10 +37,9 @@ export default function Footer() {
             <h3 className="h6 fw-bold">Kategorien</h3>
             <ul className="list-unstyled row">
               {categories.map((cat) => (
-                <li key={cat} className="col-6">
-                  <a href={`/kategorie/${cat.toLowerCase().replace(/ & /g, "-").replace(/ /g, "-")}`}
-                    className="text-decoration-none text-muted small">
-                    {cat}
+                <li key={cat.slug} className="col-6">
+                  <a href={`/kategorie/${cat.slug}`} className="text-decoration-none text-muted small">
+                    {cat.name}
                   </a>
                 </li>
               ))}

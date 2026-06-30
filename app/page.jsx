@@ -73,7 +73,46 @@ const breadcrumbSchema = {
   "@type": "BreadcrumbList",
   itemListElement: [
     { "@type": "ListItem", position: 1, name: "Startseite", item: "https://www.preisgucken.de" },
-    { "@type": "ListItem", position: 2, name: "Preisvergleich", item: "https://www.preisgucken.de/vergleich" },
+    { "@type": "ListItem", position: 2, name: "Preisvergleich", item: "https://www.preisgucken.de/preisvergleich" },
+  ],
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "Wie funktioniert Preisgucken?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Preisgucken sammelt täglich Preise von großen deutschen Online-Shops und zeigt Ihnen auf einen Blick, wo ein Produkt gerade am günstigsten ist. Einfach Produkt suchen, Preise vergleichen und direkt zum günstigsten Anbieter klicken – kostenlos und ohne Anmeldung.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Ist Preisgucken kostenlos?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Ja, Preisgucken ist für Verbraucher vollständig kostenlos. Wir verdienen eine kleine Provision, wenn Sie über unsere Links einkaufen – für Sie entstehen dadurch keine Mehrkosten.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Welche Shops werden verglichen?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Wir vergleichen Preise von bekannten deutschen Online-Shops wie Amazon, Home24, XXXLutz, Westwing, Mirjan24 und MediaMarkt. Das Sortiment wird regelmäßig erweitert.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Wie aktuell sind die Preise?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Unsere Preise werden täglich automatisch aktualisiert. Da Preise sich kurzfristig ändern können, empfehlen wir, den aktuellen Preis vor dem Kauf noch einmal direkt beim Händler zu prüfen.",
+      },
+    },
   ],
 };
 
@@ -233,6 +272,7 @@ export default function Home() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
       {/* Newsletter confirmation toast */}
       {newsletterToast && (
@@ -347,31 +387,54 @@ export default function Home() {
 
             <OffersSection activeOffers={activeOffers} countdown={countdown} />
 
+            {/* ── SEO editorial block ── */}
             <section className="mt-5 pt-4 border-top" aria-label="Über Preisgucken">
               <div className="row">
                 <div className="col-12 col-md-4 mb-3">
-                  <h2 className="h6 fw-bold">🔍 Preise vergleichen & sparen</h2>
+                  <h2 className="h6 fw-bold">Preise vergleichen &amp; sparen</h2>
                   <p className="text-muted small">
-                    Preisgucken ist Ihr kostenloser Preisvergleich für Deutschland. Wir zeigen
-                    Ihnen tagesaktuelle Preise von hunderten Online-Shops – damit Sie immer den
-                    günstigsten Preis finden.
+                    Preisgucken ist Ihr kostenloser <strong>Preisvergleich für Deutschland</strong>.
+                    Wir zeigen Ihnen tagesaktuelle Preise aus deutschen Online-Shops – damit Sie
+                    immer den günstigsten Preis finden.
                   </p>
                 </div>
                 <div className="col-12 col-md-4 mb-3">
-                  <h2 className="h6 fw-bold">🛒 Alle Kategorien im Vergleich</h2>
+                  <h2 className="h6 fw-bold">Kategorien im Vergleich</h2>
                   <p className="text-muted small">
-                    Von Elektronik über Möbel bis Mode – vergleichen Sie Preise in allen
-                    Produktkategorien. Sparen Sie beim Online-Einkauf in Deutschland, Österreich
-                    und der Schweiz.
+                    Von <a href="/kategorie/elektronik" className="text-muted">Elektronik</a> über{" "}
+                    <a href="/kategorie/schlafen" className="text-muted">Möbel &amp; Schlafen</a> bis{" "}
+                    <a href="/kategorie/sitzen" className="text-muted">Sitzen &amp; Liegen</a> –
+                    vergleichen Sie Preise in allen Produktkategorien und sparen Sie beim
+                    Online-Einkauf.
                   </p>
                 </div>
                 <div className="col-12 col-md-4 mb-3">
-                  <h2 className="h6 fw-bold">💡 Wie funktioniert der Preisvergleich?</h2>
+                  <h2 className="h6 fw-bold">Wie funktioniert der Preisvergleich?</h2>
                   <p className="text-muted small">
                     Einfach Produkt suchen, Preise vergleichen, zum günstigsten Anbieter
                     weiterklicken – fertig. Preisgucken ist kostenlos und ohne Anmeldung nutzbar.
                   </p>
                 </div>
+              </div>
+            </section>
+
+            {/* ── FAQ section (matches FAQPage schema above) ── */}
+            <section className="mt-4 pt-4 border-top" aria-label="Häufige Fragen" itemScope itemType="https://schema.org/FAQPage">
+              <h2 className="h5 fw-bold mb-3">Häufige Fragen zum Preisvergleich</h2>
+              <div className="row g-3">
+                {[
+                  { q: "Wie funktioniert Preisgucken?",   a: "Preisgucken sammelt täglich Preise von großen deutschen Online-Shops und zeigt Ihnen auf einen Blick, wo ein Produkt gerade am günstigsten ist. Einfach Produkt suchen, Preise vergleichen und direkt zum günstigsten Anbieter klicken – kostenlos und ohne Anmeldung." },
+                  { q: "Ist Preisgucken kostenlos?",      a: "Ja, Preisgucken ist für Verbraucher vollständig kostenlos. Wir verdienen eine kleine Provision, wenn Sie über unsere Links einkaufen – für Sie entstehen dadurch keine Mehrkosten." },
+                  { q: "Welche Shops werden verglichen?", a: "Wir vergleichen Preise von bekannten deutschen Online-Shops wie Amazon, Home24, XXXLutz, Westwing, Mirjan24 und MediaMarkt. Das Sortiment wird regelmäßig erweitert." },
+                  { q: "Wie aktuell sind die Preise?",    a: "Unsere Preise werden täglich automatisch aktualisiert. Da Preise sich kurzfristig ändern können, empfehlen wir, den aktuellen Preis vor dem Kauf noch einmal direkt beim Händler zu prüfen." },
+                ].map(({ q, a }) => (
+                  <div key={q} className="col-12 col-md-6" itemScope itemType="https://schema.org/Question" itemProp="mainEntity">
+                    <h3 className="h6 fw-semibold mb-1" itemProp="name">{q}</h3>
+                    <div itemScope itemType="https://schema.org/Answer" itemProp="acceptedAnswer">
+                      <p className="text-muted small mb-0" itemProp="text">{a}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
           </main>
