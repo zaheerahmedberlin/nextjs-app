@@ -54,8 +54,24 @@ export async function GET(request) {
     }
 
     if (category) {
-      params.push(category);
-      conditions.push(`p.category = $${params.length}`);
+      // Support comma-separated slugs e.g. "sofas,betten" or single slug
+      const slugs = category.split(",").map((s) => s.trim()).filter(Boolean);
+      if (slugs.length === 1) {
+        // Match the category itself OR any of its children
+        params.push(slugs[0]);
+        conditions.push(`p.category_id IN (
+          SELECT id FROM categories WHERE slug = $${params.length}
+          UNION
+          SELECT id FROM categories WHERE parent_id = (SELECT id FROM categories WHERE slug = $${params.length})
+        )`);
+      } else {
+        params.push(slugs);
+        conditions.push(`p.category_id IN (
+          SELECT id FROM categories WHERE slug = ANY($${params.length})
+          UNION
+          SELECT id FROM categories WHERE parent_id IN (SELECT id FROM categories WHERE slug = ANY($${params.length}))
+        )`);
+      }
     }
 
     if (maxPrice < 999999) {
@@ -71,7 +87,7 @@ export async function GET(request) {
       q ? "ts_rank(p.search_vector, plainto_tsquery('german', unaccent($1))) DESC" :
       "p.updated_at DESC";
 
-    const countResult = await query(`SELECT COUNT(*) FROM products p ${where}`, params);
+    const countResult = await query(`SELECT COUNT(*) FROM products p LEFT JOIN vendors v ON v.id = p.vendor_id ${where}`, params);
     const total = parseInt(countResult.rows[0].count);
 
     params.push(pgLimit, offset);
@@ -79,10 +95,12 @@ export async function GET(request) {
       `SELECT
         p.id, p.title, p.description, p.image, p.url,
         p.price, p.old_price, p.currency,
-        p.category, p.vendor, p.ean,
+        p.category, p.ean,
+        v.name AS vendor, v.logo_url AS vendor_logo,
         p.in_stock, p.is_active,
         p.active_from, p.active_until, p.updated_at
       FROM products p
+      LEFT JOIN vendors v ON v.id = p.vendor_id
       ${where}
       ORDER BY ${orderBy}
       LIMIT $${params.length - 1} OFFSET $${params.length}`,
