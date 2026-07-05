@@ -171,9 +171,10 @@ export default function Home() {
     fetch("/api/categories")
       .then((r) => r.json())
       .then((data) => {
-        setCategories(data);
+        const tree = Array.isArray(data) ? data : [];
+        setCategories(tree);
         // Popular terms: leaf categories with most products
-        const leaves = data.flatMap((c) => c.children?.length > 0 ? c.children : [c]);
+        const leaves = tree.flatMap((c) => c.children?.length > 0 ? c.children : [c]);
         setPopularTerms(leaves.sort((a, b) => b.productCount - a.productCount).slice(0, 6).map((c) => c.name));
       })
       .catch(() => {});
