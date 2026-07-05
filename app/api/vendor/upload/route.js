@@ -3,8 +3,6 @@ import { requireVendor } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { extractHeaders } from "@/lib/vendorFileParser";
 
-export const config = { api: { bodyParser: false } };
-
 // POST /api/vendor/upload
 // Phase 1: receive file, extract column headers, return for mapping UI.
 // File is NOT stored yet — just parsed for headers.
