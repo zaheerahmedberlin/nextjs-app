@@ -2,7 +2,6 @@
 // Server-rendered category landing page — fully indexable by Google
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
-import CategoryPageClient from "./CategoryPageClient";
 
 const BASE_URL = "https://www.preisgucken.de";
 
