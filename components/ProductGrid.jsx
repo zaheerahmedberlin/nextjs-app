@@ -119,10 +119,9 @@ export default function ProductGrid({ products, onOpenProduct, formatPrice }) {
 
                 {/* ── Stock status indicator ── */}
                 <p className="mb-1" style={{ fontSize: "0.72rem" }}>
-                  {product.in_stock
-                    ? <span className="text-success">✓ Auf Lager</span>
-                    : <span className="text-danger">✗ Nicht auf Lager</span>
-                  }
+                  <span className="badge" style={{ background: "var(--pg-orange)", color: "#fff", fontWeight: 600, fontSize: "0.68rem", borderRadius: 20, padding: "2px 8px" }}>
+                    Preis prüfen →
+                  </span>
                 </p>
 
                 {/* ── Activation schedule display ── */}

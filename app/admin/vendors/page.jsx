@@ -16,6 +16,11 @@ export default function VendorsAdmin() {
   const [form, setForm]         = useState(EMPTY);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState("");
+  const [pwModal, setPwModal]   = useState(null); // vendor object | null
+  const [pwForm, setPwForm]     = useState({ email: "", password: "" });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError]   = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => { if (!r.ok) router.push("/admin/login"); });
@@ -64,6 +69,36 @@ export default function VendorsAdmin() {
     loadVendors();
   }
 
+  function openPwModal(v) {
+    setPwForm({ email: v.email || v.contact_email || "", password: "" });
+    setPwError("");
+    setPwSuccess("");
+    setPwModal(v);
+  }
+
+  async function saveVendorAccess() {
+    if (!pwForm.email || !pwForm.password) {
+      setPwError("E-Mail und Passwort erforderlich.");
+      return;
+    }
+    if (pwForm.password.length < 8) {
+      setPwError("Passwort muss mindestens 8 Zeichen haben.");
+      return;
+    }
+    setPwSaving(true);
+    setPwError("");
+    const res  = await fetch(`/api/admin/vendors/${pwModal.id}/access`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ email: pwForm.email, password: pwForm.password }),
+    });
+    const data = await res.json();
+    setPwSaving(false);
+    if (!res.ok) { setPwError(data.error || "Fehler"); return; }
+    setPwSuccess("Portal-Zugang gespeichert ✓");
+    loadVendors();
+  }
+
   async function toggleActive(v) {
     await fetch(`/api/admin/vendors/${v.id}`, {
       method:  "PATCH",
@@ -71,6 +106,28 @@ export default function VendorsAdmin() {
       body:    JSON.stringify({ is_active: !v.is_active }),
     });
     loadVendors();
+  }
+
+  async function handleVendorAction(v, action) {
+    if (action === "edit")        return openEdit(v);
+    if (action === "portal")      return openPwModal(v);
+    if (action === "toggle")      return toggleActive(v);
+    if (action === "pause_products") {
+      await fetch(`/api/admin/vendors/${v.id}/products`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ is_active: false }),
+      });
+      loadVendors();
+    }
+    if (action === "resume_products") {
+      await fetch(`/api/admin/vendors/${v.id}/products`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ is_active: true }),
+      });
+      loadVendors();
+    }
   }
 
   async function logout() {
@@ -87,6 +144,7 @@ export default function VendorsAdmin() {
         <div className="ms-3 d-flex gap-3">
           <a href="/admin/billing" className="btn btn-sm btn-outline-secondary">Billing</a>
           <a href="/admin/vendors" className="btn btn-sm btn-primary">Vendors</a>
+          <a href="/admin/uploads" className="btn btn-sm btn-outline-secondary">Uploads</a>
         </div>
         <button className="btn btn-sm btn-outline-secondary ms-auto" onClick={logout}>Abmelden</button>
       </nav>
@@ -108,6 +166,7 @@ export default function VendorsAdmin() {
                     <th>Vendor</th>
                     <th>Kontakt</th>
                     <th className="text-end">Produkte</th>
+                    <th className="text-center">Produkt-Status</th>
                     <th className="text-end">Klicks</th>
                     <th className="text-end">Billed</th>
                     <th className="text-end">Rate/Klick</th>
@@ -130,6 +189,22 @@ export default function VendorsAdmin() {
                       </td>
                       <td className="small text-muted">{v.contact_email || "—"}</td>
                       <td className="text-end">{parseInt(v.product_count).toLocaleString("de-DE")}</td>
+                      <td className="text-center">
+                        {parseInt(v.product_count) === 0 ? (
+                          <span className="text-muted small">—</span>
+                        ) : (
+                          <div className="d-flex align-items-center justify-content-center gap-1">
+                            <span className="badge bg-success" title="Aktive Produkte">
+                              ✓ {parseInt(v.active_products || 0).toLocaleString("de-DE")}
+                            </span>
+                            {parseInt(v.paused_products) > 0 && (
+                              <span className="badge bg-warning text-dark" title="Pausierte Produkte">
+                                ⏸ {parseInt(v.paused_products).toLocaleString("de-DE")}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
                       <td className="text-end">{parseInt(v.total_clicks).toLocaleString("de-DE")}</td>
                       <td className="text-end fw-semibold" style={{ color: "var(--pg-orange)" }}>{fmt(v.total_billed_eur || 0)}</td>
                       <td className="text-end small">{fmtRate(v.billing_rate)}</td>
@@ -139,16 +214,20 @@ export default function VendorsAdmin() {
                           {v.is_active ? "Aktiv" : "Inaktiv"}
                         </span>
                       </td>
-                      <td>
-                        <div className="d-flex gap-2 justify-content-end">
-                          <button className="btn btn-sm btn-outline-secondary" onClick={() => openEdit(v)}>Bearbeiten</button>
-                          <button
-                            className={`btn btn-sm ${v.is_active ? "btn-outline-danger" : "btn-outline-success"}`}
-                            onClick={() => toggleActive(v)}
-                          >
-                            {v.is_active ? "Deaktivieren" : "Aktivieren"}
-                          </button>
-                        </div>
+                      <td className="pe-3">
+                        <select
+                          className="form-select form-select-sm"
+                          style={{ minWidth: 160 }}
+                          value=""
+                          onChange={e => { handleVendorAction(v, e.target.value); e.target.value = ""; }}
+                        >
+                          <option value="" disabled>Aktion wählen…</option>
+                          <option value="edit">✏️ Bearbeiten</option>
+                          <option value="portal">{v.email ? "🔑 Portal-Zugang ✓" : "🔑 Portal-Zugang"}</option>
+                          <option value="toggle">{v.is_active ? "⏸ Vendor pausieren" : "▶️ Vendor aktivieren"}</option>
+                          <option value="pause_products">🚫 Alle Produkte pausieren</option>
+                          <option value="resume_products">✅ Alle Produkte aktivieren</option>
+                        </select>
                       </td>
                     </tr>
                   ))}
@@ -158,6 +237,55 @@ export default function VendorsAdmin() {
           </div>
         )}
       </div>
+
+      {/* Portal-Zugang Modal */}
+      {pwModal && (
+        <div className="modal d-block" style={{ background: "rgba(0,0,0,0.4)" }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h6 className="modal-title fw-bold" style={{ color: "var(--pg-blue)" }}>
+                  Portal-Zugang: {pwModal.name}
+                </h6>
+                <button className="btn-close" onClick={() => setPwModal(null)} />
+              </div>
+              <div className="modal-body">
+                {pwError   && <div className="alert alert-danger  py-2 small">{pwError}</div>}
+                {pwSuccess && <div className="alert alert-success py-2 small">{pwSuccess}</div>}
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold">Login E-Mail</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={pwForm.email}
+                    onChange={e => setPwForm(f => ({ ...f, email: e.target.value }))}
+                    placeholder="vendor@example.de"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold">Neues Passwort</label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    value={pwForm.password}
+                    onChange={e => setPwForm(f => ({ ...f, password: e.target.value }))}
+                    placeholder="Mindestens 8 Zeichen"
+                  />
+                </div>
+                <p className="text-muted small mb-0">
+                  Vendor kann sich danach unter <code>/vendor/login</code> anmelden.
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-outline-secondary" onClick={() => setPwModal(null)}>Schließen</button>
+                <button className="btn btn-primary" onClick={saveVendorAccess} disabled={pwSaving}>
+                  {pwSaving ? "Speichern…" : "Zugang speichern"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {modal !== null && (

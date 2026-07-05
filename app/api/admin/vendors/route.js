@@ -12,11 +12,13 @@ export async function GET() {
     const result = await query(`
       SELECT
         v.*,
-        COUNT(DISTINCT p.id)  AS product_count,
-        COUNT(DISTINCT ce.id) AS total_clicks,
-        COUNT(DISTINCT ce.id) * v.billing_rate AS total_billed_eur
+        COUNT(DISTINCT p.id)                                      AS product_count,
+        COUNT(DISTINCT p.id) FILTER (WHERE p.is_active = TRUE)   AS active_products,
+        COUNT(DISTINCT p.id) FILTER (WHERE p.is_active = FALSE)  AS paused_products,
+        COUNT(DISTINCT ce.id)                                     AS total_clicks,
+        COUNT(DISTINCT ce.id) * v.billing_rate                   AS total_billed_eur
       FROM vendors v
-      LEFT JOIN products    p  ON p.vendor_id  = v.id
+      LEFT JOIN products     p  ON p.vendor_id  = v.id
       LEFT JOIN click_events ce ON ce.vendor_id = v.id
       GROUP BY v.id
       ORDER BY v.name
