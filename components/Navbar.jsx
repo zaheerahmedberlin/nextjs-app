@@ -8,8 +8,18 @@
 // like <Navbar isNavbarShrink={true} />.
 // ============================================================
 "use client";
+import { useState, useEffect } from "react";
 
-export default function Navbar({ isNavbarShrink, searchQuery, setSearchQuery, setCurrentPage }) {
+export default function Navbar({ isNavbarShrink, searchQuery, setSearchQuery, setCurrentPage, onCategorySelect }) {
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then(r => r.json())
+      .then(data => setCategories(Array.isArray(data) ? data.filter(c => c.productCount > 0).slice(0, 8) : []))
+      .catch(() => {});
+  }, []);
+
   return (
     <nav
       className={`navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top transition-all${
@@ -43,48 +53,23 @@ export default function Navbar({ isNavbarShrink, searchQuery, setSearchQuery, se
 
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-            <li className="nav-item nav-center">
-              <a className="nav-link" href="#">
-                <i className="bi bi-plugin custom-icon"></i>
-                <br />
-                Elektro
-              </a>
-            </li>
-            <li className="nav-item nav-center">
-              <a className="nav-link" href="#">
-                <i className="bi bi-balloon custom-icon"></i>
-                <br />
-                Baby World
-              </a>
-            </li>
-            <li className="nav-item nav-center">
-              <a className="nav-link" href="#">
-                <i className="bi bi-arrow-through-heart-fill custom-icon"></i>
-                <br />
-                Hochzeit
-              </a>
-            </li>
-            <li className="nav-item nav-center">
-              <a className="nav-link" href="#">
-                <i className="bi bi-incognito custom-icon"></i>
-                <br />
-                Mode &amp; Accessories
-              </a>
-            </li>
-            <li className="nav-item nav-center">
-              <a className="nav-link" href="#">
-                <i className="bi bi-person-wheelchair custom-icon"></i>
-                <br />
-                Hilfsmittel für behinderte
-              </a>
-            </li>
-            <li className="nav-item nav-center">
-              <a className="nav-link" href="#">
-                <i className="bi bi-car-front custom-icon"></i>
-                <br />
-                Auto
-              </a>
-            </li>
+            {categories.map(cat => (
+              <li key={cat.id} className="nav-item nav-center">
+                <a
+                  className="nav-link"
+                  href={`/kategorie/${cat.slug}`}
+                  onClick={e => {
+                    if (onCategorySelect) {
+                      e.preventDefault();
+                      onCategorySelect(cat.slug);
+                    }
+                  }}
+                >
+                  {cat.icon && <><i className={`bi ${cat.icon} custom-icon`} /><br /></>}
+                  {cat.name}
+                </a>
+              </li>
+            ))}
           </ul>
 
           <div
