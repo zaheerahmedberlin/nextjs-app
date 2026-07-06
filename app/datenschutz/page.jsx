@@ -19,7 +19,7 @@ export default function DatenschutzPage() {
         <section className="mb-4">
           <h2 className="h5 fw-bold">1. Verantwortlicher</h2>
           <p className="small text-muted">
-            Zaheer Ahmed, Preisgucken, [Straße], [PLZ] Berlin<br />
+            Preisgucken™, Inhaber: Zaheer Ahmed, Ollenhauerstr. 95A, 13403 Berlin<br />
             E-Mail: <a href="mailto:b2b@preisgucken.de">b2b@preisgucken.de</a>
           </p>
         </section>
