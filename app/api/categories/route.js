@@ -38,10 +38,11 @@ export async function GET() {
     const parents  = rows.filter((r) => !r.parentId);
     const children = rows.filter((r) =>  r.parentId);
 
-    const tree = parents.map((parent) => ({
-      ...parent,
-      children: children.filter((c) => c.parentId === parent.id),
-    }));
+    const tree = parents.map((parent) => {
+      const kids = children.filter((c) => c.parentId === parent.id);
+      const totalCount = kids.reduce((sum, c) => sum + c.productCount, 0) || parent.productCount;
+      return { ...parent, productCount: totalCount, children: kids };
+    });
 
     await cacheSet(cacheKey, tree, 3600);
     return NextResponse.json(tree);
