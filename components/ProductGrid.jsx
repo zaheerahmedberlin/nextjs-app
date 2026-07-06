@@ -1,6 +1,7 @@
 // components/ProductGrid.jsx
 "use client";
 import PriceDisplay from "@/components/PriceDisplay";
+import ProductImage from "@/components/ProductImage";
 
 function ProductSchema({ product }) {
   const schema = {
@@ -54,17 +55,9 @@ export default function ProductGrid({ products, onOpenProduct, formatPrice }) {
             <div className={`card h-100 shadow-sm ${!product.is_active ? "opacity-50" : ""}`}>
               {/* ── Out of stock badge ── */}
               <div className="position-relative">
-                <img
-                  src={product.image || "/placeholder.png"}
-                  className="card-img-top"
-                  alt={`${product.title} – Preisvergleich`}
-                  loading={index < 6 ? "eager" : "lazy"}
-                  fetchPriority={index < 3 ? "high" : "auto"}
-                  width={300}
-                  height={150}
-                  onError={(e) => { e.target.src = "/placeholder.png"; }}
-                  style={{ opacity: product.in_stock ? 1 : 0.5 }}
-                />
+                <div style={{ opacity: product.in_stock ? 1 : 0.5 }}>
+                  <ProductImage src={product.image} alt={`${product.title} – Preisvergleich`} height={150} />
+                </div>
                 {/* ── Not in stock overlay badge ── */}
                 {!product.in_stock && (
                   <span
