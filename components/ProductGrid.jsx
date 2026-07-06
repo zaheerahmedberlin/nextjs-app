@@ -7,6 +7,7 @@ function ProductSchema({ product }) {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.title,
+    image: product.image || "https://www.preisgucken.de/placeholder.png",
     description: product.description || product.title,
     brand: product.vendor ? { "@type": "Brand", name: product.vendor } : undefined,
     offers: {
@@ -53,12 +54,17 @@ export default function ProductGrid({ products, onOpenProduct, formatPrice }) {
             <div className={`card h-100 shadow-sm ${!product.is_active ? "opacity-50" : ""}`}>
               {/* ── Out of stock badge ── */}
               <div className="position-relative">
-                <div
-                  className="card-img-top d-flex align-items-center justify-content-center bg-light"
-                  style={{ height: 150, opacity: product.in_stock ? 1 : 0.5 }}
-                >
-                  <i className="bi bi-box-seam text-secondary" style={{ fontSize: "3rem" }}></i>
-                </div>
+                <img
+                  src={product.image || "/placeholder.png"}
+                  className="card-img-top"
+                  alt={`${product.title} – Preisvergleich`}
+                  loading={index < 6 ? "eager" : "lazy"}
+                  fetchPriority={index < 3 ? "high" : "auto"}
+                  width={300}
+                  height={150}
+                  onError={(e) => { e.target.src = "/placeholder.png"; }}
+                  style={{ opacity: product.in_stock ? 1 : 0.5 }}
+                />
                 {/* ── Not in stock overlay badge ── */}
                 {!product.in_stock && (
                   <span

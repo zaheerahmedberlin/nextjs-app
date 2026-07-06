@@ -18,9 +18,12 @@ export default function OffersSection({ activeOffers, countdown }) {
               >
                 Angebot!
               </span>
-              <div className="card-img-top d-flex align-items-center justify-content-center bg-light" style={{ height: 150 }}>
-                <i className="bi bi-box-seam text-secondary" style={{ fontSize: "3rem" }}></i>
-              </div>
+              <img
+                src={offer.image || "/placeholder.png"}
+                className="card-img-top"
+                alt={offer.title || "Angebot"}
+                onError={(e) => { e.target.src = "/placeholder.png"; }}
+              />
               <div className="card-body text-center">
                 <h6 className="text-truncate" title={offer.title}>{offer.title}</h6>
                 <p className="small text-muted">{offer.category}</p>
