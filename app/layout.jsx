@@ -1,5 +1,6 @@
 // app/layout.jsx – SEO-optimised shell for German price comparison market
 import "./globals.css";
+import CookieBanner from "@/components/CookieBanner";
 
 const BASE_URL = "https://www.preisgucken.de";
 
@@ -154,6 +155,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         {children}
+        <CookieBanner />
         <script
           src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
           async
