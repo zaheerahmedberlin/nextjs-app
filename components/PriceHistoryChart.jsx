@@ -17,7 +17,7 @@ export default function PriceHistoryChart({ productId }) {
       setEmpty(false);
 
       try {
-        const res = await fetch(`/api/products/${productId}/price-history?days=90`);
+        const res = await fetch(`/api/products/${productId}/price-history?days=30`);
         const data = await res.json();
 
         if (destroyed) return;
@@ -122,7 +122,7 @@ export default function PriceHistoryChart({ productId }) {
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-2">
-        <span className="fw-bold small" style={{ color: "#1A3A6B" }}>Preisverlauf (90 Tage)</span>
+        <span className="fw-bold small" style={{ color: "#1A3A6B" }}>Preisverlauf (30 Tage)</span>
         {stats && (
           <div className="d-flex gap-3" style={{ fontSize: "0.72rem" }}>
             <span><span style={{ color: "#2d7a3a", fontWeight: 700 }}>▼ Tief:</span> {fmt(stats.min)}</span>

@@ -7,7 +7,7 @@ export async function GET(request, { params }) {
   if (!id) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
   const { searchParams } = new URL(request.url);
-  const days = Math.min(parseInt(searchParams.get("days") || "90"), 365);
+  const days = Math.min(parseInt(searchParams.get("days") || "30"), 365);
 
   try {
     const res = await query(
