@@ -46,16 +46,16 @@ export async function GET(request) {
     }
   }
 
-  // ── Fallback: PostgreSQL trigram search ───────────────────
+  // ── PostgreSQL full-text search (German stemming) ────────
   try {
     const result = await query(`
       SELECT DISTINCT title, category, price, image
       FROM products
-      WHERE title ILIKE $1
+      WHERE search_vector @@ plainto_tsquery('german', unaccent($1))
         AND is_active = TRUE
-      ORDER BY price ASC
+      ORDER BY ts_rank(search_vector, plainto_tsquery('german', unaccent($1))) DESC
       LIMIT 8
-    `, [`%${q}%`]);
+    `, [q]);
 
     const suggestions = result.rows;
     await cacheSet(cacheKey, suggestions, 120);
