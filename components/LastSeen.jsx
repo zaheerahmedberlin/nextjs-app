@@ -40,12 +40,9 @@ export default function LastSeen({ onOpenProduct }) {
               style={{ cursor: "pointer" }}
               onClick={() => onOpenProduct(p)}
             >
-              <img
-                src={p.image || "/placeholder.png"}
-                className="card-img-top"
-                alt={p.title || "Produkt"}
-                onError={(e) => { e.target.src = "/placeholder.png"; }}
-              />
+              <div className="card-img-top d-flex align-items-center justify-content-center bg-light" style={{ height: 100 }}>
+                <i className="bi bi-box-seam text-secondary" style={{ fontSize: "2rem" }}></i>
+              </div>
               <div className="card-body p-2">
                 <h6 className="text-truncate" title={p.title}>{p.title}</h6>
                 <h6 className="text-truncate small text-muted" title={p.vendor}>{p.vendor}</h6>
