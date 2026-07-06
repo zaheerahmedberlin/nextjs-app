@@ -21,6 +21,11 @@ export default function VendorsAdmin() {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError]   = useState("");
   const [pwSuccess, setPwSuccess] = useState("");
+  const [cpModal, setCpModal]     = useState(false);
+  const [cpForm, setCpForm]       = useState({ current: "", next: "", confirm: "" });
+  const [cpError, setCpError]     = useState("");
+  const [cpSuccess, setCpSuccess] = useState("");
+  const [cpSaving, setCpSaving]   = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me").then((r) => { if (!r.ok) router.push("/admin/login"); });
@@ -130,6 +135,24 @@ export default function VendorsAdmin() {
     }
   }
 
+  async function changePassword() {
+    setCpError(""); setCpSuccess("");
+    if (!cpForm.current || !cpForm.next || !cpForm.confirm) return setCpError("Alle Felder erforderlich.");
+    if (cpForm.next !== cpForm.confirm) return setCpError("Passwörter stimmen nicht überein.");
+    if (cpForm.next.length < 8) return setCpError("Mindestens 8 Zeichen erforderlich.");
+    setCpSaving(true);
+    const res  = await fetch("/api/admin/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword: cpForm.current, newPassword: cpForm.next }),
+    });
+    const data = await res.json();
+    setCpSaving(false);
+    if (!res.ok) return setCpError(data.error || "Fehler");
+    setCpSuccess("Passwort erfolgreich geändert ✓");
+    setCpForm({ current: "", next: "", confirm: "" });
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/admin/login");
@@ -146,7 +169,10 @@ export default function VendorsAdmin() {
           <a href="/admin/vendors" className="btn btn-sm btn-primary">Vendors</a>
           <a href="/admin/uploads" className="btn btn-sm btn-outline-secondary">Uploads</a>
         </div>
-        <button className="btn btn-sm btn-outline-secondary ms-auto" onClick={logout}>Abmelden</button>
+        <div className="ms-auto d-flex gap-2">
+          <button className="btn btn-sm btn-outline-secondary" onClick={() => { setCpModal(true); setCpError(""); setCpSuccess(""); }}>🔐 Passwort</button>
+          <button className="btn btn-sm btn-outline-secondary" onClick={logout}>Abmelden</button>
+        </div>
       </nav>
 
       <div className="container py-4">
@@ -237,6 +263,46 @@ export default function VendorsAdmin() {
           </div>
         )}
       </div>
+
+      {/* Passwort ändern Modal */}
+      {cpModal && (
+        <div className="modal d-block" style={{ background: "rgba(0,0,0,0.4)" }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h6 className="modal-title fw-bold" style={{ color: "var(--pg-blue)" }}>Passwort ändern</h6>
+                <button className="btn-close" onClick={() => setCpModal(false)} />
+              </div>
+              <div className="modal-body">
+                {cpError   && <div className="alert alert-danger  py-2 small">{cpError}</div>}
+                {cpSuccess && <div className="alert alert-success py-2 small">{cpSuccess}</div>}
+                {[
+                  { label: "Aktuelles Passwort", key: "current" },
+                  { label: "Neues Passwort",     key: "next"    },
+                  { label: "Passwort bestätigen", key: "confirm" },
+                ].map(({ label, key }) => (
+                  <div className="mb-3" key={key}>
+                    <label className="form-label small fw-semibold">{label}</label>
+                    <input
+                      type="password"
+                      className="form-control"
+                      value={cpForm[key]}
+                      onChange={e => setCpForm(f => ({ ...f, [key]: e.target.value }))}
+                      placeholder="Mindestens 8 Zeichen"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-outline-secondary" onClick={() => setCpModal(false)}>Schließen</button>
+                <button className="btn btn-primary" onClick={changePassword} disabled={cpSaving}>
+                  {cpSaving ? "Speichern…" : "Passwort speichern"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Portal-Zugang Modal */}
       {pwModal && (
