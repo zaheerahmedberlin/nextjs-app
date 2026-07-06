@@ -22,7 +22,7 @@ export default function Navbar({ isNavbarShrink, searchQuery, setSearchQuery, se
 
       <div className="container-fluid px-3">
         {/* Brand / Logo */}
-        <a className="navbar-brand d-flex align-items-center" href="#">
+        <a className="navbar-brand d-flex align-items-center" href="/">
           {/* In Vue: src="/preis-gucken-logo.png" works as-is.
               In Next.js, put images in the /public folder and use the same path. */}
           <img src="/preis-gucken-logo.png" alt="Preis Gucken Logo" className="me-2 logo-img" />
