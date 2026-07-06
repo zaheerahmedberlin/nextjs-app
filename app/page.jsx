@@ -13,6 +13,7 @@ import OffersSection from "@/components/OffersSection";
 import NewsletterSection from "@/components/NewsletterSection";
 import DealAlertBanner from "@/components/DealAlertBanner";
 import Footer from "@/components/Footer";
+import ProductModal from "@/components/ProductModal";
 
 // Resolve a category slug to its display name from the tree
 function slugToName(tree, slug) {
@@ -127,6 +128,7 @@ export default function Home() {
   const [lowestStartIndex, setLowestStartIndex]         = useState(0);
   const [isNavbarShrink, setIsNavbarShrink]             = useState(false);
   const [newsletterToast, setNewsletterToast]           = useState("");
+  const [selectedProduct, setSelectedProduct]           = useState(null);
 
   // Filters
   const [searchQuery, setSearchQuery]                   = useState("");
@@ -253,17 +255,19 @@ export default function Home() {
       if (seen.length > 12) seen = seen.slice(0, 12);
       localStorage.setItem("lastSeenProducts", JSON.stringify(seen));
 
-      // Track click for billing (fire-and-forget — don't block the user)
-      fetch("/api/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: product.id, vendor: product.vendor, url: product.url }),
-      }).catch(() => {});
-
-      window.open(product.url, "_blank");
+      // Show modal with price history chart
+      setSelectedProduct(product);
     } catch (e) {
       console.error(e);
     }
+  }
+
+  function handleBuy(product) {
+    fetch("/api/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: product.id, vendor: product.vendor, url: product.url }),
+    }).catch(() => {});
   }
 
   const visibleLowestProducts = lowestPriceProducts.slice(lowestStartIndex, lowestStartIndex + visibleLowestCount);
@@ -444,6 +448,12 @@ export default function Home() {
 
       <NewsletterSection />
       <Footer />
+
+      <ProductModal
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onBuy={handleBuy}
+      />
     </>
   );
 }
