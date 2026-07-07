@@ -15,7 +15,8 @@ export async function POST(request) {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Ungültige E-Mail-Adresse" }, { status: 400 });
   }
-  if (!productId || !targetPrice || isNaN(parseFloat(targetPrice))) {
+  const parsedPrice = parseFloat(targetPrice);
+  if (!productId || !targetPrice || isNaN(parsedPrice) || parsedPrice <= 0) {
     return NextResponse.json({ error: "Produkt und Zielpreis erforderlich" }, { status: 400 });
   }
 
@@ -37,10 +38,10 @@ export async function POST(request) {
       `INSERT INTO price_alerts (email, product_id, target_price, is_active, triggered_at)
        VALUES ($1, $2, $3, TRUE, NULL)
        ON CONFLICT DO NOTHING`,
-      [email, productId, parseFloat(targetPrice)]
+      [email, productId, parsedPrice]
     );
 
-    await sendPriceAlertConfirmation({ to: email, product, targetPrice: parseFloat(targetPrice) });
+    await sendPriceAlertConfirmation({ to: email, product, targetPrice: parsedPrice });
 
     return NextResponse.json({ ok: true, message: "Preisalarm gesetzt!" });
   } catch (err) {

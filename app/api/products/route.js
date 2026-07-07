@@ -17,14 +17,12 @@ export async function GET(request) {
   const limit           = Math.min(parseInt(searchParams.get("limit") ?? "24"), 100);
   const inStockOnly     = searchParams.get("inStockOnly") !== "false";
   const includeInactive = searchParams.get("includeInactive") === "true";
-  const activeFrom      = searchParams.get("activeFrom")  ?? "";
-  const activeUntil     = searchParams.get("activeUntil") ?? "";
 
-  const cacheKey = `products:${q}:${category}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}:${activeFrom}:${activeUntil}`;
+  const cacheKey = `products:${q}:${category}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}`;
   const cached = await cacheGet(cacheKey);
   if (cached) return NextResponse.json({ ...cached, source: "cache" });
 
-  const esResult = await searchProducts({ q, category, maxPrice, sort, page, limit, inStockOnly, includeInactive, activeFrom, activeUntil });
+  const esResult = await searchProducts({ q, category, maxPrice, sort, page, limit, inStockOnly, includeInactive });
   if (esResult) {
     await cacheSet(cacheKey, esResult, 300);
     return NextResponse.json({ ...esResult, source: "elasticsearch" });
@@ -37,14 +35,7 @@ export async function GET(request) {
 
     if (!includeInactive) conditions.push("p.is_active = TRUE");
 
-    if (activeFrom) {
-      params.push(activeFrom);
-      conditions.push(`p.active_from >= $${params.length}::DATE`);
-    }
-    if (activeUntil) {
-      params.push(activeUntil);
-      conditions.push(`(p.active_until IS NULL OR p.active_until <= ($${params.length}::DATE + INTERVAL '1 day'))`);
-    }
+
 
     if (inStockOnly) conditions.push("p.in_stock = TRUE");
 
@@ -98,7 +89,15 @@ export async function GET(request) {
         p.category, p.ean,
         v.name AS vendor, v.logo_url AS vendor_logo,
         p.in_stock, p.is_active,
-        p.active_from, p.active_until, p.updated_at
+        p.active_from, p.active_until, p.updated_at, p.created_at,
+        (SELECT MIN(ph.price) FROM price_history ph
+         WHERE ph.product_id = p.id
+           AND ph.recorded_at >= CURRENT_DATE - INTERVAL '30 days'
+           AND ph.recorded_at < CURRENT_DATE
+           AND (SELECT COUNT(*) FROM price_history ph2
+                WHERE ph2.product_id = p.id
+                  AND ph2.recorded_at >= CURRENT_DATE - INTERVAL '30 days') >= 7
+        ) AS price_30d_min
       FROM products p
       LEFT JOIN vendors v ON v.id = p.vendor_id
       ${where}

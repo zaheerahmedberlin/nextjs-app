@@ -146,8 +146,12 @@ export default function RootLayout({ children }) {
 
         {/* Favicon & PWA */}
         <link rel="icon" href="/favicon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/preis-gucken-logo.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#1A3A6B" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Preisgucken" />
         <link rel="manifest" href="/manifest.json" />
 
         {/* Preload LCP image (logo) */}

@@ -139,8 +139,6 @@ export default function Home() {
   const [currentPage, setCurrentPage]                   = useState(1);
   const [showOutOfStock, setShowOutOfStock]             = useState(false);
   const [showInactiveProducts, setShowInactiveProducts] = useState(false);
-  const [activeFromFilter, setActiveFromFilter]         = useState("");
-  const [activeUntilFilter, setActiveUntilFilter]       = useState("");
 
   const visibleLowestCount = 6;
 
@@ -213,7 +211,7 @@ export default function Home() {
     debounceRef.current = setTimeout(loadProducts, 400);
     return () => clearTimeout(debounceRef.current);
   }, [searchQuery, selectedCategories, maxPriceFilter, sortOption, currentPage,
-      showOutOfStock, showInactiveProducts, activeFromFilter, activeUntilFilter]);
+      showOutOfStock, showInactiveProducts]);
 
   async function loadProducts() {
     const params = new URLSearchParams({
@@ -225,8 +223,7 @@ export default function Home() {
     });
     if (selectedCategories.length > 0) params.set("category", selectedCategories.join(","));
     if (maxPriceFilter > 0 && maxPriceFilter < defaultMaxPrice) params.set("maxPrice", maxPriceFilter);
-    if (activeFromFilter)  params.set("activeFrom",  activeFromFilter);
-    if (activeUntilFilter) params.set("activeUntil", activeUntilFilter);
+
 
     try {
       const res  = await fetch(`/api/products?${params}`);
@@ -336,10 +333,6 @@ export default function Home() {
             setShowOutOfStock={(v) => { setShowOutOfStock(v); resetPage(); }}
             showInactiveProducts={showInactiveProducts}
             setShowInactiveProducts={(v) => { setShowInactiveProducts(v); resetPage(); }}
-            activeFromFilter={activeFromFilter}
-            setActiveFromFilter={(v) => { setActiveFromFilter(v); resetPage(); }}
-            activeUntilFilter={activeUntilFilter}
-            setActiveUntilFilter={(v) => { setActiveUntilFilter(v); resetPage(); }}
           />
 
           <main className="col-12 col-md-9 col-lg-10" role="main">
