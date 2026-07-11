@@ -202,7 +202,10 @@ export default function PrintSummary({ form }) {
           <Row label="USt-IdNr." value={form.ustIdNr} />
           <Row label="Handelsregisternr." value={form.handelsregisterNr || "–"} />
           <Row label="Registergericht" value={form.handelsregisterGericht || "–"} />
-          <Row label="Anschrift" value={`${form.strasse}, ${form.plz} ${form.ort}, ${form.land}`} />
+          <Row label="Anschrift (Sitz)" value={`${form.strasse}, ${form.plz} ${form.ort}, ${form.land}`} />
+          {form.hauptniederlassungAbweichend && (
+            <Row label="Hauptniederlassung" value={`${form.hauptniederlassungStrasse}, ${form.hauptniederlassungPlz} ${form.hauptniederlassungOrt}, ${form.hauptniederlassungLand}`} />
+          )}
           <Row label="Website / Shop" value={form.website} />
           <Row label="Gründungsjahr" value={form.gruendungsjahr || "–"} />
           <Row label="Mitarbeiter" value={form.mitarbeiteranzahl || "–"} />

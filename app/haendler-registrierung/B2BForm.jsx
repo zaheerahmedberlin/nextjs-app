@@ -21,6 +21,11 @@ const INITIAL = {
   plz: "",
   ort: "",
   land: "Deutschland",
+  hauptniederlassungAbweichend: false,
+  hauptniederlassungStrasse: "",
+  hauptniederlassungPlz: "",
+  hauptniederlassungOrt: "",
+  hauptniederlassungLand: "Deutschland",
   website: "",
   gruendungsjahr: "",
   mitarbeiteranzahl: "",
@@ -422,6 +427,64 @@ export default function B2BForm() {
                   </select>
                 </Field>
               </div>
+
+              {/* ── Hauptniederlassung ── */}
+              <div className="col-12">
+                <div className="form-check mt-1 mb-1">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="hauptniederlassungAbweichend"
+                    checked={form.hauptniederlassungAbweichend}
+                    onChange={(e) => set("hauptniederlassungAbweichend", e.target.checked)}
+                  />
+                  <label className="form-check-label small" htmlFor="hauptniederlassungAbweichend">
+                    Hauptniederlassung weicht von der Unternehmensanschrift ab
+                  </label>
+                </div>
+              </div>
+
+              {form.hauptniederlassungAbweichend && (
+                <>
+                  <div className="col-12">
+                    <div className="alert alert-light border small mb-0 py-2">
+                      <i className="bi bi-building me-1" />
+                      <strong>Hauptniederlassung</strong> – z. B. abweichender Betriebssitz oder Lagerstandort
+                    </div>
+                  </div>
+                  <div className="col-12">
+                    <Field label="Straße & Hausnummer (Hauptniederlassung)">
+                      <input className="form-control" value={form.hauptniederlassungStrasse}
+                        onChange={(e) => set("hauptniederlassungStrasse", e.target.value)}
+                        placeholder="Betriebsstraße 5" />
+                    </Field>
+                  </div>
+                  <div className="col-4">
+                    <Field label="PLZ">
+                      <input className="form-control" value={form.hauptniederlassungPlz}
+                        onChange={(e) => set("hauptniederlassungPlz", e.target.value)}
+                        placeholder="10115" maxLength={10} />
+                    </Field>
+                  </div>
+                  <div className="col-5">
+                    <Field label="Stadt">
+                      <input className="form-control" value={form.hauptniederlassungOrt}
+                        onChange={(e) => set("hauptniederlassungOrt", e.target.value)}
+                        placeholder="Berlin" />
+                    </Field>
+                  </div>
+                  <div className="col-3">
+                    <Field label="Land">
+                      <select className="form-select" value={form.hauptniederlassungLand}
+                        onChange={(e) => set("hauptniederlassungLand", e.target.value)}>
+                        {["Deutschland", "Österreich", "Schweiz", "Sonstiges"].map((l) => (
+                          <option key={l} value={l}>{l}</option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                </>
+              )}
 
               <div className="col-md-6">
                 <Field label="Website / Shop-URL" required error={errors.website}>

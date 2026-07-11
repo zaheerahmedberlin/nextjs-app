@@ -19,7 +19,10 @@ export async function POST(request) {
     await query(
       `INSERT INTO b2b_registrations (
         firmenname, rechtsform, ust_id_nr, handelsregister_nr, handelsregister_gericht,
-        strasse, plz, ort, land, website, gruendungsjahr, mitarbeiteranzahl, jahresumsatz,
+        strasse, plz, ort, land,
+        hauptniederlassung_abweichend, hauptniederlassung_strasse,
+        hauptniederlassung_plz, hauptniederlassung_ort, hauptniederlassung_land,
+        website, gruendungsjahr, mitarbeiteranzahl, jahresumsatz,
         kontakt_anrede, kontakt_vorname, kontakt_nachname, kontakt_position,
         kontakt_email, kontakt_telefon,
         tech_vorname, tech_nachname, tech_email, tech_telefon,
@@ -41,7 +44,11 @@ export async function POST(request) {
       )`,
       [
         body.firmenname, body.rechtsform, body.ustIdNr, body.handelsregisterNr, body.handelsregisterGericht,
-        body.strasse, body.plz, body.ort, body.land, body.website, body.gruendungsjahr,
+        body.strasse, body.plz, body.ort, body.land,
+        body.hauptniederlassungAbweichend || false,
+        body.hauptniederlassungStrasse || null, body.hauptniederlassungPlz || null,
+        body.hauptniederlassungOrt || null, body.hauptniederlassungLand || null,
+        body.website, body.gruendungsjahr,
         body.mitarbeiteranzahl, body.jahresumsatz,
         body.anredeKontakt, body.vornameKontakt, body.nachnameKontakt, body.positionKontakt,
         body.emailKontakt, body.telefonKontakt,
