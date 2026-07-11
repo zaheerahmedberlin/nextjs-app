@@ -16,7 +16,7 @@
   <text x="78" y="64" font-family="'Arial Black',Arial,sans-serif" font-size="24" font-weight="900" fill="#1A3A6B">gucken</text>
 
   <!-- Divider + tagline -->
-  <line x1="16" y1="78" x2="173" y2="78" stroke="#eee" stroke-width="1"/>
-  <text x="16" y="88" font-family="Arial,sans-serif" font-size="7.2" fill="#bbb" letter-spacing="1">PREISVERGLEICH · DEUTSCHLAND</text>
+  <line x1="16" y1="76" x2="173" y2="76" stroke="#eee" stroke-width="1"/>
+  <text x="16" y="87" font-family="Arial,sans-serif" font-size="8.5" fill="#999" letter-spacing="0.3">PREISVERGLEICH · DEUTSCHLAND</text>
 
 </svg>
