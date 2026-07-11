@@ -23,10 +23,7 @@ export default function Navbar({ isNavbarShrink, searchQuery, setSearchQuery, se
       <div className="container-fluid px-3">
         {/* Brand / Logo */}
         <a className="navbar-brand d-flex align-items-center" href="/">
-          {/* In Vue: src="/preis-gucken-logo.png" works as-is.
-              In Next.js, put images in the /public folder and use the same path. */}
-          <img src="/preis-gucken-logo.png" alt="Preis Gucken Logo" className="me-2 logo-img" />
-          <span className="fw-bold text-primary fs-4 brand-text"></span>
+          <img src="/preisgucken_logo.svg" alt="Preisgucken.de Logo" className="me-2 logo-img" style={{ height: "48px", width: "auto" }} />
         </a>
 
         {/* Mobile toggle button */}
