@@ -23,7 +23,7 @@ export default function Navbar({ isNavbarShrink, searchQuery, setSearchQuery, se
       <div className="container-fluid px-3">
         {/* Brand / Logo */}
         <a className="navbar-brand d-flex align-items-center" href="/">
-          <img src="/preisgucken_logo.svg" alt="Preisgucken.de Logo" className="me-2 logo-img" style={{ height: "72px", width: "auto" }} />
+          <img src="/preisgucken_logo.svg" alt="Preisgucken.de Logo" className="me-2 logo-img" style={{ height: "80px", width: "auto" }} />
         </a>
 
         {/* Mobile toggle button */}
