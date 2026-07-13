@@ -294,7 +294,7 @@ export default function Home() {
         setCurrentPage={setCurrentPage}
       />
 
-      {!isNavbarShrink && (
+      <div style={{ maxHeight: isNavbarShrink ? "0" : "600px", overflow: "hidden", transition: "max-height 0.3s ease" }}>
         <HeroSection
           searchQuery={searchQuery}
           setSearchQuery={(v) => { setSearchQuery(v); resetPage(); }}
@@ -302,7 +302,7 @@ export default function Home() {
           totalProducts={totalProducts}
           popularTerms={popularTerms}
         />
-      )}
+      </div>
 
       <nav aria-label="breadcrumb" className="container-fluid px-3 pt-2">
         <ol className="breadcrumb mb-0 small" itemScope itemType="https://schema.org/BreadcrumbList">
