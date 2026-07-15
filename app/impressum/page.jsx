@@ -26,7 +26,7 @@ export default function ImpressumPage() {
         <section className="mb-4">
           <h2 className="h5 fw-bold">Kontakt</h2>
           <p className="mb-1">E-Mail: <a href="mailto:info@preisgucken.de">info@preisgucken.de</a></p>
-          <p className="mb-1">Tel: <a href="tel:+4930035055214">030 35055214</a></p>
+          <p className="mb-1">Tel: <a href="tel:+493035055214">+49 30 35055214</a></p>
           <p className="mb-0">Website: <a href="https://www.preisgucken.de">www.preisgucken.de</a></p>
         </section>
 
