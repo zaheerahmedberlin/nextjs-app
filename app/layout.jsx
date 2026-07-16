@@ -156,6 +156,13 @@ export default function RootLayout({ children }) {
 
         {/* Preload LCP image (logo) */}
         <link rel="preload" as="image" href="/preis-gucken-logo.png" />
+
+        {/* Umami Analytics (DSGVO-konform, cookieless) */}
+        <script
+          defer
+          src="https://cloud.umami.is/script.js"
+          data-website-id="e80ba141-242e-449b-b91b-59253aa91c96"
+        />
       </head>
       <body>
         {children}
