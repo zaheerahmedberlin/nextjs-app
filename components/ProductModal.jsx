@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
 import PriceDisplay from "@/components/PriceDisplay";
+import { buildAffiliateUrl } from "@/lib/affiliate";
 
 function PriceAlarmForm({ product }) {
   const [email, setEmail] = useState("");
@@ -157,7 +158,7 @@ export default function ProductModal({ product, onClose, onBuy }) {
 
           {/* CTA */}
           <a
-            href={product.url}
+            href={buildAffiliateUrl(product.url, product.vendor)}
             target="_blank"
             rel="noopener sponsored"
             onClick={() => { onBuy && onBuy(product); }}

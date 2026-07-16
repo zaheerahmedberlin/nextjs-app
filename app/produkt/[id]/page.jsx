@@ -4,6 +4,7 @@ import { query } from "@/lib/db";
 import PriceDisplay from "@/components/PriceDisplay";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
 import PriceAlarmFormClient from "@/components/PriceAlarmFormClient";
+import { buildAffiliateUrl } from "@/lib/affiliate";
 
 export async function generateMetadata({ params }) {
   const id = parseInt(params.id);
@@ -151,7 +152,7 @@ export default async function ProductDetailPage({ params }) {
             )}
 
             <a
-              href={product.url}
+              href={buildAffiliateUrl(product.url, product.vendor)}
               target="_blank"
               rel="noopener sponsored"
               className="btn fw-bold w-100 mb-2"
