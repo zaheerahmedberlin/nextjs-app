@@ -131,7 +131,9 @@ export default function Home() {
   const [selectedProduct, setSelectedProduct]           = useState(null);
 
   // Filters
-  const [searchQuery, setSearchQuery]                   = useState("");
+  const [searchQuery, setSearchQuery]                   = useState(
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") ?? "" : ""
+  );
   const [selectedCategories, setSelectedCategories]     = useState([]);
   const [sortOption, setSortOption]                     = useState("relevance");
   const [maxPriceFilter, setMaxPriceFilter]             = useState(null); // null = not yet initialised
