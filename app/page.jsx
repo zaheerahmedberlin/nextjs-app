@@ -129,6 +129,7 @@ export default function Home() {
   const [isNavbarShrink, setIsNavbarShrink]             = useState(false);
   const [newsletterToast, setNewsletterToast]           = useState("");
   const [selectedProduct, setSelectedProduct]           = useState(null);
+  const [isLoading, setIsLoading]                       = useState(true);
 
   // Filters
   const [searchQuery, setSearchQuery]                   = useState(
@@ -227,6 +228,7 @@ export default function Home() {
     if (maxPriceFilter > 0 && maxPriceFilter < defaultMaxPrice) params.set("maxPrice", maxPriceFilter);
 
 
+    setIsLoading(true);
     try {
       const res  = await fetch(`/api/products?${params}`);
       const data = await res.json();
@@ -235,6 +237,8 @@ export default function Home() {
       setPageCount(data.pageCount ?? 1);
     } catch (err) {
       console.error("loadProducts error:", err);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -370,7 +374,7 @@ export default function Home() {
               maxPrice={maxPriceFilter !== defaultMaxPrice ? maxPriceFilter : null}
             />
 
-            <ProductGrid products={products} onOpenProduct={openProduct} formatPrice={formatPrice} />
+            <ProductGrid products={products} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={isLoading} />
 
             <Pagination currentPage={currentPage} pageCount={pageCount} setCurrentPage={setCurrentPage} />
 

@@ -33,7 +33,15 @@ function ProductSchema({ product }) {
   );
 }
 
-export default function ProductGrid({ products, onOpenProduct, formatPrice }) {
+export default function ProductGrid({ products, onOpenProduct, formatPrice, isLoading }) {
+  if (isLoading) {
+    return (
+      <div className="text-center py-5" role="status" aria-live="polite">
+        <div className="spinner-border text-primary" style={{ width: "2.5rem", height: "2.5rem" }} />
+        <p className="text-muted mt-3">Produkte werden geladen…</p>
+      </div>
+    );
+  }
   if (!products.length) {
     return (
       <div className="text-center py-5" role="status" aria-live="polite">
