@@ -156,7 +156,7 @@ export default function Home() {
   // ── Init: fetch max price + categories + offers once ──────────
   useEffect(() => {
     // Max price → initialises the slider and triggers the first product fetch
-    fetch("/api/products/price-range")
+    fetch("/api/products/price-range", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         const max = parseFloat(data.max) || 10000;
