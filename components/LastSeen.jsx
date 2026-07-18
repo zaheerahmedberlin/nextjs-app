@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import PriceDisplay from "@/components/PriceDisplay";
+import ProductImage from "@/components/ProductImage";
 
 export default function LastSeen({ onOpenProduct }) {
   const [lastSeenProducts, setLastSeenProducts] = useState([]);
@@ -40,12 +41,7 @@ export default function LastSeen({ onOpenProduct }) {
               style={{ cursor: "pointer" }}
               onClick={() => onOpenProduct(p)}
             >
-              <img
-                src={p.image || "/placeholder.png"}
-                className="card-img-top"
-                alt={p.title || "Produkt"}
-                onError={(e) => { e.target.src = "/placeholder.png"; }}
-              />
+              <ProductImage src={p.image} alt={p.title || "Produkt"} height={100} />
               <div className="card-body p-2">
                 <h6 className="text-truncate" title={p.title}>{p.title}</h6>
                 <h6 className="text-truncate small text-muted" title={p.vendor}>{p.vendor}</h6>

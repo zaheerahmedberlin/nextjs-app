@@ -1,12 +1,42 @@
 // app/api/products/[id]/route.js
-// PATCH /api/products/:id  — update a product's activation schedule
-//
-// Body (JSON):
-//   { active_from: "2025-01-01T00:00:00Z", active_until: "2025-12-31T23:59:59Z" }
-//   active_until: null  → no expiry (product stays active indefinitely)
 import { query } from "@/lib/db";
 import { cacheDel } from "@/lib/redis";
 import { NextResponse } from "next/server";
+
+// GET /api/products/:id — fetch single product with price history stats
+export async function GET(request, { params }) {
+  const id = parseInt(params.id);
+  if (!id) return NextResponse.json({ error: "Invalid product id" }, { status: 400 });
+
+  try {
+    const result = await query(
+      `SELECT p.id, p.title, p.description, p.image, p.url,
+              p.price, p.old_price, p.currency,
+              p.category, p.ean, p.in_stock, p.is_active,
+              p.active_from, p.active_until, p.updated_at,
+              v.name AS vendor, v.logo_url AS vendor_logo,
+              (SELECT MIN(ph.price) FROM price_history ph
+               WHERE ph.product_id = p.id
+                 AND ph.recorded_at >= CURRENT_DATE - INTERVAL '30 days'
+                 AND ph.recorded_at < CURRENT_DATE
+                 AND (SELECT COUNT(*) FROM price_history ph2
+                      WHERE ph2.product_id = p.id
+                        AND ph2.recorded_at >= CURRENT_DATE - INTERVAL '30 days') >= 7
+              ) AS price_30d_min
+       FROM products p
+       LEFT JOIN vendors v ON v.id = p.vendor_id
+       WHERE p.id = $1`,
+      [id]
+    );
+    if (!result.rows.length) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+    return NextResponse.json({ product: result.rows[0] });
+  } catch (err) {
+    console.error("GET product error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
 
 export async function PATCH(request, { params }) {
   const id = parseInt(params.id);

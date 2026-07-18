@@ -16,16 +16,17 @@ export default function ImpressumPage() {
 
         <section className="mb-4">
           <h2 className="h5 fw-bold">Angaben gemäß § 5 TMG</h2>
-          <p className="mb-1">Zaheer Ahmed</p>
-          <p className="mb-1">Preisgucken</p>
-          <p className="mb-1">[Straße und Hausnummer]</p>
-          <p className="mb-1">[PLZ] Berlin</p>
+          <p className="mb-1 fw-bold">Preisgucken™</p>
+          <p className="mb-1">Inhaber: Zaheer Ahmed</p>
+          <p className="mb-1">Ollenhauerstr. 95A</p>
+          <p className="mb-1">13403 Berlin</p>
           <p className="mb-0">Deutschland</p>
         </section>
 
         <section className="mb-4">
           <h2 className="h5 fw-bold">Kontakt</h2>
-          <p className="mb-1">E-Mail: <a href="mailto:b2b@preisgucken.de">b2b@preisgucken.de</a></p>
+          <p className="mb-1">E-Mail: <a href="mailto:info@preisgucken.de">info@preisgucken.de</a></p>
+          <p className="mb-1">Tel: <a href="tel:+493035055214">+49 30 35055214</a></p>
           <p className="mb-0">Website: <a href="https://www.preisgucken.de">www.preisgucken.de</a></p>
         </section>
 
@@ -39,8 +40,8 @@ export default function ImpressumPage() {
         <section className="mb-4">
           <h2 className="h5 fw-bold">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
           <p className="mb-1">Zaheer Ahmed</p>
-          <p className="mb-1">[Straße und Hausnummer]</p>
-          <p className="mb-0">[PLZ] Berlin</p>
+          <p className="mb-1">Ollenhauerstr. 95A</p>
+          <p className="mb-0">13403 Berlin</p>
         </section>
 
         <section className="mb-4">

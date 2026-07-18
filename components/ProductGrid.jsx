@@ -1,6 +1,8 @@
 // components/ProductGrid.jsx
 "use client";
+import Link from "next/link";
 import PriceDisplay from "@/components/PriceDisplay";
+import ProductImage from "@/components/ProductImage";
 
 function ProductSchema({ product }) {
   const schema = {
@@ -31,7 +33,15 @@ function ProductSchema({ product }) {
   );
 }
 
-export default function ProductGrid({ products, onOpenProduct, formatPrice }) {
+export default function ProductGrid({ products, onOpenProduct, formatPrice, isLoading }) {
+  if (isLoading) {
+    return (
+      <div className="text-center py-5" role="status" aria-live="polite">
+        <div className="spinner-border text-primary" style={{ width: "2.5rem", height: "2.5rem" }} />
+        <p className="text-muted mt-3">Produkte werden geladen…</p>
+      </div>
+    );
+  }
   if (!products.length) {
     return (
       <div className="text-center py-5" role="status" aria-live="polite">
@@ -54,17 +64,27 @@ export default function ProductGrid({ products, onOpenProduct, formatPrice }) {
             <div className={`card h-100 shadow-sm ${!product.is_active ? "opacity-50" : ""}`}>
               {/* ── Out of stock badge ── */}
               <div className="position-relative">
-                <img
-                  src={product.image || "/placeholder.png"}
-                  className="card-img-top"
-                  alt={`${product.title} – Preisvergleich`}
-                  loading={index < 6 ? "eager" : "lazy"}
-                  fetchPriority={index < 3 ? "high" : "auto"}
-                  width={300}
-                  height={150}
-                  onError={(e) => { e.target.src = "/placeholder.png"; }}
-                  style={{ opacity: product.in_stock ? 1 : 0.5 }}
-                />
+                <div style={{ opacity: product.in_stock ? 1 : 0.5 }}>
+                  <ProductImage src={product.image} alt={`${product.title} – Preisvergleich`} height={150} />
+                </div>
+                {/* ── Günstigster Preis badge ── */}
+                {product.price_30d_min != null && parseFloat(product.price) <= parseFloat(product.price_30d_min) && (
+                  <span
+                    className="badge position-absolute top-0 start-0 m-1"
+                    style={{ background: "#2d7a3a", color: "#fff", fontSize: "0.65rem", borderRadius: 4 }}
+                  >
+                    ↓ Günstigster Preis
+                  </span>
+                )}
+                {/* ── Neu badge: added after launch date AND within 7 days ── */}
+                {product.created_at && new Date(product.created_at) > new Date("2026-07-25") && (Date.now() - new Date(product.created_at).getTime()) < 7 * 86400000 && (
+                  <span
+                    className="badge position-absolute top-0 end-0 m-1"
+                    style={{ background: "#F07D00", color: "#fff", fontSize: "0.65rem", borderRadius: 4 }}
+                  >
+                    Neu
+                  </span>
+                )}
                 {/* ── Not in stock overlay badge ── */}
                 {!product.in_stock && (
                   <span
@@ -107,7 +127,9 @@ export default function ProductGrid({ products, onOpenProduct, formatPrice }) {
 
               <div className="card-body p-2 d-flex flex-column justify-content-between">
                 <h3 className="h6 text-truncate mb-1" title={product.title} itemProp="name">
-                  {product.title}
+                  <Link href={`/produkt/${product.id}`} className="text-decoration-none text-dark" onClick={(e) => e.stopPropagation()}>
+                    {product.title}
+                  </Link>
                 </h3>
                 {product.vendor && (
                   <p className="small text-muted mb-1">{product.vendor}</p>
@@ -145,14 +167,26 @@ export default function ProductGrid({ products, onOpenProduct, formatPrice }) {
                   </p>
                 )}
 
-                <button
-                  className="btn btn-sm btn-outline-secondary mt-1"
-                  onClick={() => onOpenProduct(product)}
-                  disabled={!product.in_stock || !product.is_active}
-                  aria-label={`${product.title} anzeigen – ${formatPrice(product.price)}`}
-                >
-                  {product.in_stock && product.is_active ? "Zum Angebot →" : "Nicht verfügbar"}
-                </button>
+                <div className="d-flex gap-1 mt-1">
+                  <button
+                    className="btn btn-sm btn-outline-secondary flex-grow-1"
+                    onClick={() => onOpenProduct(product)}
+                    disabled={!product.in_stock || !product.is_active}
+                    aria-label={`${product.title} anzeigen – ${formatPrice(product.price)}`}
+                    style={{ fontSize: "0.72rem" }}
+                  >
+                    {product.in_stock && product.is_active ? "Preis prüfen" : "Nicht verfügbar"}
+                  </button>
+                  <Link
+                    href={`/produkt/${product.id}`}
+                    className="btn btn-sm"
+                    style={{ background: "#1A3A6B", color: "#fff", fontSize: "0.72rem" }}
+                    title="Produktdetailseite"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    ↗
+                  </Link>
+                </div>
               </div>
             </div>
           </article>

@@ -13,6 +13,7 @@ import OffersSection from "@/components/OffersSection";
 import NewsletterSection from "@/components/NewsletterSection";
 import DealAlertBanner from "@/components/DealAlertBanner";
 import Footer from "@/components/Footer";
+import ProductModal from "@/components/ProductModal";
 
 // Resolve a category slug to its display name from the tree
 function slugToName(tree, slug) {
@@ -127,9 +128,13 @@ export default function Home() {
   const [lowestStartIndex, setLowestStartIndex]         = useState(0);
   const [isNavbarShrink, setIsNavbarShrink]             = useState(false);
   const [newsletterToast, setNewsletterToast]           = useState("");
+  const [selectedProduct, setSelectedProduct]           = useState(null);
+  const [isLoading, setIsLoading]                       = useState(true);
 
   // Filters
-  const [searchQuery, setSearchQuery]                   = useState("");
+  const [searchQuery, setSearchQuery]                   = useState(
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") ?? "" : ""
+  );
   const [selectedCategories, setSelectedCategories]     = useState([]);
   const [sortOption, setSortOption]                     = useState("relevance");
   const [maxPriceFilter, setMaxPriceFilter]             = useState(null); // null = not yet initialised
@@ -137,8 +142,6 @@ export default function Home() {
   const [currentPage, setCurrentPage]                   = useState(1);
   const [showOutOfStock, setShowOutOfStock]             = useState(false);
   const [showInactiveProducts, setShowInactiveProducts] = useState(false);
-  const [activeFromFilter, setActiveFromFilter]         = useState("");
-  const [activeUntilFilter, setActiveUntilFilter]       = useState("");
 
   const visibleLowestCount = 6;
 
@@ -154,7 +157,7 @@ export default function Home() {
   // ── Init: fetch max price + categories + offers once ──────────
   useEffect(() => {
     // Max price → initialises the slider and triggers the first product fetch
-    fetch("/api/products/price-range")
+    fetch("/api/products/price-range", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         const max = parseFloat(data.max) || 10000;
@@ -211,7 +214,7 @@ export default function Home() {
     debounceRef.current = setTimeout(loadProducts, 400);
     return () => clearTimeout(debounceRef.current);
   }, [searchQuery, selectedCategories, maxPriceFilter, sortOption, currentPage,
-      showOutOfStock, showInactiveProducts, activeFromFilter, activeUntilFilter]);
+      showOutOfStock, showInactiveProducts]);
 
   async function loadProducts() {
     const params = new URLSearchParams({
@@ -223,9 +226,9 @@ export default function Home() {
     });
     if (selectedCategories.length > 0) params.set("category", selectedCategories.join(","));
     if (maxPriceFilter > 0 && maxPriceFilter < defaultMaxPrice) params.set("maxPrice", maxPriceFilter);
-    if (activeFromFilter)  params.set("activeFrom",  activeFromFilter);
-    if (activeUntilFilter) params.set("activeUntil", activeUntilFilter);
 
+
+    setIsLoading(true);
     try {
       const res  = await fetch(`/api/products?${params}`);
       const data = await res.json();
@@ -234,6 +237,8 @@ export default function Home() {
       setPageCount(data.pageCount ?? 1);
     } catch (err) {
       console.error("loadProducts error:", err);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -253,17 +258,19 @@ export default function Home() {
       if (seen.length > 12) seen = seen.slice(0, 12);
       localStorage.setItem("lastSeenProducts", JSON.stringify(seen));
 
-      // Track click for billing (fire-and-forget — don't block the user)
-      fetch("/api/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: product.id, vendor: product.vendor, url: product.url }),
-      }).catch(() => {});
-
-      window.open(product.url, "_blank");
+      // Show modal with price history chart
+      setSelectedProduct(product);
     } catch (e) {
       console.error(e);
     }
+  }
+
+  function handleBuy(product) {
+    fetch("/api/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: product.id, vendor: product.vendor, url: product.url }),
+    }).catch(() => {});
   }
 
   const visibleLowestProducts = lowestPriceProducts.slice(lowestStartIndex, lowestStartIndex + visibleLowestCount);
@@ -293,7 +300,7 @@ export default function Home() {
         setCurrentPage={setCurrentPage}
       />
 
-      {!isNavbarShrink && (
+      <div style={{ maxHeight: isNavbarShrink ? "0" : "600px", overflow: "hidden", transition: "max-height 0.3s ease" }}>
         <HeroSection
           searchQuery={searchQuery}
           setSearchQuery={(v) => { setSearchQuery(v); resetPage(); }}
@@ -301,7 +308,7 @@ export default function Home() {
           totalProducts={totalProducts}
           popularTerms={popularTerms}
         />
-      )}
+      </div>
 
       <nav aria-label="breadcrumb" className="container-fluid px-3 pt-2">
         <ol className="breadcrumb mb-0 small" itemScope itemType="https://schema.org/BreadcrumbList">
@@ -332,10 +339,6 @@ export default function Home() {
             setShowOutOfStock={(v) => { setShowOutOfStock(v); resetPage(); }}
             showInactiveProducts={showInactiveProducts}
             setShowInactiveProducts={(v) => { setShowInactiveProducts(v); resetPage(); }}
-            activeFromFilter={activeFromFilter}
-            setActiveFromFilter={(v) => { setActiveFromFilter(v); resetPage(); }}
-            activeUntilFilter={activeUntilFilter}
-            setActiveUntilFilter={(v) => { setActiveUntilFilter(v); resetPage(); }}
           />
 
           <main className="col-12 col-md-9 col-lg-10" role="main">
@@ -371,7 +374,7 @@ export default function Home() {
               maxPrice={maxPriceFilter !== defaultMaxPrice ? maxPriceFilter : null}
             />
 
-            <ProductGrid products={products} onOpenProduct={openProduct} formatPrice={formatPrice} />
+            <ProductGrid products={products} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={isLoading} />
 
             <Pagination currentPage={currentPage} pageCount={pageCount} setCurrentPage={setCurrentPage} />
 
@@ -444,6 +447,12 @@ export default function Home() {
 
       <NewsletterSection />
       <Footer />
+
+      <ProductModal
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onBuy={handleBuy}
+      />
     </>
   );
 }

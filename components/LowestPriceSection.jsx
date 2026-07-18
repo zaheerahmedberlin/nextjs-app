@@ -1,6 +1,7 @@
 // components/LowestPriceSection.jsx
 "use client";
 import PriceDisplay from "@/components/PriceDisplay";
+import ProductImage from "@/components/ProductImage";
 
 export default function LowestPriceSection({
   visibleLowestProducts,
@@ -42,12 +43,7 @@ export default function LowestPriceSection({
         {visibleLowestProducts.map((p, index) => (
           <div key={`lowest-${p.id}-${index}`} className="col-6 col-sm-4 col-md-3 col-lg-2">
             <div className="card h-100 shadow-sm">
-              <img
-                src={p.image || "/placeholder.png"}
-                className="card-img-top"
-                alt={p.title || "Produkt"}
-                onError={(e) => { e.target.src = "/placeholder.png"; }}
-              />
+              <ProductImage src={p.image} alt={p.title || "Produkt"} height={150} />
               <div className="card-body p-2 text-center">
                 <h6 className="text-truncate" title={p.title}>{p.title}</h6>
                 <p className="small text-muted mb-1">{p.category}</p>

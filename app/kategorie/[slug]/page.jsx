@@ -155,7 +155,7 @@ export default async function KategoriePage({ params }) {
               <li className="breadcrumb-item active">{category.name}</li>
             </ol>
           </nav>
-          <h1 className="mb-1 fw-bold">{category.icon} {category.name} Preisvergleich</h1>
+          <h1 className="mb-1 fw-bold">{category.icon && <i className={`bi ${category.icon} me-2`}></i>}{category.name} Preisvergleich</h1>
           <p className="text-muted mb-0">
             Vergleichen Sie {products.length > 0 ? `${products.length}+` : "alle"} {category.name}-Produkte
             aus deutschen Online-Shops – günstig, aktuell, kostenlos.

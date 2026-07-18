@@ -1,6 +1,7 @@
 // components/OffersSection.jsx
 "use client";
 import PriceDisplay from "@/components/PriceDisplay";
+import ProductImage from "@/components/ProductImage";
 
 export default function OffersSection({ activeOffers, countdown }) {
   if (!activeOffers.length) return null;
@@ -18,12 +19,7 @@ export default function OffersSection({ activeOffers, countdown }) {
               >
                 Angebot!
               </span>
-              <img
-                src={offer.image || "/placeholder.png"}
-                className="card-img-top"
-                alt={offer.title || "Angebot"}
-                onError={(e) => { e.target.src = "/placeholder.png"; }}
-              />
+              <ProductImage src={offer.image} alt={offer.title || "Angebot"} height={150} />
               <div className="card-body text-center">
                 <h6 className="text-truncate" title={offer.title}>{offer.title}</h6>
                 <p className="small text-muted">{offer.category}</p>

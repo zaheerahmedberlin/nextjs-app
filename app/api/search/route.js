@@ -46,16 +46,24 @@ export async function GET(request) {
     }
   }
 
-  // ── Fallback: PostgreSQL trigram search ───────────────────
+  // ── PostgreSQL full-text search with prefix matching ─────
   try {
+    // Build prefix query: "stoff wech" → "stoff:* & wech:*"
+    const tsQuery = q
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => `${w}:*`)
+      .join(" & ");
+
     const result = await query(`
-      SELECT DISTINCT title, category, price, image
+      SELECT title, category, price, image
       FROM products
-      WHERE title ILIKE $1
+      WHERE search_vector @@ to_tsquery('german', unaccent($1))
         AND is_active = TRUE
-      ORDER BY price ASC
+      ORDER BY ts_rank(search_vector, to_tsquery('german', unaccent($1))) DESC
       LIMIT 8
-    `, [`%${q}%`]);
+    `, [tsQuery]);
 
     const suggestions = result.rows;
     await cacheSet(cacheKey, suggestions, 120);

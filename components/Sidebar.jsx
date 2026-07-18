@@ -13,10 +13,6 @@ export default function Sidebar({
   setShowOutOfStock,
   showInactiveProducts,
   setShowInactiveProducts,
-  activeFromFilter,
-  setActiveFromFilter,
-  activeUntilFilter,
-  setActiveUntilFilter,
 }) {
   const price = maxPriceFilter || 0;
   // Track which parent groups are expanded
@@ -212,34 +208,6 @@ export default function Sidebar({
             </label>
           </div>
 
-          <div className="border-top pt-2">
-            <p className="small fw-semibold mb-2 text-muted">Aktivierungszeitraum</p>
-            <label className="form-label small mb-1" htmlFor="activeFrom">Aktiv ab</label>
-            <input
-              type="date"
-              className="form-control form-control-sm mb-2"
-              id="activeFrom"
-              value={activeFromFilter}
-              onChange={(e) => setActiveFromFilter(e.target.value)}
-            />
-            <label className="form-label small mb-1" htmlFor="activeUntil">Aktiv bis</label>
-            <input
-              type="date"
-              className="form-control form-control-sm mb-2"
-              id="activeUntil"
-              value={activeUntilFilter}
-              min={activeFromFilter || undefined}
-              onChange={(e) => setActiveUntilFilter(e.target.value)}
-            />
-            {(activeFromFilter || activeUntilFilter) && (
-              <button
-                className="btn btn-sm btn-outline-secondary w-100"
-                onClick={() => { setActiveFromFilter(""); setActiveUntilFilter(""); }}
-              >
-                Datum zurücksetzen
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
