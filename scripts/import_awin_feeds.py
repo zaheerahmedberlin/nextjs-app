@@ -93,6 +93,30 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
     print(f"  {vendor_name}: {inserted} inserted, {updated} updated, {skipped} skipped")
     return inserted + updated
 
+def flush_redis_cache():
+    redis_url = os.environ.get("REDIS_URL")
+    if not redis_url:
+        print("No REDIS_URL set — skipping cache flush")
+        return
+    try:
+        import urllib.parse
+        parsed = urllib.parse.urlparse(redis_url)
+        import socket, ssl as ssl_mod
+        host, port = parsed.hostname, parsed.port or 6379
+        use_ssl = parsed.scheme == "rediss"
+        sock = socket.create_connection((host, port), timeout=10)
+        if use_ssl:
+            sock = ssl_mod.wrap_socket(sock)
+        if parsed.password:
+            sock.sendall(f"AUTH {parsed.password}\r\n".encode())
+            sock.recv(100)
+        sock.sendall(b"FLUSHDB\r\n")
+        resp = sock.recv(100)
+        sock.close()
+        print(f"Redis FLUSHDB: {resp.decode().strip()}")
+    except Exception as e:
+        print(f"Redis flush skipped: {e}")
+
 def main():
     print("Connecting to database...")
     conn = psycopg2.connect(
@@ -120,6 +144,7 @@ def main():
     cur.close()
     conn.close()
     print(f"\nDone — {total} products imported/updated across {len(vendors)} vendors")
+    flush_redis_cache()
 
 if __name__ == "__main__":
     main()

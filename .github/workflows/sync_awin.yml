@@ -25,4 +25,5 @@ jobs:
       - name: Run AWIN feed importer
         env:
           RAILWAY_DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
         run: python scripts/import_awin_feeds.py
