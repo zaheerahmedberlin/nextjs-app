@@ -49,9 +49,10 @@ export default function Sidebar({
                 const isOpen = expanded[parent.slug] !== false; // default open
                 const parentSelected = selectedCategories.includes(parent.slug);
                 const hasChildren = parent.children?.length > 0;
-                const rollupCount = hasChildren
+                const childrenCount = hasChildren
                   ? parent.children.reduce((sum, c) => sum + c.productCount, 0)
-                  : parent.productCount;
+                  : 0;
+                const rollupCount = childrenCount > 0 ? childrenCount : parent.productCount;
 
                 if (rollupCount === 0) return null; // hide empty categories
 
