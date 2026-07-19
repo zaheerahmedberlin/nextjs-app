@@ -1,0 +1,28 @@
+name: Weekly Price History Cleanup
+
+on:
+  schedule:
+    - cron: "0 5 * * 0"  # Every Sunday at 5:00am UTC
+  workflow_dispatch:       # Allow manual trigger
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install psycopg2-binary
+
+      - name: Run price history cleanup
+        env:
+          RAILWAY_DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+        run: python scripts/cleanup_price_history.py
