@@ -197,7 +197,7 @@ export default function Home() {
       .then((data) => setGesundheitProducts(data.products || []))
       .catch(() => {});
 
-    fetch("/api/products?category=sitzen,schlafen,tische,aufbewahrung&sort=priceAsc&limit=6&inStockOnly=true")
+    fetch("/api/products?category=sitzen&sort=priceAsc&limit=6&inStockOnly=true")
       .then((r) => r.json())
       .then((data) => setMoebelProducts(data.products || []))
       .catch(() => {});
@@ -430,7 +430,7 @@ export default function Home() {
                   <h2 className="h6 fw-bold mb-0">🛋️ Möbel & Einrichtung</h2>
                   <button
                     className="btn btn-link btn-sm p-0 text-decoration-none"
-                    onClick={() => { setSelectedCategories(["sitzen", "schlafen", "tische", "aufbewahrung"]); resetPage(); }}
+                    onClick={() => { setSelectedCategories(["sitzen"]); resetPage(); }}
                   >
                     Alle Möbel →
                   </button>
