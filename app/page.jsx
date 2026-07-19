@@ -131,6 +131,7 @@ export default function Home() {
   const [newsletterToast, setNewsletterToast]           = useState("");
   const [elektronikProducts, setElektronikProducts]     = useState([]);
   const [gesundheitProducts, setGesundheitProducts]     = useState([]);
+  const [moebelProducts, setMoebelProducts]             = useState([]);
   const [selectedProduct, setSelectedProduct]           = useState(null);
   const [isLoading, setIsLoading]                       = useState(true);
 
@@ -194,6 +195,11 @@ export default function Home() {
     fetch("/api/products?category=gesundheit&sort=priceAsc&limit=6&inStockOnly=true")
       .then((r) => r.json())
       .then((data) => setGesundheitProducts(data.products || []))
+      .catch(() => {});
+
+    fetch("/api/products?category=sitzen,schlafen,tische,aufbewahrung&sort=priceAsc&limit=6&inStockOnly=true")
+      .then((r) => r.json())
+      .then((data) => setMoebelProducts(data.products || []))
       .catch(() => {});
 
     // Offers from static file (optional)
@@ -415,6 +421,21 @@ export default function Home() {
                   </button>
                 </div>
                 <ProductGrid products={elektronikProducts} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={false} />
+              </div>
+            )}
+
+            {isDefaultView && moebelProducts.length > 0 && (
+              <div className="mt-5">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h2 className="h6 fw-bold mb-0">🛋️ Möbel & Einrichtung</h2>
+                  <button
+                    className="btn btn-link btn-sm p-0 text-decoration-none"
+                    onClick={() => { setSelectedCategories(["sitzen", "schlafen", "tische", "aufbewahrung"]); resetPage(); }}
+                  >
+                    Alle Möbel →
+                  </button>
+                </div>
+                <ProductGrid products={moebelProducts} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={false} />
               </div>
             )}
 
