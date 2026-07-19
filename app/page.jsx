@@ -129,6 +129,8 @@ export default function Home() {
   const [isNavbarShrink, setIsNavbarShrink]             = useState(false);
   const [showAllProducts, setShowAllProducts]           = useState(false);
   const [newsletterToast, setNewsletterToast]           = useState("");
+  const [elektronikProducts, setElektronikProducts]     = useState([]);
+  const [gesundheitProducts, setGesundheitProducts]     = useState([]);
   const [selectedProduct, setSelectedProduct]           = useState(null);
   const [isLoading, setIsLoading]                       = useState(true);
 
@@ -181,6 +183,17 @@ export default function Home() {
         const leaves = tree.flatMap((c) => c.children?.length > 0 ? c.children : [c]);
         setPopularTerms(leaves.sort((a, b) => b.productCount - a.productCount).slice(0, 6).map((c) => c.name));
       })
+      .catch(() => {});
+
+    // Featured category sections for homepage
+    fetch("/api/products?category=elektronik&sort=priceAsc&limit=6&inStockOnly=true")
+      .then((r) => r.json())
+      .then((data) => setElektronikProducts(data.products || []))
+      .catch(() => {});
+
+    fetch("/api/products?category=gesundheit&sort=priceAsc&limit=6&inStockOnly=true")
+      .then((r) => r.json())
+      .then((data) => setGesundheitProducts(data.products || []))
       .catch(() => {});
 
     // Offers from static file (optional)
@@ -390,8 +403,38 @@ export default function Home() {
 
             <ProductGrid products={products} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={isLoading} />
 
+            {isDefaultView && elektronikProducts.length > 0 && (
+              <div className="mt-5">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h2 className="h6 fw-bold mb-0">⚡ Top Elektronik-Deals</h2>
+                  <button
+                    className="btn btn-link btn-sm p-0 text-decoration-none"
+                    onClick={() => { setSelectedCategories(["elektronik"]); resetPage(); }}
+                  >
+                    Alle Elektronik →
+                  </button>
+                </div>
+                <ProductGrid products={elektronikProducts} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={false} />
+              </div>
+            )}
+
+            {isDefaultView && gesundheitProducts.length > 0 && (
+              <div className="mt-5">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h2 className="h6 fw-bold mb-0">💊 Gesundheit & Pflege</h2>
+                  <button
+                    className="btn btn-link btn-sm p-0 text-decoration-none"
+                    onClick={() => { setSelectedCategories(["gesundheit"]); resetPage(); }}
+                  >
+                    Alle Gesundheit →
+                  </button>
+                </div>
+                <ProductGrid products={gesundheitProducts} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={false} />
+              </div>
+            )}
+
             {isDefaultView && !isLoading && (
-              <div className="text-center my-4">
+              <div className="text-center my-5">
                 <p className="text-muted small mb-3">
                   Aktuell <strong>{totalProducts.toLocaleString("de-DE")}</strong> Produkte im Vergleich
                 </p>
