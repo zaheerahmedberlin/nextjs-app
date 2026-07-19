@@ -127,6 +127,7 @@ export default function Home() {
   const [pageCount, setPageCount]                       = useState(1);
   const [lowestStartIndex, setLowestStartIndex]         = useState(0);
   const [isNavbarShrink, setIsNavbarShrink]             = useState(false);
+  const [showAllProducts, setShowAllProducts]           = useState(false);
   const [newsletterToast, setNewsletterToast]           = useState("");
   const [selectedProduct, setSelectedProduct]           = useState(null);
   const [isLoading, setIsLoading]                       = useState(true);
@@ -214,15 +215,20 @@ export default function Home() {
     debounceRef.current = setTimeout(loadProducts, 400);
     return () => clearTimeout(debounceRef.current);
   }, [searchQuery, selectedCategories, maxPriceFilter, sortOption, currentPage,
-      showOutOfStock, showInactiveProducts]);
+      showOutOfStock, showInactiveProducts, showAllProducts]);
+
+  const isDefaultView = !searchQuery && selectedCategories.length === 0 &&
+    (maxPriceFilter === null || maxPriceFilter >= defaultMaxPrice) &&
+    !showOutOfStock && !showInactiveProducts && !showAllProducts;
 
   async function loadProducts() {
     const params = new URLSearchParams({
       q:               searchQuery,
-      sort:            sortOption,
+      sort:            isDefaultView ? "priceAsc" : sortOption,
       page:            currentPage,
       inStockOnly:     showOutOfStock ? "false" : "true",
       includeInactive: showInactiveProducts ? "true" : "false",
+      ...(isDefaultView && { limit: 12 }),
     });
     if (selectedCategories.length > 0) params.set("category", selectedCategories.join(","));
     if (maxPriceFilter > 0 && maxPriceFilter < defaultMaxPrice) params.set("maxPrice", maxPriceFilter);
@@ -242,7 +248,7 @@ export default function Home() {
     }
   }
 
-  function resetPage() { setCurrentPage(1); }
+  function resetPage() { setCurrentPage(1); setShowAllProducts(false); }
 
   async function openProduct(product) {
     try {
@@ -348,10 +354,12 @@ export default function Home() {
             </h1>
 
             <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-              <p className="text-muted small mb-0">
-                <strong>{totalProducts.toLocaleString("de-DE")}</strong> Produkte gefunden
-              </p>
-              <div className="ms-auto">
+              {!isDefaultView && (
+                <p className="text-muted small mb-0">
+                  <strong>{totalProducts.toLocaleString("de-DE")}</strong> Produkte gefunden
+                </p>
+              )}
+              <div className="ms-auto" style={{ display: isDefaultView ? "none" : undefined }}>
                 <label htmlFor="sortSelect" className="visually-hidden">Sortierung</label>
                 <select
                   id="sortSelect"
@@ -374,9 +382,43 @@ export default function Home() {
               maxPrice={maxPriceFilter !== defaultMaxPrice ? maxPriceFilter : null}
             />
 
+            {isDefaultView && (
+              <div className="mb-3">
+                <h2 className="h6 fw-bold text-muted mb-3">🔥 Günstigste Angebote heute</h2>
+              </div>
+            )}
+
             <ProductGrid products={products} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={isLoading} />
 
-            <Pagination currentPage={currentPage} pageCount={pageCount} setCurrentPage={setCurrentPage} />
+            {isDefaultView && !isLoading && (
+              <div className="text-center my-4">
+                <p className="text-muted small mb-3">
+                  Aktuell <strong>{totalProducts.toLocaleString("de-DE")}</strong> Produkte im Vergleich
+                </p>
+                {/* Category quick-links */}
+                <div className="d-flex flex-wrap justify-content-center gap-2 mb-4">
+                  {categories.filter(c => (c.children?.reduce((s,k)=>s+k.productCount,0)||c.productCount)>0).slice(0,8).map(cat => (
+                    <button
+                      key={cat.slug}
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => { setSelectedCategories([cat.slug]); resetPage(); setShowAllProducts(false); }}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="btn btn-primary px-4"
+                  onClick={() => setShowAllProducts(true)}
+                >
+                  Alle Produkte anzeigen →
+                </button>
+              </div>
+            )}
+
+            {!isDefaultView && (
+              <Pagination currentPage={currentPage} pageCount={pageCount} setCurrentPage={setCurrentPage} />
+            )}
 
             <LastSeen onOpenProduct={openProduct} />
 
