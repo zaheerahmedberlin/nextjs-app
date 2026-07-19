@@ -86,12 +86,23 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
             """, (title, desc, image, price, url, vendor_id, category_id, title, desc))
             inserted += 1
 
+        # commit every 100 rows to avoid long transactions and connection timeouts
+        if (inserted + updated) % 100 == 0:
+            cur.connection.commit()
+
     print(f"  {vendor_name}: {inserted} inserted, {updated} updated, {skipped} skipped")
     return inserted + updated
 
 def main():
     print("Connecting to database...")
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = psycopg2.connect(
+        DATABASE_URL,
+        keepalives=1,
+        keepalives_idle=60,
+        keepalives_interval=10,
+        keepalives_count=5,
+        connect_timeout=30,
+    )
     conn.autocommit = False
     cur = conn.cursor()
 
