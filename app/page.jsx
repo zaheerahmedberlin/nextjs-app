@@ -258,9 +258,14 @@ export default function Home() {
       const res  = await fetch(`/api/products?${params}`);
       const data = await res.json();
       const rawProducts = data.products ?? [];
-      const displayed = isDefaultView
-        ? rawProducts.filter((p, _, arr) => arr.findIndex(x => x.vendor === p.vendor) === arr.indexOf(p)).slice(0, 12)
-        : rawProducts;
+      let displayed = rawProducts;
+      if (isDefaultView) {
+        const vendorCount = {};
+        displayed = rawProducts.filter(p => {
+          vendorCount[p.vendor] = (vendorCount[p.vendor] || 0) + 1;
+          return vendorCount[p.vendor] <= 2;
+        }).slice(0, 12);
+      }
       setProducts(displayed);
       setTotalProducts(data.total ?? 0);
       setPageCount(data.pageCount ?? 1);
