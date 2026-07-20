@@ -247,7 +247,7 @@ export default function Home() {
       page:            currentPage,
       inStockOnly:     showOutOfStock ? "false" : "true",
       includeInactive: showInactiveProducts ? "true" : "false",
-      ...(isDefaultView && { limit: 12 }),
+      ...(isDefaultView && { limit: 50 }),
     });
     if (selectedCategories.length > 0) params.set("category", selectedCategories.join(","));
     if (maxPriceFilter > 0 && maxPriceFilter < defaultMaxPrice) params.set("maxPrice", maxPriceFilter);
@@ -257,7 +257,11 @@ export default function Home() {
     try {
       const res  = await fetch(`/api/products?${params}`);
       const data = await res.json();
-      setProducts(data.products ?? []);
+      const rawProducts = data.products ?? [];
+      const displayed = isDefaultView
+        ? rawProducts.filter((p, _, arr) => arr.findIndex(x => x.vendor === p.vendor) === arr.indexOf(p)).slice(0, 12)
+        : rawProducts;
+      setProducts(displayed);
       setTotalProducts(data.total ?? 0);
       setPageCount(data.pageCount ?? 1);
     } catch (err) {
