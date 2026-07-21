@@ -17,8 +17,9 @@ export async function GET(request) {
   const limit           = Math.min(parseInt(searchParams.get("limit") ?? "24"), 100);
   const inStockOnly     = searchParams.get("inStockOnly") !== "false";
   const includeInactive = searchParams.get("includeInactive") === "true";
+  const vendor          = searchParams.get("vendor")?.trim() ?? "";
 
-  const cacheKey = `products:${q}:${category}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}`;
+  const cacheKey = `products:${q}:${category}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}:${vendor}`;
   const cached = await cacheGet(cacheKey);
   if (cached) return NextResponse.json({ ...cached, source: "cache" });
 
@@ -63,6 +64,11 @@ export async function GET(request) {
           SELECT id FROM categories WHERE parent_id IN (SELECT id FROM categories WHERE slug = ANY($${params.length}))
         )`);
       }
+    }
+
+    if (vendor) {
+      params.push(vendor);
+      conditions.push(`v.name ILIKE $${params.length}`);
     }
 
     if (maxPrice < 999999) {
