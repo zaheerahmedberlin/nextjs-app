@@ -5,14 +5,8 @@ import { writeFile, mkdir, readFile, unlink, rmdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
-// Use system ffmpeg (installed via nixpacks.toml on Railway)
-// falls back to ffmpeg-static for local dev
-let ffmpegPath = "ffmpeg";
-try {
-  const { default: ffmpegStatic } = await import("ffmpeg-static");
-  if (ffmpegStatic) ffmpegPath = ffmpegStatic;
-} catch {}
-ffmpeg.setFfmpegPath(ffmpegPath);
+// System ffmpeg installed via nixpacks.toml on Railway
+ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH || "ffmpeg");
 
 const W = 1080;
 const H = 1920;
