@@ -19,14 +19,14 @@ function svgText(lines, opts = {}) {
     y = H / 2, fontSize = 64, color = "#ffffff", weight = "bold", anchor = "middle",
   } = opts;
   return lines.map((line, i) =>
-    `<text x="${W / 2}" y="${y + i * (fontSize * 1.3)}" font-size="${fontSize}" font-weight="${weight}" fill="${color}" text-anchor="${anchor}" font-family="Arial, sans-serif">${line}</text>`
+    `<text x="${W / 2}" y="${y + i * (fontSize * 1.3)}" font-size="${fontSize}" font-weight="${weight}" fill="${color}" text-anchor="${anchor}" font-family="Liberation Sans,Arial,sans-serif">${line}</text>`
   ).join("\n");
 }
 
 function badge(text, cx, cy, rx = 180, ry = 45, bgColor = RED) {
   return `
     <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${bgColor}"/>
-    <text x="${cx}" y="${cy + 16}" font-size="44" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial, sans-serif">${text}</text>`;
+    <text x="${cx}" y="${cy + 16}" font-size="44" font-weight="bold" fill="white" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">${text}</text>`;
 }
 
 async function makeFrame(svgContent) {
@@ -62,7 +62,7 @@ async function frame1Product(title, imageUrl) {
     <rect width="${W}" height="${H}" fill="url(#bg1)"/>
     <rect x="190" y="220" width="700" height="720" rx="32" fill="rgba(255,255,255,0.08)"/>
     ${productImg}
-    <text x="${W/2}" y="1080" font-size="28" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Arial, sans-serif">🔥 Heute günstig</text>
+    <text x="${W/2}" y="1080" font-size="28" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Heute guenstig</text>
     ${svgText(titleLines, { y: 1150, fontSize: 60, color: "#ffffff" })}
   `);
 }
@@ -73,36 +73,45 @@ async function frame2Price(price, oldPrice, discount) {
 
   return makeFrame(`
     <rect width="${W}" height="${H}" fill="${DARK_BLUE}"/>
-    <text x="${W/2}" y="560" font-size="52" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Arial, sans-serif">Jetzt nur noch</text>
+    <text x="${W/2}" y="560" font-size="52" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Jetzt nur noch</text>
     ${oldFormatted ? `
-      <text x="${W/2}" y="720" font-size="72" fill="rgba(255,255,255,0.35)" text-anchor="middle" font-family="Arial, sans-serif" text-decoration="line-through">${oldFormatted}</text>
+      <text x="${W/2}" y="720" font-size="72" fill="rgba(255,255,255,0.35)" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif" text-decoration="line-through">${oldFormatted}</text>
       <line x1="${W/2 - 160}" y1="690" x2="${W/2 + 160}" y2="690" stroke="rgba(255,255,255,0.35)" stroke-width="5"/>
     ` : ""}
-    <text x="${W/2}" y="1020" font-size="200" font-weight="900" fill="${ORANGE}" text-anchor="middle" font-family="Arial, sans-serif">${priceFormatted}</text>
+    <text x="${W/2}" y="1020" font-size="200" font-weight="900" fill="${ORANGE}" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">${priceFormatted}</text>
     ${discount ? badge(`-${discount}% RABATT`, W/2, 1120, 240, 55, RED) : ""}
   `);
 }
 
 async function frame3Brand() {
+  // Magnifying glass drawn with SVG shapes (no emoji)
+  const cx = W / 2, cy = 760, r = 110;
+  const glassStroke = 22;
+  const handleX1 = cx + r * 0.7, handleY1 = cy + r * 0.7;
+  const handleX2 = cx + r * 0.7 + 90, handleY2 = cy + r * 0.7 + 90;
   return makeFrame(`
     <rect width="${W}" height="${H}" fill="url(#bg1)"/>
-    <circle cx="${W/2}" cy="760" r="200" fill="rgba(245,166,35,0.15)" stroke="${ORANGE}" stroke-width="8"/>
-    <text x="${W/2}" y="820" font-size="160" text-anchor="middle">🔍</text>
-    <text x="${W/2}" y="1080" font-size="88" font-weight="900" fill="white" text-anchor="middle" font-family="Arial, sans-serif">preisgucken.de</text>
-    <text x="${W/2}" y="1200" font-size="60" font-weight="bold" fill="${ORANGE}" text-anchor="middle" font-family="Arial, sans-serif">Link in Bio ⬆️</text>
-    <text x="${W/2}" y="1320" font-size="44" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Arial, sans-serif">Täglich neue Deals aus Deutschland</text>
+    <circle cx="${cx}" cy="${cy}" r="200" fill="rgba(245,166,35,0.15)" stroke="${ORANGE}" stroke-width="8"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="white" stroke-width="${glassStroke}"/>
+    <line x1="${handleX1}" y1="${handleY1}" x2="${handleX2}" y2="${handleY2}" stroke="white" stroke-width="${glassStroke}" stroke-linecap="round"/>
+    <text x="${W/2}" y="1080" font-size="88" font-weight="900" fill="white" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">preisgucken.de</text>
+    <text x="${W/2}" y="1200" font-size="60" font-weight="bold" fill="${ORANGE}" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Link in Bio</text>
+    <text x="${W/2}" y="1320" font-size="44" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Taeglich neue Deals aus Deutschland</text>
   `);
 }
 
 async function frame4CTA() {
+  // Euro coin drawn with SVG shapes (no emoji)
+  const cx = W / 2, cy = 580;
   return makeFrame(`
     <rect width="${W}" height="${H}" fill="${DARK_BLUE}"/>
-    <text x="${W/2}" y="680" font-size="180" text-anchor="middle">💸</text>
-    <text x="${W/2}" y="900" font-size="88" font-weight="900" fill="white" text-anchor="middle" font-family="Arial, sans-serif">Nie wieder zu</text>
-    <text x="${W/2}" y="1010" font-size="88" font-weight="900" fill="${ORANGE}" text-anchor="middle" font-family="Arial, sans-serif">viel bezahlen!</text>
+    <circle cx="${cx}" cy="${cy}" r="160" fill="${ORANGE}"/>
+    <text x="${cx}" y="${cy + 60}" font-size="180" font-weight="900" fill="${DARK_BLUE}" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">&#8364;</text>
+    <text x="${W/2}" y="900" font-size="88" font-weight="900" fill="white" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Nie wieder zu</text>
+    <text x="${W/2}" y="1010" font-size="88" font-weight="900" fill="${ORANGE}" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">viel bezahlen!</text>
     <rect x="190" y="1100" width="700" height="110" rx="55" fill="${ORANGE}"/>
-    <text x="${W/2}" y="1170" font-size="56" font-weight="bold" fill="${BLUE}" text-anchor="middle" font-family="Arial, sans-serif">Jetzt vergleichen →</text>
-    <text x="${W/2}" y="1360" font-size="52" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Arial, sans-serif">preisgucken.de</text>
+    <text x="${W/2}" y="1170" font-size="56" font-weight="bold" fill="${BLUE}" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Jetzt vergleichen</text>
+    <text x="${W/2}" y="1360" font-size="52" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">preisgucken.de</text>
   `);
 }
 
