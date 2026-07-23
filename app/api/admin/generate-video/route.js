@@ -13,26 +13,24 @@ const BLUE = "#1A3A6B";
 const DARK_BLUE = "#0d2347";
 const ORANGE = "#F5A623";
 const RED = "#e63946";
+const FONT = "Liberation Sans,DejaVu Sans,Arial,sans-serif";
 
-function svgText(lines, opts = {}) {
-  const {
-    y = H / 2, fontSize = 64, color = "#ffffff", weight = "bold", anchor = "middle",
-  } = opts;
-  return lines.map((line, i) =>
-    `<text x="${W / 2}" y="${y + i * (fontSize * 1.3)}" font-size="${fontSize}" font-weight="${weight}" fill="${color}" text-anchor="${anchor}" font-family="Liberation Sans,Arial,sans-serif">${line}</text>`
-  ).join("\n");
+function txt(content, x, y, opts = {}) {
+  const { fontSize = 60, fill = "#ffffff", weight = "normal", anchor = "middle", opacity = 1 } = opts;
+  const opacityAttr = opacity < 1 ? ` fill-opacity="${opacity}"` : "";
+  return `<text x="${x}" y="${y}" font-size="${fontSize}" font-weight="${weight}" fill="${fill}"${opacityAttr} text-anchor="${anchor}" font-family="${FONT}">${content}</text>`;
 }
 
 function badge(text, cx, cy, rx = 180, ry = 45, bgColor = RED) {
   return `
     <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${bgColor}"/>
-    <text x="${cx}" y="${cy + 16}" font-size="44" font-weight="bold" fill="white" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">${text}</text>`;
+    ${txt(text, cx, cy + 16, { fontSize: 44, fill: "white", weight: "bold" })}`;
 }
 
 async function makeFrame(svgContent) {
-  const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+  const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <defs>
-      <linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1">
+      <linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
         <stop offset="0%" stop-color="${BLUE}"/>
         <stop offset="100%" stop-color="${DARK_BLUE}"/>
       </linearGradient>
@@ -43,75 +41,75 @@ async function makeFrame(svgContent) {
 }
 
 async function frame1Product(title, imageUrl) {
-  // Try to download product image
   let productImg = "";
   try {
     const res = await fetch(imageUrl, { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
       const imgBuf = Buffer.from(await res.arrayBuffer());
-      const resized = await sharp(imgBuf).resize(600, 600, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toBuffer();
-      productImg = `<image href="data:image/png;base64,${resized.toString("base64")}" x="240" y="280" width="600" height="600"/>`;
+      const resized = await sharp(imgBuf)
+        .resize(600, 600, { fit: "contain", background: { r: 26, g: 58, b: 107, alpha: 1 } })
+        .png()
+        .toBuffer();
+      productImg = `<image xlink:href="data:image/png;base64,${resized.toString("base64")}" x="240" y="280" width="600" height="600"/>`;
     }
   } catch {}
 
-  const titleLines = title.length > 30
-    ? [title.slice(0, 30), title.slice(30, 60)]
+  const titleLines = title.length > 28
+    ? [title.slice(0, 28), title.slice(28, 56)]
     : [title];
 
   return makeFrame(`
     <rect width="${W}" height="${H}" fill="url(#bg1)"/>
-    <rect x="190" y="220" width="700" height="720" rx="32" fill="rgba(255,255,255,0.08)"/>
+    <rect x="190" y="220" width="700" height="720" rx="32" fill="white" fill-opacity="0.08"/>
     ${productImg}
-    <text x="${W/2}" y="1080" font-size="28" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Heute guenstig</text>
-    ${svgText(titleLines, { y: 1150, fontSize: 60, color: "#ffffff" })}
+    ${txt("Heute guenstig", W / 2, 1080, { fontSize: 36, fill: "#ffffff", opacity: 0.5 })}
+    ${titleLines.map((line, i) => txt(line, W / 2, 1160 + i * 80, { fontSize: 58, fill: "#ffffff", weight: "bold" })).join("\n")}
   `);
 }
 
 async function frame2Price(price, oldPrice, discount) {
-  const priceFormatted = `€${parseFloat(price).toFixed(2).replace(".", ",")}`;
-  const oldFormatted = oldPrice ? `€${parseFloat(oldPrice).toFixed(2).replace(".", ",")}` : "";
+  const priceFormatted = `EUR ${parseFloat(price).toFixed(2).replace(".", ",")}`;
+  const oldFormatted = oldPrice ? `EUR ${parseFloat(oldPrice).toFixed(2).replace(".", ",")}` : "";
 
   return makeFrame(`
     <rect width="${W}" height="${H}" fill="${DARK_BLUE}"/>
-    <text x="${W/2}" y="560" font-size="52" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Jetzt nur noch</text>
+    ${txt("Jetzt nur noch", W / 2, 560, { fontSize: 52, fill: "#ffffff", opacity: 0.5 })}
     ${oldFormatted ? `
-      <text x="${W/2}" y="720" font-size="72" fill="rgba(255,255,255,0.35)" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif" text-decoration="line-through">${oldFormatted}</text>
-      <line x1="${W/2 - 160}" y1="690" x2="${W/2 + 160}" y2="690" stroke="rgba(255,255,255,0.35)" stroke-width="5"/>
+      ${txt(oldFormatted, W / 2, 720, { fontSize: 72, fill: "#ffffff", opacity: 0.35 })}
+      <line x1="${W / 2 - 200}" y1="695" x2="${W / 2 + 200}" y2="695" stroke="white" stroke-opacity="0.35" stroke-width="6"/>
     ` : ""}
-    <text x="${W/2}" y="1020" font-size="200" font-weight="900" fill="${ORANGE}" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">${priceFormatted}</text>
-    ${discount ? badge(`-${discount}% RABATT`, W/2, 1120, 240, 55, RED) : ""}
+    ${txt(priceFormatted, W / 2, 1020, { fontSize: 120, fill: ORANGE, weight: "900" })}
+    ${discount ? badge(`-${discount}% RABATT`, W / 2, 1160, 240, 55, RED) : ""}
   `);
 }
 
 async function frame3Brand() {
-  // Magnifying glass drawn with SVG shapes (no emoji)
-  const cx = W / 2, cy = 760, r = 110;
-  const glassStroke = 22;
-  const handleX1 = cx + r * 0.7, handleY1 = cy + r * 0.7;
-  const handleX2 = cx + r * 0.7 + 90, handleY2 = cy + r * 0.7 + 90;
+  const cx = W / 2, cy = 720, r = 120, stroke = 24;
+  const hx1 = cx + r * 0.72, hy1 = cy + r * 0.72;
+  const hx2 = hx1 + 85, hy2 = hy1 + 85;
   return makeFrame(`
     <rect width="${W}" height="${H}" fill="url(#bg1)"/>
-    <circle cx="${cx}" cy="${cy}" r="200" fill="rgba(245,166,35,0.15)" stroke="${ORANGE}" stroke-width="8"/>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="white" stroke-width="${glassStroke}"/>
-    <line x1="${handleX1}" y1="${handleY1}" x2="${handleX2}" y2="${handleY2}" stroke="white" stroke-width="${glassStroke}" stroke-linecap="round"/>
-    <text x="${W/2}" y="1080" font-size="88" font-weight="900" fill="white" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">preisgucken.de</text>
-    <text x="${W/2}" y="1200" font-size="60" font-weight="bold" fill="${ORANGE}" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Link in Bio</text>
-    <text x="${W/2}" y="1320" font-size="44" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Taeglich neue Deals aus Deutschland</text>
+    <circle cx="${cx}" cy="${cy}" r="210" fill="${ORANGE}" fill-opacity="0.12" stroke="${ORANGE}" stroke-width="6"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="white" stroke-width="${stroke}"/>
+    <line x1="${hx1}" y1="${hy1}" x2="${hx2}" y2="${hy2}" stroke="white" stroke-width="${stroke}" stroke-linecap="round"/>
+    ${txt("preisgucken.de", W / 2, 1080, { fontSize: 88, fill: "#ffffff", weight: "900" })}
+    ${txt("Link in Bio", W / 2, 1200, { fontSize: 60, fill: ORANGE, weight: "bold" })}
+    ${txt("Taeglich neue Deals", W / 2, 1320, { fontSize: 44, fill: "#ffffff", opacity: 0.5 })}
   `);
 }
 
 async function frame4CTA() {
-  // Euro coin drawn with SVG shapes (no emoji)
   const cx = W / 2, cy = 580;
   return makeFrame(`
     <rect width="${W}" height="${H}" fill="${DARK_BLUE}"/>
     <circle cx="${cx}" cy="${cy}" r="160" fill="${ORANGE}"/>
-    <text x="${cx}" y="${cy + 60}" font-size="180" font-weight="900" fill="${DARK_BLUE}" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">&#8364;</text>
-    <text x="${W/2}" y="900" font-size="88" font-weight="900" fill="white" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Nie wieder zu</text>
-    <text x="${W/2}" y="1010" font-size="88" font-weight="900" fill="${ORANGE}" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">viel bezahlen!</text>
+    ${txt("EUR", cx, cy - 20, { fontSize: 64, fill: DARK_BLUE, weight: "900" })}
+    ${txt("DEAL", cx, cy + 60, { fontSize: 64, fill: DARK_BLUE, weight: "900" })}
+    ${txt("Nie wieder zu", W / 2, 900, { fontSize: 88, fill: "#ffffff", weight: "900" })}
+    ${txt("viel bezahlen!", W / 2, 1010, { fontSize: 88, fill: ORANGE, weight: "900" })}
     <rect x="190" y="1100" width="700" height="110" rx="55" fill="${ORANGE}"/>
-    <text x="${W/2}" y="1170" font-size="56" font-weight="bold" fill="${BLUE}" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">Jetzt vergleichen</text>
-    <text x="${W/2}" y="1360" font-size="52" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Liberation Sans,Arial,sans-serif">preisgucken.de</text>
+    ${txt("Jetzt vergleichen", W / 2, 1168, { fontSize: 54, fill: BLUE, weight: "bold" })}
+    ${txt("preisgucken.de", W / 2, 1360, { fontSize: 52, fill: "#ffffff", opacity: 0.5 })}
   `);
 }
 
@@ -162,11 +160,7 @@ export async function POST(request) {
         .input(concatFile)
         .inputOptions(["-f concat", "-safe 0"])
         .videoCodec("libx264")
-        .outputOptions([
-          "-pix_fmt yuv420p",
-          "-r 30",
-          "-movflags +faststart",
-        ])
+        .outputOptions(["-pix_fmt yuv420p", "-r 30", "-movflags +faststart"])
         .output(outputPath)
         .on("end", resolve)
         .on("error", reject)
@@ -175,7 +169,6 @@ export async function POST(request) {
 
     const videoBuffer = await readFile(outputPath);
 
-    // Cleanup
     for (const f of framePaths) unlink(f.path).catch(() => {});
     unlink(concatFile).catch(() => {});
     unlink(outputPath).catch(() => {});
