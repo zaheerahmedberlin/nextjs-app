@@ -5,8 +5,8 @@ import { writeFile, mkdir, readFile, unlink, rmdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
-import ffmpegStatic from "ffmpeg-static";
-ffmpeg.setFfmpegPath(ffmpegStatic);
+// Use system ffmpeg installed via nixpacks on Railway
+ffmpeg.setFfmpegPath(process.env.FFMPEG_BIN ?? "ffmpeg");
 
 const W = 1080;
 const H = 1920;
