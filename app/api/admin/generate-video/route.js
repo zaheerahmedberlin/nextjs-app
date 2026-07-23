@@ -5,8 +5,7 @@ import { writeFile, mkdir, readFile, unlink, rmdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
-// Use system ffmpeg installed via nixpacks on Railway
-ffmpeg.setFfmpegPath(process.env.FFMPEG_BIN ?? "ffmpeg");
+ffmpeg.setFfmpegPath(process.env.FFMPEG_BIN ?? "/root/.nix-profile/bin/ffmpeg");
 
 const W = 1080;
 const H = 1920;
