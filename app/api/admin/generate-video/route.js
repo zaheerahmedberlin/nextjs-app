@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import ffmpeg from "fluent-ffmpeg";
-import ffmpegStatic from "ffmpeg-static";
 import sharp from "sharp";
 import { writeFile, mkdir, readFile, unlink, rmdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
-ffmpeg.setFfmpegPath(ffmpegStatic);
+// Use system ffmpeg (installed via nixpacks.toml on Railway)
+// falls back to ffmpeg-static for local dev
+let ffmpegPath = "ffmpeg";
+try {
+  const { default: ffmpegStatic } = await import("ffmpeg-static");
+  if (ffmpegStatic) ffmpegPath = ffmpegStatic;
+} catch {}
+ffmpeg.setFfmpegPath(ffmpegPath);
 
 const W = 1080;
 const H = 1920;
