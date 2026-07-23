@@ -5,8 +5,8 @@ import { writeFile, mkdir, readFile, unlink, rmdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
-// System ffmpeg installed via nixpacks.toml on Railway
-ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH || "ffmpeg");
+import ffmpegStatic from "ffmpeg-static";
+ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const W = 1080;
 const H = 1920;
