@@ -1,183 +1,110 @@
 import { NextResponse } from "next/server";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
-import { writeFile, mkdir, readFile, unlink } from "fs/promises";
+import sharp from "sharp";
+import { writeFile, mkdir, readFile, unlink, rmdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createCanvas, loadImage } from "canvas";
 
 ffmpeg.setFfmpegPath(ffmpegStatic);
 
-// Draw a single frame as PNG using canvas
-async function drawFrame(type, data, width, height) {
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext("2d");
+const W = 1080;
+const H = 1920;
+const BLUE = "#1A3A6B";
+const DARK_BLUE = "#0d2347";
+const ORANGE = "#F5A623";
+const RED = "#e63946";
 
-  const blue = "#1A3A6B";
-  const orange = "#F5A623";
-  const darkBlue = "#0d2347";
-  const red = "#e63946";
-
-  const centerX = width / 2;
-
-  if (type === "product") {
-    // Dark gradient background
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, blue);
-    grad.addColorStop(1, darkBlue);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
-
-    // Product image
-    try {
-      const img = await loadImage(data.image);
-      const imgSize = 400;
-      const imgX = centerX - imgSize / 2;
-      const imgY = height * 0.2;
-      // White rounded card behind image
-      ctx.fillStyle = "rgba(255,255,255,0.08)";
-      roundRect(ctx, imgX - 20, imgY - 20, imgSize + 40, imgSize + 40, 24);
-      ctx.fill();
-      ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
-    } catch {}
-
-    // Product title
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 52px sans-serif";
-    ctx.textAlign = "center";
-    wrapText(ctx, data.title, centerX, height * 0.75, width - 80, 64);
-
-  } else if (type === "price") {
-    ctx.fillStyle = darkBlue;
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.fillStyle = "rgba(255,255,255,0.4)";
-    ctx.font = "52px sans-serif";
-    ctx.textAlign = "center";
-    if (data.old_price) {
-      ctx.fillText(`€${parseFloat(data.old_price).toFixed(2)}`, centerX, height * 0.35);
-      // strikethrough
-      ctx.strokeStyle = "rgba(255,255,255,0.4)";
-      ctx.lineWidth = 4;
-      const w = ctx.measureText(`€${parseFloat(data.old_price).toFixed(2)}`).width;
-      ctx.beginPath();
-      ctx.moveTo(centerX - w / 2, height * 0.35 - 8);
-      ctx.lineTo(centerX + w / 2, height * 0.35 - 8);
-      ctx.stroke();
-    }
-
-    // Big price
-    ctx.fillStyle = orange;
-    ctx.font = "bold 130px sans-serif";
-    ctx.fillText(`€${parseFloat(data.price).toFixed(0)}`, centerX, height * 0.55);
-
-    // Discount badge
-    if (data.discount) {
-      ctx.fillStyle = red;
-      roundRect(ctx, centerX - 120, height * 0.62, 240, 70, 35);
-      ctx.fill();
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 44px sans-serif";
-      ctx.fillText(`-${data.discount}% RABATT`, centerX, height * 0.62 + 48);
-    }
-
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font = "38px sans-serif";
-    ctx.fillText("Jetzt nur noch", centerX, height * 0.25);
-
-  } else if (type === "brand") {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, blue);
-    grad.addColorStop(1, darkBlue);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
-
-    // Circle
-    ctx.fillStyle = "rgba(245,166,35,0.15)";
-    ctx.beginPath();
-    ctx.arc(centerX, height * 0.35, 160, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = orange;
-    ctx.lineWidth = 6;
-    ctx.stroke();
-
-    // Magnifier emoji via text
-    ctx.font = "120px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("🔍", centerX, height * 0.35 + 44);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 72px sans-serif";
-    ctx.fillText("preisgucken.de", centerX, height * 0.62);
-
-    ctx.fillStyle = orange;
-    ctx.font = "bold 48px sans-serif";
-    ctx.fillText("Link in Bio ⬆️", centerX, height * 0.72);
-
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font = "38px sans-serif";
-    ctx.fillText("Täglich neue Deals aus Deutschland", centerX, height * 0.82);
-
-  } else if (type === "cta") {
-    const grad = ctx.createLinearGradient(0, 0, width, height);
-    grad.addColorStop(0, blue);
-    grad.addColorStop(1, "#0a1a3d");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.font = "110px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("💸", centerX, height * 0.3);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 68px sans-serif";
-    wrapText(ctx, "Nie wieder zu viel bezahlen!", centerX, height * 0.5, width - 80, 80);
-
-    // Orange button
-    ctx.fillStyle = orange;
-    roundRect(ctx, centerX - 260, height * 0.68, 520, 90, 45);
-    ctx.fill();
-    ctx.fillStyle = blue;
-    ctx.font = "bold 52px sans-serif";
-    ctx.fillText("Jetzt vergleichen →", centerX, height * 0.68 + 60);
-
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font = "38px sans-serif";
-    ctx.fillText("preisgucken.de", centerX, height * 0.85);
-  }
-
-  return canvas.toBuffer("image/png");
+function svgText(lines, opts = {}) {
+  const {
+    y = H / 2, fontSize = 64, color = "#ffffff", weight = "bold", anchor = "middle",
+  } = opts;
+  return lines.map((line, i) =>
+    `<text x="${W / 2}" y="${y + i * (fontSize * 1.3)}" font-size="${fontSize}" font-weight="${weight}" fill="${color}" text-anchor="${anchor}" font-family="Arial, sans-serif">${line}</text>`
+  ).join("\n");
 }
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-  ctx.lineTo(x + r, y + h);
-  ctx.arcTo(x, y + h, x, y + h - r, r);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-  ctx.closePath();
+function badge(text, cx, cy, rx = 180, ry = 45, bgColor = RED) {
+  return `
+    <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${bgColor}"/>
+    <text x="${cx}" y="${cy + 16}" font-size="44" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial, sans-serif">${text}</text>`;
 }
 
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-  const words = text.split(" ");
-  let line = "";
-  let currentY = y;
-  for (const word of words) {
-    const test = line + word + " ";
-    if (ctx.measureText(test).width > maxWidth && line) {
-      ctx.fillText(line.trim(), x, currentY);
-      line = word + " ";
-      currentY += lineHeight;
-    } else {
-      line = test;
+async function makeFrame(svgContent) {
+  const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${BLUE}"/>
+        <stop offset="100%" stop-color="${DARK_BLUE}"/>
+      </linearGradient>
+    </defs>
+    ${svgContent}
+  </svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+async function frame1Product(title, imageUrl) {
+  // Try to download product image
+  let productImg = "";
+  try {
+    const res = await fetch(imageUrl, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      const imgBuf = Buffer.from(await res.arrayBuffer());
+      const resized = await sharp(imgBuf).resize(600, 600, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toBuffer();
+      productImg = `<image href="data:image/png;base64,${resized.toString("base64")}" x="240" y="280" width="600" height="600"/>`;
     }
-  }
-  ctx.fillText(line.trim(), x, currentY);
+  } catch {}
+
+  const titleLines = title.length > 30
+    ? [title.slice(0, 30), title.slice(30, 60)]
+    : [title];
+
+  return makeFrame(`
+    <rect width="${W}" height="${H}" fill="url(#bg1)"/>
+    <rect x="190" y="220" width="700" height="720" rx="32" fill="rgba(255,255,255,0.08)"/>
+    ${productImg}
+    <text x="${W/2}" y="1080" font-size="28" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Arial, sans-serif">🔥 Heute günstig</text>
+    ${svgText(titleLines, { y: 1150, fontSize: 60, color: "#ffffff" })}
+  `);
+}
+
+async function frame2Price(price, oldPrice, discount) {
+  const priceFormatted = `€${parseFloat(price).toFixed(2).replace(".", ",")}`;
+  const oldFormatted = oldPrice ? `€${parseFloat(oldPrice).toFixed(2).replace(".", ",")}` : "";
+
+  return makeFrame(`
+    <rect width="${W}" height="${H}" fill="${DARK_BLUE}"/>
+    <text x="${W/2}" y="560" font-size="52" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Arial, sans-serif">Jetzt nur noch</text>
+    ${oldFormatted ? `
+      <text x="${W/2}" y="720" font-size="72" fill="rgba(255,255,255,0.35)" text-anchor="middle" font-family="Arial, sans-serif" text-decoration="line-through">${oldFormatted}</text>
+      <line x1="${W/2 - 160}" y1="690" x2="${W/2 + 160}" y2="690" stroke="rgba(255,255,255,0.35)" stroke-width="5"/>
+    ` : ""}
+    <text x="${W/2}" y="1020" font-size="200" font-weight="900" fill="${ORANGE}" text-anchor="middle" font-family="Arial, sans-serif">${priceFormatted}</text>
+    ${discount ? badge(`-${discount}% RABATT`, W/2, 1120, 240, 55, RED) : ""}
+  `);
+}
+
+async function frame3Brand() {
+  return makeFrame(`
+    <rect width="${W}" height="${H}" fill="url(#bg1)"/>
+    <circle cx="${W/2}" cy="760" r="200" fill="rgba(245,166,35,0.15)" stroke="${ORANGE}" stroke-width="8"/>
+    <text x="${W/2}" y="820" font-size="160" text-anchor="middle">🔍</text>
+    <text x="${W/2}" y="1080" font-size="88" font-weight="900" fill="white" text-anchor="middle" font-family="Arial, sans-serif">preisgucken.de</text>
+    <text x="${W/2}" y="1200" font-size="60" font-weight="bold" fill="${ORANGE}" text-anchor="middle" font-family="Arial, sans-serif">Link in Bio ⬆️</text>
+    <text x="${W/2}" y="1320" font-size="44" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Arial, sans-serif">Täglich neue Deals aus Deutschland</text>
+  `);
+}
+
+async function frame4CTA() {
+  return makeFrame(`
+    <rect width="${W}" height="${H}" fill="${DARK_BLUE}"/>
+    <text x="${W/2}" y="680" font-size="180" text-anchor="middle">💸</text>
+    <text x="${W/2}" y="900" font-size="88" font-weight="900" fill="white" text-anchor="middle" font-family="Arial, sans-serif">Nie wieder zu</text>
+    <text x="${W/2}" y="1010" font-size="88" font-weight="900" fill="${ORANGE}" text-anchor="middle" font-family="Arial, sans-serif">viel bezahlen!</text>
+    <rect x="190" y="1100" width="700" height="110" rx="55" fill="${ORANGE}"/>
+    <text x="${W/2}" y="1170" font-size="56" font-weight="bold" fill="${BLUE}" text-anchor="middle" font-family="Arial, sans-serif">Jetzt vergleichen →</text>
+    <text x="${W/2}" y="1360" font-size="52" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Arial, sans-serif">preisgucken.de</text>
+  `);
 }
 
 export async function POST(request) {
@@ -190,64 +117,70 @@ export async function POST(request) {
     ? Math.round((1 - parseFloat(price) / parseFloat(old_price)) * 100)
     : null;
 
-  const W = 1080;
-  const H = 1920;
   const dir = join(tmpdir(), `pg-video-${Date.now()}`);
   await mkdir(dir, { recursive: true });
 
-  // Generate 4 frames
-  const frames = [
-    { type: "product", duration: 3, data: { title, price, old_price, image } },
-    { type: "price",   duration: 3, data: { price, old_price, discount } },
-    { type: "brand",   duration: 3, data: {} },
-    { type: "cta",     duration: 3, data: {} },
-  ];
+  try {
+    const [f1, f2, f3, f4] = await Promise.all([
+      frame1Product(title, image),
+      frame2Price(price, old_price, discount),
+      frame3Brand(),
+      frame4CTA(),
+    ]);
 
-  const framePaths = [];
-  for (let i = 0; i < frames.length; i++) {
-    const f = frames[i];
-    const buf = await drawFrame(f.type, f.data, W, H);
-    const p = join(dir, `frame${i}.png`);
-    await writeFile(p, buf);
-    framePaths.push({ path: p, duration: f.duration });
+    const frames = [
+      { buf: f1, duration: 3 },
+      { buf: f2, duration: 3 },
+      { buf: f3, duration: 3 },
+      { buf: f4, duration: 3 },
+    ];
+
+    const framePaths = [];
+    for (let i = 0; i < frames.length; i++) {
+      const p = join(dir, `frame${i}.png`);
+      await writeFile(p, frames[i].buf);
+      framePaths.push({ path: p, duration: frames[i].duration });
+    }
+
+    const concatFile = join(dir, "concat.txt");
+    const concatContent = framePaths.map(f => `file '${f.path}'\nduration ${f.duration}`).join("\n")
+      + `\nfile '${framePaths[framePaths.length - 1].path}'`;
+    await writeFile(concatFile, concatContent);
+
+    const outputPath = join(dir, "output.mp4");
+
+    await new Promise((resolve, reject) => {
+      ffmpeg()
+        .input(concatFile)
+        .inputOptions(["-f concat", "-safe 0"])
+        .videoCodec("libx264")
+        .outputOptions([
+          "-pix_fmt yuv420p",
+          "-r 30",
+          "-movflags +faststart",
+        ])
+        .output(outputPath)
+        .on("end", resolve)
+        .on("error", reject)
+        .run();
+    });
+
+    const videoBuffer = await readFile(outputPath);
+
+    // Cleanup
+    for (const f of framePaths) unlink(f.path).catch(() => {});
+    unlink(concatFile).catch(() => {});
+    unlink(outputPath).catch(() => {});
+    rmdir(dir).catch(() => {});
+
+    return new NextResponse(videoBuffer, {
+      headers: {
+        "Content-Type": "video/mp4",
+        "Content-Disposition": `attachment; filename="preisgucken-promo.mp4"`,
+      },
+    });
+  } catch (err) {
+    console.error("Video generation error:", err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
-
-  // Build concat input file
-  const concatFile = join(dir, "concat.txt");
-  const concatContent = framePaths.map(f => `file '${f.path}'\nduration ${f.duration}`).join("\n")
-    + `\nfile '${framePaths[framePaths.length - 1].path}'`;
-  await writeFile(concatFile, concatContent);
-
-  const outputPath = join(dir, "output.mp4");
-
-  await new Promise((resolve, reject) => {
-    ffmpeg()
-      .input(concatFile)
-      .inputOptions(["-f concat", "-safe 0"])
-      .videoCodec("libx264")
-      .outputOptions([
-        "-pix_fmt yuv420p",
-        "-r 30",
-        "-movflags +faststart",
-        "-vf scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black",
-      ])
-      .output(outputPath)
-      .on("end", resolve)
-      .on("error", reject)
-      .run();
-  });
-
-  const videoBuffer = await readFile(outputPath);
-
-  // Cleanup
-  for (const f of framePaths) unlink(f.path).catch(() => {});
-  unlink(concatFile).catch(() => {});
-  unlink(outputPath).catch(() => {});
-
-  return new NextResponse(videoBuffer, {
-    headers: {
-      "Content-Type": "video/mp4",
-      "Content-Disposition": `attachment; filename="preisgucken-promo.mp4"`,
-    },
-  });
 }
