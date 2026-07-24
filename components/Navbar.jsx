@@ -8,9 +8,14 @@
 // like <Navbar isNavbarShrink={true} />.
 // ============================================================
 "use client";
-import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import { useEffect } from "react";
+
 
 export default function Navbar({ isNavbarShrink, searchQuery, setSearchQuery, setCurrentPage }) {
+
+  useEffect(() => {
+    import("bootstrap/dist/js/bootstrap.bundle.min.js");
+  }, []);
 
   return (
     <nav
