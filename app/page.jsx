@@ -1,10 +1,15 @@
 // app/page.jsx — Server Component: pre-fetches initial data for LCP improvement
 import { query } from "@/lib/db";
+import { cacheGet, cacheSet } from "@/lib/redis";
 import HomeClient from "@/components/HomeClient";
 
 export const dynamic = "force-dynamic";
 
 async function getInitialData() {
+  const cacheKey = "ssr:homepage:v1";
+  const cached = await cacheGet(cacheKey);
+  if (cached) return cached;
+
   try {
     const [priceRes, prodRes, catRes] = await Promise.all([
       query(`SELECT MAX(price) AS max FROM products WHERE is_active = TRUE AND in_stock = TRUE`),
@@ -60,7 +65,9 @@ async function getInitialData() {
       return { ...parent, productCount: totalCount, children: kids };
     });
 
-    return { initialProducts, initialMaxPrice, initialCategories };
+    const result = { initialProducts, initialMaxPrice, initialCategories };
+    await cacheSet(cacheKey, result, 300);
+    return result;
   } catch (e) {
     console.error("SSR prefetch failed:", e.message);
     return { initialProducts: [], initialMaxPrice: 10000, initialCategories: [] };
