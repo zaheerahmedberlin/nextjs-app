@@ -130,19 +130,6 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
 
-        {/* Preconnect for faster CDN loads */}
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-
-        {/* Bootstrap CSS */}
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-        />
-        {/* Bootstrap Icons */}
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
-        />
 
         {/* Favicon & PWA */}
         <link rel="icon" href="/favicon.png" type="image/png" />
@@ -167,10 +154,6 @@ export default function RootLayout({ children }) {
       <body>
         {children}
         <CookieBanner />
-        <script
-          src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-          async
-        />
       </body>
     </html>
   );
