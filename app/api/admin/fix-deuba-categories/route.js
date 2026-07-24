@@ -37,10 +37,21 @@ export async function GET() {
        ORDER BY parent_id NULLS FIRST, sort_order, name`
     );
 
+    // Sample titles from Sonstiges products to determine keyword mapping
+    const sonstiges = await query(
+      `SELECT p.id, p.title
+       FROM products p
+       JOIN categories c ON c.id = p.category_id
+       WHERE p.vendor_id = $1 AND c.slug = 'sonstiges'
+       ORDER BY p.title
+       LIMIT 100`,
+      [vendorId]
+    );
+
     return NextResponse.json({
       vendor: { id: vendorId, name: vendorName },
       categoryDistribution: dist.rows,
-      availableCategories: categories.rows,
+      sonstigesSample: sonstiges.rows,
     });
   } catch (err) {
     console.error("fix-deuba GET error:", err);
