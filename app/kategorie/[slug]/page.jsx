@@ -209,9 +209,7 @@ export default async function KategoriePage({ params }) {
                         {new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(p.price)}
                       </p>
                       <a
-                        href={p.url}
-                        target="_blank"
-                        rel="noopener sponsored"
+                        href={`/produkt/${p.id}`}
                         className="btn btn-sm btn-outline-secondary w-100"
                       >
                         Zum Angebot →

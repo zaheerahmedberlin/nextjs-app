@@ -21,6 +21,7 @@ export async function generateMetadata({ params }) {
     return {
       title: `${p.title} – ${price} | Preisgucken`,
       description: `${p.title} jetzt für ${price} bei ${p.vendor || "Online-Shop"} kaufen. Preisverlauf und Preisalarm auf Preisgucken.de.`,
+      alternates: { canonical: `https://www.preisgucken.de/produkt/${id}` },
       openGraph: { images: p.image ? [p.image] : [] },
     };
   } catch {
