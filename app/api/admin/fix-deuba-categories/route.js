@@ -10,48 +10,53 @@ export async function GET() {
   const { error } = await requireAdmin();
   if (error) return error;
 
-  // Find DeubaXXL vendor
-  const vendor = await query(
-    `SELECT id, name FROM vendors WHERE name ILIKE '%deuba%' LIMIT 1`
-  );
-  if (!vendor.rows[0]) return NextResponse.json({ error: "DeubaXXL vendor not found" }, { status: 404 });
-  const { id: vendorId, name: vendorName } = vendor.rows[0];
+  try {
+    // Find DeubaXXL vendor
+    const vendor = await query(
+      `SELECT id, name FROM vendors WHERE name ILIKE '%deuba%' LIMIT 1`
+    );
+    if (!vendor.rows[0]) return NextResponse.json({ error: "DeubaXXL vendor not found" }, { status: 404 });
+    const { id: vendorId, name: vendorName } = vendor.rows[0];
 
-  // Category distribution of DeubaXXL products
-  const dist = await query(
-    `SELECT
-       p.category                            AS raw_category,
-       c.slug                                AS current_category_slug,
-       c.name                                AS current_category_name,
-       COUNT(*)::int                         AS product_count
-     FROM products p
-     LEFT JOIN categories c ON c.id = p.category_id
-     WHERE p.vendor_id = $1
-     GROUP BY p.category, c.slug, c.name
-     ORDER BY COUNT(*) DESC`,
-    [vendorId]
-  );
+    // Category distribution of DeubaXXL products
+    const dist = await query(
+      `SELECT
+         p.category                            AS raw_category,
+         c.slug                                AS current_category_slug,
+         c.name                                AS current_category_name,
+         COUNT(*)::int                         AS product_count
+       FROM products p
+       LEFT JOIN categories c ON c.id = p.category_id
+       WHERE p.vendor_id = $1
+       GROUP BY p.category, c.slug, c.name
+       ORDER BY COUNT(*) DESC`,
+      [vendorId]
+    );
 
-  // All available categories
-  const categories = await query(
-    `SELECT id, slug, name, parent_id FROM categories WHERE is_active = TRUE ORDER BY parent_id NULLS FIRST, sort_order, name`
-  );
+    // All available categories
+    const categories = await query(
+      `SELECT id, slug, name, parent_id FROM categories WHERE is_active = TRUE ORDER BY parent_id NULLS FIRST, sort_order, name`
+    );
 
-  // Existing vendor_category_mappings for DeubaXXL
-  const mappings = await query(
-    `SELECT vcm.vendor_category, c.slug, c.name
-     FROM vendor_category_mappings vcm
-     JOIN categories c ON c.id = vcm.category_id
-     WHERE vcm.vendor_id = $1`,
-    [vendorId]
-  );
+    // Existing vendor_category_mappings for DeubaXXL
+    const mappings = await query(
+      `SELECT vcm.vendor_category, c.slug, c.name
+       FROM vendor_category_mappings vcm
+       JOIN categories c ON c.id = vcm.category_id
+       WHERE vcm.vendor_id = $1`,
+      [vendorId]
+    );
 
-  return NextResponse.json({
-    vendor: { id: vendorId, name: vendorName },
-    categoryDistribution: dist.rows,
-    availableCategories: categories.rows,
-    existingMappings: mappings.rows,
-  });
+    return NextResponse.json({
+      vendor: { id: vendorId, name: vendorName },
+      categoryDistribution: dist.rows,
+      availableCategories: categories.rows,
+      existingMappings: mappings.rows,
+    });
+  } catch (err) {
+    console.error("fix-deuba GET error:", err);
+    return NextResponse.json({ error: err.message, stack: err.stack }, { status: 500 });
+  }
 }
 
 export async function POST(request) {
