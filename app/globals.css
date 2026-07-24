@@ -1,6 +1,8 @@
 /* ============================================================
    app/globals.css
    ============================================================ */
+@import "bootstrap/dist/css/bootstrap.min.css";
+@import "bootstrap-icons/font/bootstrap-icons.css";
 
 .sidebar-cat-row {
   transition: background-color 0.15s;

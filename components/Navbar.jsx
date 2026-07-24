@@ -8,6 +8,7 @@
 // like <Navbar isNavbarShrink={true} />.
 // ============================================================
 "use client";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 export default function Navbar({ isNavbarShrink, searchQuery, setSearchQuery, setCurrentPage }) {
 
