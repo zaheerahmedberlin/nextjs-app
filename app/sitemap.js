@@ -15,7 +15,6 @@ export default async function sitemap() {
 
   let categoryPages = [];
   try {
-    // Only parent categories have landing pages right now
     const res = await query(
       `SELECT c.slug, MAX(p.updated_at) AS last_updated
        FROM categories c
@@ -34,5 +33,24 @@ export default async function sitemap() {
     console.error("sitemap: categories query failed", e.message);
   }
 
-  return [...staticPages, ...categoryPages];
+  let productPages = [];
+  try {
+    const res = await query(
+      `SELECT id, updated_at
+       FROM products
+       WHERE is_active = TRUE
+       ORDER BY updated_at DESC
+       LIMIT 10000`
+    );
+    productPages = res.rows.map((r) => ({
+      url:             `${BASE_URL}/produkt/${r.id}`,
+      lastModified:    r.updated_at ? new Date(r.updated_at) : new Date(),
+      changeFrequency: "daily",
+      priority:        0.7,
+    }));
+  } catch (e) {
+    console.error("sitemap: products query failed", e.message);
+  }
+
+  return [...staticPages, ...categoryPages, ...productPages];
 }
