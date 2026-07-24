@@ -20,7 +20,7 @@ export default async function sitemap() {
        FROM categories c
        LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE
        WHERE c.is_active = TRUE AND c.parent_id IS NULL AND c.slug != 'sonstiges'
-       GROUP BY c.slug
+       GROUP BY c.slug, c.sort_order
        ORDER BY c.sort_order`
     );
     categoryPages = res.rows.map((r) => ({
