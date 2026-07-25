@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-export default function ProductImage({ src, alt, height = 150 }) {
+export default function ProductImage({ src, alt, height = 150, priority = false }) {
   const [broken, setBroken] = useState(false);
 
   if (!src || broken) {
@@ -22,6 +22,8 @@ export default function ProductImage({ src, alt, height = 150 }) {
       alt={alt}
       onError={() => setBroken(true)}
       style={{ height, objectFit: "cover" }}
+      loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : "auto"}
     />
   );
 }

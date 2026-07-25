@@ -65,7 +65,7 @@ export default function ProductGrid({ products, onOpenProduct, formatPrice, isLo
               {/* ── Out of stock badge ── */}
               <div className="position-relative">
                 <div style={{ opacity: product.in_stock ? 1 : 0.5 }}>
-                  <ProductImage src={product.image} alt={`${product.title} – Preisvergleich`} height={150} />
+                  <ProductImage src={product.image} alt={`${product.title} – Preisvergleich`} height={150} priority={index === 0} />
                 </div>
                 {/* ── Günstigster Preis badge ── */}
                 {product.price_30d_min != null && parseFloat(product.price) <= parseFloat(product.price_30d_min) && (
