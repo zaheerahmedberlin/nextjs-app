@@ -1,16 +1,11 @@
 // app/page.jsx — Server Component: pre-fetches initial data for LCP improvement
+import { unstable_cache } from "next/cache";
 import { query } from "@/lib/db";
-import { cacheGet, cacheSet } from "@/lib/redis";
 import HomeClient from "@/components/HomeClient";
 
-export const dynamic = "force-dynamic";
-
-async function getInitialData() {
-  const cacheKey = "ssr:homepage:v1";
-  const cached = await cacheGet(cacheKey);
-  if (cached) return cached;
-
-  try {
+// In-process memory cache — no Redis network overhead, revalidates every 5 min
+const getInitialData = unstable_cache(
+  async () => {
     const [priceRes, prodRes, catRes] = await Promise.all([
       query(`SELECT MAX(price) AS max FROM products WHERE is_active = TRUE AND in_stock = TRUE`),
       query(`SELECT
@@ -35,11 +30,9 @@ async function getInitialData() {
       ORDER BY c.parent_id NULLS FIRST, c.sort_order, c.name`),
     ]);
 
-    // Max price rounded to nearest 100
     const rawMax = parseFloat(priceRes.rows[0]?.max) || 10000;
     const initialMaxPrice = Math.ceil(rawMax / 100) * 100;
 
-    // Vendor dedup: max 2 per vendor, limit 12 — same logic as client default view
     const vendorCount = {};
     const initialProducts = prodRes.rows
       .filter((p) => {
@@ -48,7 +41,6 @@ async function getInitialData() {
       })
       .slice(0, 12);
 
-    // Build category tree
     const rows = catRes.rows.map((r) => ({
       id:           r.id,
       slug:         r.slug,
@@ -65,22 +57,27 @@ async function getInitialData() {
       return { ...parent, productCount: totalCount, children: kids };
     });
 
-    const result = { initialProducts, initialMaxPrice, initialCategories };
-    await cacheSet(cacheKey, result, 300);
-    return result;
-  } catch (e) {
-    console.error("SSR prefetch failed:", e.message);
-    return { initialProducts: [], initialMaxPrice: 10000, initialCategories: [] };
-  }
-}
+    return { initialProducts, initialMaxPrice, initialCategories };
+  },
+  ["homepage-initial-data"],
+  { revalidate: 300 } // refresh every 5 minutes
+);
+
+export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const { initialProducts, initialMaxPrice, initialCategories } = await getInitialData();
+  let data = { initialProducts: [], initialMaxPrice: 10000, initialCategories: [] };
+  try {
+    data = await getInitialData();
+  } catch (e) {
+    console.error("SSR prefetch failed:", e.message);
+  }
+
   return (
     <HomeClient
-      initialProducts={initialProducts}
-      initialMaxPrice={initialMaxPrice}
-      initialCategories={initialCategories}
+      initialProducts={data.initialProducts}
+      initialMaxPrice={data.initialMaxPrice}
+      initialCategories={data.initialCategories}
     />
   );
 }
