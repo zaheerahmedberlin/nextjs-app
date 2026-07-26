@@ -19,7 +19,7 @@ export default async function sitemap() {
       `SELECT c.slug, MAX(p.updated_at) AS last_updated
        FROM categories c
        LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE
-       WHERE c.is_active = TRUE AND c.parent_id IS NULL AND c.slug != 'sonstiges'
+       WHERE c.is_active = TRUE AND c.slug != 'sonstiges'
        GROUP BY c.slug, c.sort_order
        ORDER BY c.sort_order`
     );
@@ -39,6 +39,10 @@ export default async function sitemap() {
       `SELECT id, updated_at
        FROM products
        WHERE is_active = TRUE
+         AND in_stock = TRUE
+         AND image IS NOT NULL
+         AND image != ''
+         AND image NOT LIKE '%placeholder%'
        ORDER BY updated_at DESC
        LIMIT 10000`
     );

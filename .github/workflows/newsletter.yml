@@ -1,0 +1,25 @@
+name: Daily Newsletter
+
+on:
+  schedule:
+    - cron: "0 8 * * *"   # every day at 08:00 UTC (10:00 Berlin summer time)
+  workflow_dispatch:        # allow manual trigger from GitHub UI
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send newsletter
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X GET "${{ secrets.APP_BASE_URL }}/api/cron/send-newsletter" \
+            -H "x-cron-token: ${{ secrets.CRON_SECRET }}")
+          echo "HTTP status: $response"
+          if [ "$response" != "200" ]; then
+            echo "Newsletter cron failed with status $response"
+            exit 1
+          fi
+
+      - name: Log result
+        if: always()
+        run: echo "Newsletter job finished at $(date)"

@@ -161,6 +161,8 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
     const nl = params.get("newsletter");
     if (nl === "confirmed")         setNewsletterToast("✓ E-Mail bestätigt! Du erhältst ab jetzt unseren Newsletter.");
     if (nl === "already-confirmed") setNewsletterToast("Du bist bereits angemeldet.");
+    if (nl === "unsubscribed")      setNewsletterToast("Du wurdest erfolgreich abgemeldet.");
+    if (nl === "unsubscribe-error") setNewsletterToast("Abmeldung fehlgeschlagen – bitte kontaktiere uns.");
     if (nl) window.history.replaceState({}, "", "/");
   }, []);
 
