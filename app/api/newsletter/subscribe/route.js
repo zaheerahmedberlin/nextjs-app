@@ -32,7 +32,12 @@ export async function POST(request) {
       return NextResponse.json({ message: "Du bist bereits angemeldet." });
     }
 
-    await sendConfirmationEmail({ to: email, token: row.token, categories });
+    const emailResult = await sendConfirmationEmail({ to: email, token: row.token, categories });
+    if (!emailResult.ok) {
+      console.error("Resend API error:", emailResult.error);
+    } else {
+      console.log(`[newsletter] Confirmation sent to ${email} (placeholder=${!!emailResult.placeholder})`);
+    }
 
     return NextResponse.json({ message: "Bestätigungs-E-Mail gesendet. Bitte prüfe deinen Posteingang." });
   } catch (err) {
