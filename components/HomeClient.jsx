@@ -544,8 +544,8 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       </div>
 
       <NewsletterSection />
-      <VendorStrip />
       <Footer />
+      <VendorStrip />
 
       <ProductModal
         product={selectedProduct}
