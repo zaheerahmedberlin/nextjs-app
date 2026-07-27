@@ -1,6 +1,17 @@
-// GET /api/vendor/list — returns active vendors with website_url for logo strip
+// GET /api/vendor/list — returns AWIN-only vendors for the partner logo strip
 import { query } from "@/lib/db";
 import { NextResponse } from "next/server";
+
+// Keep in sync with lib/affiliate.js VENDOR_MERCHANT_MAP
+const AWIN_VENDORS = [
+  "DeubaXXL",
+  "Nutrientify",
+  "Life Extension DACH",
+  "Dowinx",
+  "SHAMTAM",
+  "BlazeVideo DE",
+  "GERMENS DE",
+];
 
 export async function GET() {
   try {
@@ -8,9 +19,9 @@ export async function GET() {
       `SELECT id, name, logo_url, website_url
        FROM vendors
        WHERE is_active = TRUE
-         AND website_url IS NOT NULL
-         AND website_url != ''
-       ORDER BY name ASC`
+         AND name = ANY($1)
+       ORDER BY name ASC`,
+      [AWIN_VENDORS]
     );
     return NextResponse.json({ vendors: result.rows });
   } catch (err) {
