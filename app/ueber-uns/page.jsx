@@ -36,19 +36,15 @@ export default function UeberUnsPage() {
         </section>
 
         <div className="row g-4 mb-5">
-          <div className="col-6 col-md-3 text-center">
-            <div className="display-6 fw-bold" style={{ color: "var(--pg-blue)" }}>7.700+</div>
-            <div className="small text-muted">Produkte</div>
+          <div className="col-6 col-md-4 text-center">
+            <div className="display-6 fw-bold" style={{ color: "var(--pg-blue)" }}>Täglich</div>
+            <div className="small text-muted">Neue Angebote</div>
           </div>
-          <div className="col-6 col-md-3 text-center">
-            <div className="display-6 fw-bold" style={{ color: "var(--pg-blue)" }}>7</div>
-            <div className="small text-muted">Händler</div>
+          <div className="col-6 col-md-4 text-center">
+            <div className="display-6 fw-bold" style={{ color: "var(--pg-blue)" }}>100%</div>
+            <div className="small text-muted">Kostenlos</div>
           </div>
-          <div className="col-6 col-md-3 text-center">
-            <div className="display-6 fw-bold" style={{ color: "var(--pg-blue)" }}>10+</div>
-            <div className="small text-muted">Kategorien</div>
-          </div>
-          <div className="col-6 col-md-3 text-center">
+          <div className="col-6 col-md-4 text-center">
             <div className="display-6 fw-bold" style={{ color: "var(--pg-blue)" }}>0 €</div>
             <div className="small text-muted">Für Nutzer</div>
           </div>
