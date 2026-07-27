@@ -327,8 +327,6 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
         />
       </div>
 
-      <VendorStrip />
-
       <nav aria-label="breadcrumb" className="container-fluid px-3 pt-2">
         <ol className="breadcrumb mb-0 small" itemScope itemType="https://schema.org/BreadcrumbList">
           <li className="breadcrumb-item" itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
@@ -546,6 +544,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       </div>
 
       <NewsletterSection />
+      <VendorStrip />
       <Footer />
 
       <ProductModal
