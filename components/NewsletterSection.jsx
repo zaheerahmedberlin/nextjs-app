@@ -35,7 +35,7 @@ export default function NewsletterSection() {
   }
 
   return (
-    <section className="py-5" style={{ background: "var(--pg-blue)" }}>
+    <section id="newsletter" className="py-5" style={{ background: "var(--pg-blue)" }}>
       <div className="container">
         <div className="row justify-content-center text-center mb-4">
           <div className="col-md-7">
