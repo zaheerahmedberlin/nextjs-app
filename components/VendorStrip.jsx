@@ -26,24 +26,32 @@ export default function VendorStrip() {
               : null;
             const logoSrc = vendor.logo_url || (domain ? `https://logo.clearbit.com/${domain}` : null);
 
-            if (!logoSrc) return null;
-
             return (
               <a
                 key={vendor.id}
                 href={`/?vendor=${encodeURIComponent(vendor.name)}`}
                 title={`${vendor.name} Angebote auf Preisgucken.de`}
+                className="text-decoration-none"
                 style={{ opacity: 0.75, transition: "opacity 0.2s" }}
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = 1)}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = 0.75)}
               >
-                <img
-                  src={logoSrc}
-                  alt={vendor.name}
-                  title={vendor.name}
-                  style={{ height: 32, maxWidth: 100, objectFit: "contain", filter: "grayscale(30%)" }}
-                  onError={(e) => { e.currentTarget.closest("a").style.display = "none"; }}
-                />
+                {logoSrc ? (
+                  <img
+                    src={logoSrc}
+                    alt={vendor.name}
+                    title={vendor.name}
+                    style={{ height: 32, maxWidth: 110, objectFit: "contain", filter: "grayscale(30%)" }}
+                    onError={(e) => {
+                      // fallback to text badge if logo fails
+                      e.currentTarget.outerHTML = `<span style="font-size:13px;font-weight:600;color:#1A3A6B;padding:4px 10px;border:1px solid #1A3A6B;border-radius:4px">${vendor.name}</span>`;
+                    }}
+                  />
+                ) : (
+                  <span style={{ fontSize: "13px", fontWeight: 600, color: "#1A3A6B", padding: "4px 10px", border: "1px solid #1A3A6B", borderRadius: 4 }}>
+                    {vendor.name}
+                  </span>
+                )}
               </a>
             );
           })}
