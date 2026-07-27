@@ -42,7 +42,19 @@ export async function GET(request) {
 
     if (q) {
       params.push(q);
-      conditions.push(`p.search_vector @@ plainto_tsquery('german', unaccent($${params.length}))`);
+      // Use prefix matching: split words and append :* to each for partial word support
+      // e.g. "matrat" matches "Matratzen", "sofa 3" matches "Sofa 3-Sitzer"
+      const qIdx = params.length;
+      conditions.push(`(
+        p.search_vector @@ to_tsquery('german', array_to_string(
+          ARRAY(SELECT unaccent(word) || ':*'
+                FROM unnest(regexp_split_to_array(trim($${qIdx}), '\\s+')) AS word
+                WHERE word <> ''),
+          ' & '
+        ))
+        OR p.title ILIKE $${qIdx + 1}
+      )`);
+      params.push(`%${q}%`);
     }
 
     if (category) {
@@ -81,7 +93,7 @@ export async function GET(request) {
     const orderBy =
       sort === "priceAsc"  ? "p.price ASC"  :
       sort === "priceDesc" ? "p.price DESC" :
-      q ? "ts_rank(p.search_vector, plainto_tsquery('german', unaccent($1))) DESC" :
+      q ? "ts_rank(p.search_vector, to_tsquery('german', array_to_string(ARRAY(SELECT unaccent(word) || ':*' FROM unnest(regexp_split_to_array(trim($1), '\\s+')) AS word WHERE word <> ''), ' & '))) DESC" :
       "p.updated_at DESC";
 
     const countResult = await query(`SELECT COUNT(*) FROM products p LEFT JOIN vendors v ON v.id = p.vendor_id ${where}`, params);
