@@ -160,7 +160,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const nl = params.get("newsletter");
-    if (nl === "confirmed")         setNewsletterToast("✓ E-Mail bestätigt! Du erhältst ab jetzt unseren Newsletter.");
+    if (nl === "confirmed")         setNewsletterToast("confirmed");
     if (nl === "already-confirmed") setNewsletterToast("Du bist bereits angemeldet.");
     if (nl === "unsubscribed")      setNewsletterToast("Du wurdest erfolgreich abgemeldet.");
     if (nl === "unsubscribe-error") setNewsletterToast("Abmeldung fehlgeschlagen – bitte kontaktiere uns.");
@@ -302,11 +302,47 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       {/* Newsletter confirmation toast */}
       {newsletterToast && (
         <div
-          className="position-fixed bottom-0 end-0 m-3 alert alert-success shadow"
-          style={{ zIndex: 9999, minWidth: 300 }}
+          className="position-fixed bottom-0 end-0 m-3 shadow-lg"
+          style={{ zIndex: 9999, maxWidth: 340 }}
         >
-          {newsletterToast}
-          <button className="btn-close ms-3 float-end" onClick={() => setNewsletterToast("")} />
+          {newsletterToast === "confirmed" ? (
+            <div className="card border-0" style={{ background: "#1A3A6B", color: "#fff", borderRadius: 12 }}>
+              <div className="card-body p-3">
+                <button className="btn-close btn-close-white float-end" onClick={() => setNewsletterToast("")} />
+                <p className="fw-bold mb-1" style={{ fontSize: 15 }}>✅ E-Mail bestätigt!</p>
+                <p className="mb-3" style={{ fontSize: 13, opacity: 0.85 }}>
+                  Du erhältst ab jetzt unseren Newsletter. Kennst du jemanden der auch sparen will?
+                </p>
+                <div className="d-flex gap-2">
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent("Hey! 👋\n\nIch spare Geld mit preisgucken.de – kostenloser Preisvergleich für deutsche Online-Shops.\n\nMeld dich für den Newsletter an:\n👉 https://www.preisgucken.de/#newsletter\n\nKostenlos & kein Spam!")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm fw-semibold flex-fill"
+                    style={{ background: "#25D366", color: "#fff", borderRadius: 8, fontSize: 13 }}
+                  >
+                    WhatsApp teilen
+                  </a>
+                  <a
+                    href={`mailto:?subject=Preise%20vergleichen%20%26%20sparen%20–%20preisgucken.de&body=${encodeURIComponent("Hey!\n\nIch spare Geld mit preisgucken.de – kostenloser Preisvergleich für deutsche Online-Shops.\n\nMeld dich für den Newsletter an:\nhttps://www.preisgucken.de/#newsletter\n\nKostenlos & kein Spam!")}`}
+                    className="btn btn-sm fw-semibold flex-fill"
+                    style={{ background: "rgba(255,255,255,0.15)", color: "#fff", borderRadius: 8, fontSize: 13 }}
+                  >
+                    Per E-Mail
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="alert mb-0"
+              style={{ borderRadius: 10 }}
+              role="alert"
+            >
+              {newsletterToast}
+              <button className="btn-close ms-3 float-end" onClick={() => setNewsletterToast("")} />
+            </div>
+          )}
         </div>
       )}
 
