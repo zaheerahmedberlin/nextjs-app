@@ -13,6 +13,7 @@ import OffersSection from "@/components/OffersSection";
 import NewsletterSection from "@/components/NewsletterSection";
 import DealAlertBanner from "@/components/DealAlertBanner";
 import Footer from "@/components/Footer";
+import VendorStrip from "@/components/VendorStrip";
 import ProductModal from "@/components/ProductModal";
 
 // Resolve a category slug to its display name from the tree
@@ -325,6 +326,8 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
           popularTerms={popularTerms}
         />
       </div>
+
+      <VendorStrip />
 
       <nav aria-label="breadcrumb" className="container-fluid px-3 pt-2">
         <ol className="breadcrumb mb-0 small" itemScope itemType="https://schema.org/BreadcrumbList">
