@@ -8,7 +8,6 @@ const AWIN_VENDORS = [
   "Nutrientify",
   "Life Extension DACH",
   "Dowinx",
-  "SHAMTAM",
   "BlazeVideo DE",
   "GERMENS DE",
 ];
