@@ -8,7 +8,7 @@ const BASE_URL = "https://www.preisgucken.de";
 // Tell Next.js which slugs to pre-render at build time
 export async function generateStaticParams() {
   try {
-    const res = await query("SELECT slug FROM categories WHERE is_active = TRUE AND parent_id IS NULL");
+    const res = await query("SELECT slug FROM categories WHERE is_active = TRUE");
     return res.rows.map((r) => ({ slug: r.slug }));
   } catch {
     return [];
@@ -56,7 +56,7 @@ export default async function KategoriePage({ params }) {
             child.id AS child_id, child.name AS child_name, child.slug AS child_slug
      FROM categories c
      LEFT JOIN categories child ON child.parent_id = c.id AND child.is_active = TRUE
-     WHERE c.slug = $1 AND c.is_active = TRUE AND c.parent_id IS NULL`,
+     WHERE c.slug = $1 AND c.is_active = TRUE`,
     [slug]
   );
 
