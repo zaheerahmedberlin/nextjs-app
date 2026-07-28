@@ -33,6 +33,9 @@ export default async function sitemap() {
     console.error("sitemap: categories query failed", e.message);
   }
 
+  // Sitemap protocol caps a single file at 50,000 URLs — 45,000 here
+  // leaves headroom for static + category pages. If the catalog grows
+  // past this, split into a sitemap index (multiple files).
   let productPages = [];
   try {
     const res = await query(
@@ -44,7 +47,7 @@ export default async function sitemap() {
          AND image != ''
          AND image NOT LIKE '%placeholder%'
        ORDER BY updated_at DESC
-       LIMIT 10000`
+       LIMIT 45000`
     );
     productPages = res.rows.map((r) => ({
       url:             `${BASE_URL}/produkt/${r.id}`,

@@ -75,11 +75,6 @@ export const metadata = {
       "max-snippet": -1,
     },
   },
-
-  // ── Verification (add your real tokens) ───────────────────
-  verification: {
-    google: "YOUR_GOOGLE_SEARCH_CONSOLE_TOKEN",
-  },
 };
 
 export default function RootLayout({ children }) {
