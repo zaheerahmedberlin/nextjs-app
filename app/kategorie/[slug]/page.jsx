@@ -2,6 +2,8 @@
 // Server-rendered category landing page — fully indexable by Google
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const BASE_URL = "https://www.preisgucken.de";
 
@@ -145,6 +147,8 @@ export default async function KategoriePage({ params }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
 
+      <Navbar />
+
       {/* Server-rendered content Google can index without JS */}
       <header className="bg-light border-bottom py-4">
         <div className="container">
@@ -250,6 +254,8 @@ export default async function KategoriePage({ params }) {
           </div>
         </section>
       </main>
+
+      <Footer />
     </>
   );
 }
