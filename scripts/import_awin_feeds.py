@@ -33,6 +33,43 @@ def guess_category(merchant_category, title):
             return cat_id
     return 9  # Sonstiges
 
+def parse_row(row, is_darwin):
+    """Normalize a CSV row from either the classic AWIN format (product_name,
+    search_price, aw_image_url, merchant_category) or the Darwin/Google
+    Shopping format (title, price, image_link, product_type) — Dowinx uses
+    Darwin, GERMENS/BlazeVideo/DeubaXXL use classic. Returns None to skip
+    the row (missing data, or non-EUR price in Darwin feeds)."""
+    if is_darwin:
+        title = (row.get("title") or "").strip()
+        url = (row.get("aw_deep_link") or "").strip()
+        price_raw = (row.get("price") or "").strip()
+        parts = price_raw.split()
+        if len(parts) == 2 and parts[1] != "EUR":
+            return None  # non-EUR entry, skip rather than misreport currency
+        try:
+            price = float(parts[0]) if parts else 0.0
+        except ValueError:
+            price = 0.0
+        image = row.get("image_link", "")
+        category_text = row.get("product_type") or row.get("google_product_category", "")
+        desc = (row.get("description", "") or "")[:1000]
+    else:
+        title = (row.get("product_name") or "").strip()
+        url = (row.get("aw_deep_link") or "").strip()
+        try:
+            price = float(row.get("search_price", "0") or 0)
+        except ValueError:
+            price = 0.0
+        image = row.get("aw_image_url") or row.get("merchant_image_url", "")
+        category_text = row.get("merchant_category", "")
+        desc = (row.get("description", "") or "")[:1000]
+
+    if not title or not url:
+        return None
+
+    return {"title": title, "url": url, "price": price, "image": image,
+            "category_text": category_text, "description": desc}
+
 def import_vendor(cur, vendor_id, vendor_name, feed_url):
     print(f"  Downloading feed for {vendor_name}...")
     try:
@@ -51,23 +88,19 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
     except Exception:
         reader = csv.DictReader(io.StringIO(raw.decode("utf-8")))
 
+    is_darwin = reader.fieldnames and "title" in reader.fieldnames and "product_name" not in reader.fieldnames
+    if is_darwin:
+        print(f"  Detected Darwin/Google Shopping feed format for {vendor_name}")
+
     for row in reader:
-        title = row.get("product_name", "").strip()
-        url   = row.get("aw_deep_link", "").strip()
-        if not title or not url:
+        parsed = parse_row(row, is_darwin)
+        if not parsed:
             skipped += 1
             continue
 
-        try:
-            price = float(row.get("search_price", "0") or 0)
-        except ValueError:
-            price = 0.0
-
-        image    = row.get("aw_image_url") or row.get("merchant_image_url", "")
-        desc     = (row.get("description", "") or "")[:1000]
-        merchant_category = row.get("merchant_category", "")
-        category_id = guess_category(merchant_category, title)
-        search_vector_expr = "to_tsvector('german', unaccent(coalesce(%s, '') || ' ' || coalesce(%s, '')))"
+        title, url, price = parsed["title"], parsed["url"], parsed["price"]
+        image, desc = parsed["image"], parsed["description"]
+        category_id = guess_category(parsed["category_text"], title)
 
         cur.execute("SELECT id FROM products WHERE url = %s AND vendor_id = %s", (url, vendor_id))
         existing = cur.fetchone()
