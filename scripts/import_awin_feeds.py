@@ -7,6 +7,7 @@ import csv
 import gzip
 import io
 import os
+import sys
 import urllib.request
 import psycopg2
 
@@ -150,9 +151,8 @@ def flush_redis_cache():
     except Exception as e:
         print(f"Redis flush skipped: {e}")
 
-def main():
-    print("Connecting to database...")
-    conn = psycopg2.connect(
+def connect():
+    return psycopg2.connect(
         DATABASE_URL,
         keepalives=1,
         keepalives_idle=60,
@@ -160,24 +160,42 @@ def main():
         keepalives_count=5,
         connect_timeout=30,
     )
-    conn.autocommit = False
-    cur = conn.cursor()
 
-    cur.execute("SELECT id, name, feed_url FROM vendors WHERE feed_url IS NOT NULL AND feed_url != ''")
-    vendors = cur.fetchall()
+def main():
+    print("Connecting to database...")
+    conn = connect()
+    conn.autocommit = False
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, name, feed_url FROM vendors WHERE feed_url IS NOT NULL AND feed_url != ''")
+        vendors = cur.fetchall()
+    conn.close()
     print(f"Found {len(vendors)} vendor(s) with feed URLs")
 
     total = 0
+    failed = []
     for vendor_id, vendor_name, feed_url in vendors:
         print(f"\nProcessing {vendor_name} (id={vendor_id})...")
-        count = import_vendor(cur, vendor_id, vendor_name, feed_url)
-        total += count
-        conn.commit()
+        # Fresh connection per vendor — a connection drop or crash on one
+        # vendor no longer kills the rest of the run.
+        try:
+            vendor_conn = connect()
+            vendor_conn.autocommit = False
+            with vendor_conn.cursor() as vendor_cur:
+                count = import_vendor(vendor_cur, vendor_id, vendor_name, feed_url)
+            vendor_conn.commit()
+            vendor_conn.close()
+            total += count
+        except Exception as e:
+            print(f"  ERROR processing {vendor_name}: {e}")
+            failed.append(vendor_name)
 
-    cur.close()
-    conn.close()
-    print(f"\nDone — {total} products imported/updated across {len(vendors)} vendors")
+    print(f"\nDone — {total} products imported/updated across {len(vendors) - len(failed)}/{len(vendors)} vendors")
+    if failed:
+        print(f"Failed vendors (not updated this run): {', '.join(failed)}")
     flush_redis_cache()
+
+    if failed:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
