@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import Sidebar from "@/components/Sidebar";
@@ -119,6 +120,7 @@ const faqSchema = {
 };
 
 export default function HomeClient({ initialProducts = [], initialMaxPrice = 10000, initialCategories = [] }) {
+  const searchParams = useSearchParams();
   const [products, setProducts]                         = useState(initialProducts);
   const [categories, setCategories]                     = useState(initialCategories);
   const [popularTerms, setPopularTerms]                 = useState(() => {
@@ -140,9 +142,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   const [isLoading, setIsLoading]                       = useState(false);
 
   // Filters
-  const [searchQuery, setSearchQuery]                   = useState(
-    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") ?? "" : ""
-  );
+  const [searchQuery, setSearchQuery]                   = useState(searchParams.get("q") ?? "");
   const [selectedCategories, setSelectedCategories]     = useState([]);
   const [sortOption, setSortOption]                     = useState("relevance");
   const [maxPriceFilter, setMaxPriceFilter]             = useState(initialMaxPrice);

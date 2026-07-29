@@ -8,10 +8,28 @@
 // like <Navbar isNavbarShrink={true} />.
 // ============================================================
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
+// isNavbarShrink defaults to true so pages other than the homepage
+// (which explicitly controls it for the scroll-shrink effect) get a
+// visible, working search bar in the header instead of a hidden one.
+export default function Navbar({ isNavbarShrink = true, searchQuery, setSearchQuery, setCurrentPage }) {
+  const router = useRouter();
+  const [localQuery, setLocalQuery] = useState("");
 
-export default function Navbar({ isNavbarShrink, searchQuery, setSearchQuery, setCurrentPage }) {
+  // Standalone pages (category pages, impressum, etc.) don't pass
+  // search state down — fall back to local state and navigate to the
+  // homepage search results on submit instead of calling setCurrentPage.
+  const query = setSearchQuery ? searchQuery : localQuery;
+  const updateQuery = setSearchQuery || setLocalQuery;
+  const runSearch = () => {
+    if (setCurrentPage) {
+      setCurrentPage(1);
+    } else {
+      router.push(`/?q=${encodeURIComponent(query || "")}`);
+    }
+  };
 
   useEffect(() => {
     import("bootstrap/dist/js/bootstrap.bundle.min.js");
@@ -74,25 +92,25 @@ export default function Navbar({ isNavbarShrink, searchQuery, setSearchQuery, se
             </li>
           </ul>
 
-          <div
+          <form
             className="d-flex header-search align-items-center"
             style={{ visibility: isNavbarShrink ? "visible" : "hidden", opacity: isNavbarShrink ? 1 : 0, transition: "opacity 0.2s" }}
+            onSubmit={(e) => { e.preventDefault(); runSearch(); }}
           >
             <input
               className="form-control me-2"
               type="search"
               placeholder="Produkt suchen…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={query}
+              onChange={(e) => updateQuery(e.target.value)}
             />
             <button
               className="btn btn-outline-primary"
-              type="button"
-              onClick={() => setCurrentPage(1)}
+              type="submit"
             >
               <i className="bi bi-search"></i>
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </nav>
