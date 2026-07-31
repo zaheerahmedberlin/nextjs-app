@@ -531,7 +531,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                 <div className="col-12 col-md-4 mb-3">
                   <h2 className="h6 fw-bold">Preise vergleichen &amp; sparen</h2>
                   <p className="text-muted small">
-                    Preisgucken ist Ihr kostenloser <strong>Preisvergleich für Deutschland</strong>.
+                    Preisgucken<sup style={{ fontSize: "0.6em" }}>™</sup> ist Ihr kostenloser <strong>Preisvergleich für Deutschland</strong>.
                     Wir zeigen Ihnen tagesaktuelle Preise aus deutschen Online-Shops – damit Sie
                     immer den günstigsten Preis finden.
                   </p>

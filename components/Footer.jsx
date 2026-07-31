@@ -21,7 +21,7 @@ export default function Footer() {
 
           {/* Brand + description */}
           <div className="col-12 col-md-4 mb-4">
-            <h2 className="h5 text-price fw-bold">Preisgucken</h2>
+            <h2 className="h5 text-price fw-bold">Preisgucken<sup style={{ fontSize: "0.55em" }}>™</sup></h2>
             <p className="text-muted small">
               Ihr kostenloser <strong>Preisvergleich für Deutschland</strong>. Vergleichen Sie
               Preise von hunderten Online-Shops und finden Sie immer das günstigste Angebot –
@@ -76,7 +76,7 @@ export default function Footer() {
               geändert haben. Bitte prüfen Sie den aktuellen Preis beim jeweiligen Händler.
             </p>
             <p className="mb-0">
-              © {currentYear} Preisgucken – Alle Rechte vorbehalten. &nbsp;
+              © {currentYear} Preisgucken™ – Alle Rechte vorbehalten. &nbsp;
               <a href="/sitemap.xml" className="text-muted">Sitemap</a>
             </p>
           </div>
