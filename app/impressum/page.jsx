@@ -31,10 +31,8 @@ export default function ImpressumPage() {
         </section>
 
         <section className="mb-4">
-          <h2 className="h5 fw-bold">Umsatzsteuer-ID</h2>
-          <p className="text-muted small mb-0">
-            Nach Erteilung der Steuernummer durch das Finanzamt wird diese hier ergänzt.
-          </p>
+          <h2 className="h5 fw-bold">Steuernummer</h2>
+          <p className="mb-0">17/202/01746</p>
         </section>
 
         <section className="mb-4">
