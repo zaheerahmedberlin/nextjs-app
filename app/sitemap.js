@@ -3,6 +3,8 @@ import { query } from "@/lib/db";
 
 const BASE_URL = "https://www.preisgucken.de";
 
+export const revalidate = 3600; // regenerate hourly so new vendors/categories/products appear without a deploy
+
 export default async function sitemap() {
   const staticPages = [
     { url: BASE_URL,                                  lastModified: new Date(), changeFrequency: "daily",   priority: 1.0 },
