@@ -15,51 +15,45 @@ export default async function sitemap() {
     { url: `${BASE_URL}/datenschutz`,                 lastModified: new Date(), changeFrequency: "yearly",  priority: 0.3 },
   ];
 
-  let categoryPages = [];
-  try {
-    const res = await query(
-      `SELECT c.slug, MAX(p.updated_at) AS last_updated
-       FROM categories c
-       LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE
-       WHERE c.is_active = TRUE AND c.slug != 'sonstiges'
-       GROUP BY c.slug, c.sort_order
-       ORDER BY c.sort_order`
-    );
-    categoryPages = res.rows.map((r) => ({
-      url:             `${BASE_URL}/kategorie/${r.slug}`,
-      lastModified:    r.last_updated ? new Date(r.last_updated) : new Date(),
-      changeFrequency: "daily",
-      priority:        0.8,
-    }));
-  } catch (e) {
-    console.error("sitemap: categories query failed", e.message);
-  }
+  // Note: intentionally not wrapped in try/catch — a DB failure here must
+  // throw so Next.js's ISR keeps serving the last known-good cached sitemap
+  // instead of caching an incomplete one (missing all category/product URLs)
+  // for the next revalidate window.
+  const categoryRes = await query(
+    `SELECT c.slug, MAX(p.updated_at) AS last_updated
+     FROM categories c
+     LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE
+     WHERE c.is_active = TRUE AND c.slug != 'sonstiges'
+     GROUP BY c.slug, c.sort_order
+     ORDER BY c.sort_order`
+  );
+  const categoryPages = categoryRes.rows.map((r) => ({
+    url:             `${BASE_URL}/kategorie/${r.slug}`,
+    lastModified:    r.last_updated ? new Date(r.last_updated) : new Date(),
+    changeFrequency: "daily",
+    priority:        0.8,
+  }));
 
   // Sitemap protocol caps a single file at 50,000 URLs — 45,000 here
   // leaves headroom for static + category pages. If the catalog grows
   // past this, split into a sitemap index (multiple files).
-  let productPages = [];
-  try {
-    const res = await query(
-      `SELECT id, updated_at
-       FROM products
-       WHERE is_active = TRUE
-         AND in_stock = TRUE
-         AND image IS NOT NULL
-         AND image != ''
-         AND image NOT LIKE '%placeholder%'
-       ORDER BY updated_at DESC
-       LIMIT 45000`
-    );
-    productPages = res.rows.map((r) => ({
-      url:             `${BASE_URL}/produkt/${r.id}`,
-      lastModified:    r.updated_at ? new Date(r.updated_at) : new Date(),
-      changeFrequency: "daily",
-      priority:        0.7,
-    }));
-  } catch (e) {
-    console.error("sitemap: products query failed", e.message);
-  }
+  const productRes = await query(
+    `SELECT id, updated_at
+     FROM products
+     WHERE is_active = TRUE
+       AND in_stock = TRUE
+       AND image IS NOT NULL
+       AND image != ''
+       AND image NOT LIKE '%placeholder%'
+     ORDER BY updated_at DESC
+     LIMIT 45000`
+  );
+  const productPages = productRes.rows.map((r) => ({
+    url:             `${BASE_URL}/produkt/${r.id}`,
+    lastModified:    r.updated_at ? new Date(r.updated_at) : new Date(),
+    changeFrequency: "daily",
+    priority:        0.7,
+  }));
 
   return [...staticPages, ...categoryPages, ...productPages];
 }
