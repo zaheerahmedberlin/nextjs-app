@@ -31,10 +31,8 @@ export default function ImpressumPage() {
         </section>
 
         <section className="mb-4">
-          <h2 className="h5 fw-bold">Umsatzsteuer-ID</h2>
-          <p className="text-muted small mb-0">
-            Nach Erteilung der Umsatzsteuer-Identifikationsnummer durch das Bundeszentralamt für Steuern wird diese hier ergänzt.
-          </p>
+          <h2 className="h5 fw-bold">Wirtschafts-Identifikationsnummer</h2>
+          <p className="mb-0">DE464048661</p>
         </section>
 
         <section className="mb-4">
