@@ -36,7 +36,13 @@ export async function GET(request) {
 
     if (!includeInactive) conditions.push("p.is_active = TRUE");
 
+    // Exclude free/misconfigured listings (e.g. promotional giveaway items
+    // bundled in a vendor feed) — a €0 price isn't a real comparable offer
+    // and would otherwise always sort first under "cheapest offers".
+    conditions.push("p.price > 0");
 
+    // Products without an image look broken in listings — exclude sitewide.
+    conditions.push("p.image IS NOT NULL AND p.image != ''");
 
     if (inStockOnly) conditions.push("p.in_stock = TRUE");
 
