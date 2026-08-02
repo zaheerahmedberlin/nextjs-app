@@ -116,6 +116,22 @@ const faqSchema = {
         text: "Unsere Preise werden täglich automatisch aktualisiert. Da Preise sich kurzfristig ändern können, empfehlen wir, den aktuellen Preis vor dem Kauf noch einmal direkt beim Händler zu prüfen.",
       },
     },
+    {
+      "@type": "Question",
+      name: "Kann ich benachrichtigt werden, wenn der Preis fällt?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Ja! Auf jeder Produktseite können Sie einen Preisalarm mit Ihrem Wunschpreis einrichten. Sobald der Preis auf oder unter Ihren Zielpreis fällt, informieren wir Sie automatisch per E-Mail.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Kann ich sehen, wie sich der Preis entwickelt hat?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Ja, zu jedem Produkt zeigen wir den Preisverlauf der letzten 30 Tage inklusive Tiefst-, Höchst- und aktuellem Preis – so erkennen Sie sofort, ob ein Angebot wirklich günstig ist.",
+      },
+    },
   ],
 };
 
@@ -569,6 +585,8 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                   { q: "Ist Preisgucken kostenlos?",      a: "Ja, Preisgucken ist für Verbraucher vollständig kostenlos. Wir verdienen eine kleine Provision, wenn Sie über unsere Links einkaufen – für Sie entstehen dadurch keine Mehrkosten." },
                   { q: "Welche Shops werden verglichen?", a: "Wir vergleichen Preise von bekannten deutschen Online-Shops wie Amazon, Home24, XXXLutz, Westwing, Mirjan24 und MediaMarkt. Das Sortiment wird regelmäßig erweitert." },
                   { q: "Wie aktuell sind die Preise?",    a: "Unsere Preise werden täglich automatisch aktualisiert. Da Preise sich kurzfristig ändern können, empfehlen wir, den aktuellen Preis vor dem Kauf noch einmal direkt beim Händler zu prüfen." },
+                  { q: "Kann ich benachrichtigt werden, wenn der Preis fällt?", a: "Ja! Auf jeder Produktseite können Sie einen Preisalarm mit Ihrem Wunschpreis einrichten. Sobald der Preis auf oder unter Ihren Zielpreis fällt, informieren wir Sie automatisch per E-Mail." },
+                  { q: "Kann ich sehen, wie sich der Preis entwickelt hat?", a: "Ja, zu jedem Produkt zeigen wir den Preisverlauf der letzten 30 Tage inklusive Tiefst-, Höchst- und aktuellem Preis – so erkennen Sie sofort, ob ein Angebot wirklich günstig ist." },
                 ].map(({ q, a }) => (
                   <div key={q} className="col-12 col-md-6" itemScope itemType="https://schema.org/Question" itemProp="mainEntity">
                     <h3 className="h6 fw-semibold mb-1" itemProp="name">{q}</h3>
