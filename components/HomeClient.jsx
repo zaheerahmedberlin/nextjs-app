@@ -102,14 +102,6 @@ const faqSchema = {
     },
     {
       "@type": "Question",
-      name: "Welche Shops werden verglichen?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Wir vergleichen Preise von bekannten deutschen Online-Shops wie Amazon, Home24, XXXLutz, Westwing, Mirjan24 und MediaMarkt. Das Sortiment wird regelmäßig erweitert.",
-      },
-    },
-    {
-      "@type": "Question",
       name: "Wie aktuell sind die Preise?",
       acceptedAnswer: {
         "@type": "Answer",
@@ -583,7 +575,6 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                 {[
                   { q: "Wie funktioniert Preisgucken?",   a: "Preisgucken sammelt täglich Preise von großen deutschen Online-Shops und zeigt Ihnen auf einen Blick, wo ein Produkt gerade am günstigsten ist. Einfach Produkt suchen, Preise vergleichen und direkt zum günstigsten Anbieter klicken – kostenlos und ohne Anmeldung." },
                   { q: "Ist Preisgucken kostenlos?",      a: "Ja, Preisgucken ist für Verbraucher vollständig kostenlos. Wir verdienen eine kleine Provision, wenn Sie über unsere Links einkaufen – für Sie entstehen dadurch keine Mehrkosten." },
-                  { q: "Welche Shops werden verglichen?", a: "Wir vergleichen Preise von bekannten deutschen Online-Shops wie Amazon, Home24, XXXLutz, Westwing, Mirjan24 und MediaMarkt. Das Sortiment wird regelmäßig erweitert." },
                   { q: "Wie aktuell sind die Preise?",    a: "Unsere Preise werden täglich automatisch aktualisiert. Da Preise sich kurzfristig ändern können, empfehlen wir, den aktuellen Preis vor dem Kauf noch einmal direkt beim Händler zu prüfen." },
                   { q: "Kann ich benachrichtigt werden, wenn der Preis fällt?", a: "Ja! Auf jeder Produktseite können Sie einen Preisalarm mit Ihrem Wunschpreis einrichten. Sobald der Preis auf oder unter Ihren Zielpreis fällt, informieren wir Sie automatisch per E-Mail." },
                   { q: "Kann ich sehen, wie sich der Preis entwickelt hat?", a: "Ja, zu jedem Produkt zeigen wir den Preisverlauf der letzten 30 Tage inklusive Tiefst-, Höchst- und aktuellem Preis – so erkennen Sie sofort, ob ein Angebot wirklich günstig ist." },
