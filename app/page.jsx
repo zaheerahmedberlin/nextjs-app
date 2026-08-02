@@ -18,6 +18,8 @@ const getInitialData = unstable_cache(
       FROM products p
       LEFT JOIN vendors v ON v.id = p.vendor_id
       WHERE p.is_active = TRUE AND p.in_stock = TRUE
+        AND p.price >= 15
+        AND p.image IS NOT NULL AND p.image != ''
       ORDER BY p.price ASC
       LIMIT 50`),
       query(`SELECT
