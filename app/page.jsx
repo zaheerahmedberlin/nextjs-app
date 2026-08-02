@@ -6,7 +6,7 @@ import HomeClient from "@/components/HomeClient";
 // In-process memory cache — no Redis network overhead, revalidates every 5 min
 const getInitialData = unstable_cache(
   async () => {
-    const [priceRes, prodRes, catRes] = await Promise.all([
+    const [priceRes, prodRes, catRes, countRes] = await Promise.all([
       query(`SELECT MAX(price) AS max FROM products WHERE is_active = TRUE AND in_stock = TRUE`),
       query(`SELECT
         p.id, p.title, p.description, p.image, p.url,
@@ -30,10 +30,15 @@ const getInitialData = unstable_cache(
       WHERE c.is_active = TRUE
       GROUP BY c.id
       ORDER BY c.parent_id NULLS FIRST, c.sort_order, c.name`),
+      query(`SELECT COUNT(*) AS total FROM products p
+      WHERE p.is_active = TRUE AND p.in_stock = TRUE
+        AND p.price >= 15
+        AND p.image IS NOT NULL AND p.image != ''`),
     ]);
 
     const rawMax = parseFloat(priceRes.rows[0]?.max) || 10000;
     const initialMaxPrice = Math.ceil(rawMax / 100) * 100;
+    const initialTotalProducts = parseInt(countRes.rows[0]?.total) || 0;
 
     const vendorCount = {};
     const initialProducts = prodRes.rows
@@ -59,7 +64,7 @@ const getInitialData = unstable_cache(
       return { ...parent, productCount: totalCount, children: kids };
     });
 
-    return { initialProducts, initialMaxPrice, initialCategories };
+    return { initialProducts, initialMaxPrice, initialCategories, initialTotalProducts };
   },
   ["homepage-initial-data"],
   { revalidate: 300 } // refresh every 5 minutes
@@ -68,7 +73,7 @@ const getInitialData = unstable_cache(
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  let data = { initialProducts: [], initialMaxPrice: 10000, initialCategories: [] };
+  let data = { initialProducts: [], initialMaxPrice: 10000, initialCategories: [], initialTotalProducts: 0 };
   try {
     data = await getInitialData();
   } catch (e) {
@@ -80,6 +85,7 @@ export default async function Page() {
       initialProducts={data.initialProducts}
       initialMaxPrice={data.initialMaxPrice}
       initialCategories={data.initialCategories}
+      initialTotalProducts={data.initialTotalProducts}
     />
   );
 }

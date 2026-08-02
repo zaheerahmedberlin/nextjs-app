@@ -127,7 +127,7 @@ const faqSchema = {
   ],
 };
 
-export default function HomeClient({ initialProducts = [], initialMaxPrice = 10000, initialCategories = [] }) {
+export default function HomeClient({ initialProducts = [], initialMaxPrice = 10000, initialCategories = [], initialTotalProducts = 0 }) {
   const searchParams = useSearchParams();
   const [products, setProducts]                         = useState(initialProducts);
   const [categories, setCategories]                     = useState(initialCategories);
@@ -137,7 +137,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   });
   const [activeOffers, setActiveOffers]                 = useState([]);
   const [lowestPriceProducts, setLowestPriceProducts]   = useState([]);
-  const [totalProducts, setTotalProducts]               = useState(0);
+  const [totalProducts, setTotalProducts]               = useState(initialTotalProducts);
   const [pageCount, setPageCount]                       = useState(1);
   const [lowestStartIndex, setLowestStartIndex]         = useState(0);
   const [isNavbarShrink, setIsNavbarShrink]             = useState(false);
