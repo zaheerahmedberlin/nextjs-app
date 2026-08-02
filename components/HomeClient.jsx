@@ -170,17 +170,17 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   // ── Init: fetch offers + featured category sections once ──────────
   useEffect(() => {
     // Featured category sections for homepage
-    fetch("/api/products?category=elektronik&sort=priceAsc&limit=6&inStockOnly=true")
+    fetch("/api/products?category=elektronik&sort=priceAsc&limit=6&inStockOnly=true&minPrice=15")
       .then((r) => r.json())
       .then((data) => setElektronikProducts(data.products || []))
       .catch(() => {});
 
-    fetch("/api/products?category=gesundheit&sort=priceAsc&limit=6&inStockOnly=true")
+    fetch("/api/products?category=gesundheit&sort=priceAsc&limit=6&inStockOnly=true&minPrice=15")
       .then((r) => r.json())
       .then((data) => setGesundheitProducts(data.products || []))
       .catch(() => {});
 
-    fetch("/api/products?category=sitzen&sort=priceAsc&limit=6&inStockOnly=true")
+    fetch("/api/products?category=sitzen&sort=priceAsc&limit=6&inStockOnly=true&minPrice=15")
       .then((r) => r.json())
       .then((data) => setMoebelProducts(data.products || []))
       .catch(() => {});
