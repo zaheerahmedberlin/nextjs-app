@@ -231,6 +231,10 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       inStockOnly:     showOutOfStock ? "false" : "true",
       includeInactive: showInactiveProducts ? "true" : "false",
       ...(isDefaultView && { limit: 50 }),
+      // Floor for "Günstigste Angebote heute" — excludes trivially-priced
+      // novelty items (greeting cards, vouchers, etc.) that are technically
+      // cheapest but aren't genuine comparison-shopping deals.
+      ...(isDefaultView && { minPrice: 15 }),
     });
     if (selectedCategories.length > 0) params.set("category", selectedCategories.join(","));
     if (maxPriceFilter > 0 && maxPriceFilter < defaultMaxPrice) params.set("maxPrice", maxPriceFilter);

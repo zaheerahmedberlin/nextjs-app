@@ -12,6 +12,7 @@ export async function GET(request) {
   const q               = searchParams.get("q")?.trim() ?? "";
   const category        = searchParams.get("category") ?? "";
   const maxPrice        = parseFloat(searchParams.get("maxPrice") ?? "999999");
+  const minPrice        = parseFloat(searchParams.get("minPrice") ?? "0");
   const sort            = searchParams.get("sort") ?? "relevance";
   const page            = parseInt(searchParams.get("page") ?? "1");
   const limit           = Math.min(parseInt(searchParams.get("limit") ?? "24"), 100);
@@ -19,11 +20,11 @@ export async function GET(request) {
   const includeInactive = searchParams.get("includeInactive") === "true";
   const vendor          = searchParams.get("vendor")?.trim() ?? "";
 
-  const cacheKey = `products:${q}:${category}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}:${vendor}`;
+  const cacheKey = `products:${q}:${category}:${minPrice}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}:${vendor}`;
   const cached = await cacheGet(cacheKey);
   if (cached) return NextResponse.json({ ...cached, source: "cache" });
 
-  const esResult = await searchProducts({ q, category, maxPrice, sort, page, limit, inStockOnly, includeInactive });
+  const esResult = await searchProducts({ q, category, minPrice, maxPrice, sort, page, limit, inStockOnly, includeInactive });
   if (esResult) {
     await cacheSet(cacheKey, esResult, 300);
     return NextResponse.json({ ...esResult, source: "elasticsearch" });
@@ -92,6 +93,11 @@ export async function GET(request) {
     if (maxPrice < 999999) {
       params.push(maxPrice);
       conditions.push(`p.price <= $${params.length}`);
+    }
+
+    if (minPrice > 0) {
+      params.push(minPrice);
+      conditions.push(`p.price >= $${params.length}`);
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
