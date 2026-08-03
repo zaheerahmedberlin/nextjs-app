@@ -97,8 +97,9 @@ VOGHION_CATEGORY_RULES = [
 
     # Home Appliances/* — despite the name, entirely personal-care/small
     # household electronics (hair trimmers/dryers/shavers, fans), not
-    # kitchen gear.
-    ("home appliances/personal care", 41),  # Gesundheit & Pflege
+    # kitchen gear. Personal Care items don't fit Gesundheit & Pflege
+    # either (that's medical/mobility-aid focused, not beauty/grooming).
+    ("home appliances/personal care", 9),   # Sonstiges
     ("home appliances", 27),                # Elektronik (generic fallback)
 ]
 
