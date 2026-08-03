@@ -60,6 +60,14 @@ VOGHION_EXCLUDED_TOP_LEVEL = {"vape", "sex products"}
 # excluded.
 VOGHION_EXCLUDED_SUBSTRINGS = {"sexy lingerie"}
 
+# Voghion's own product_type taxonomy is unreliable for flagging explicit
+# content — the same explicit item can land under any ordinary-looking
+# leaf category (seen so far: "Sexy lingerie" AND "Bra & Brief Sets" for
+# equally explicit items). These title keywords were checked against the
+# full feed and matched zero non-explicit products, unlike generic terms
+# like "sexy" alone (also used on ordinary dresses/tops).
+VOGHION_EXCLUDED_TITLE_SUBSTRINGS = {"porno", "erotisch", "ouvert", "ohne schritt", "offenem schritt"}
+
 VOGHION_CATEGORY_RULES = [
     # Schuhe (90) subtree
     ("men's shoes", 91),
@@ -128,11 +136,13 @@ VENDOR_OVERRIDES = {
     "Voghion Global": {
         "excluded_top_level": VOGHION_EXCLUDED_TOP_LEVEL,
         "excluded_substrings": VOGHION_EXCLUDED_SUBSTRINGS,
+        "excluded_title_substrings": VOGHION_EXCLUDED_TITLE_SUBSTRINGS,
         "category_fn": guess_voghion_category,
     },
     "Smartwatcharmbaender DE": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
         "category_fn": lambda _category_text: 98,  # Smartwatch-Armbänder
     },
 }
@@ -231,8 +241,11 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
         if override:
             pt_lower = parsed["category_text"].lower()
             top_level = pt_lower.split("/")[0].strip()
-            if top_level in override["excluded_top_level"] or any(
-                s in pt_lower for s in override["excluded_substrings"]
+            title_lower = title.lower()
+            if (
+                top_level in override["excluded_top_level"]
+                or any(s in pt_lower for s in override["excluded_substrings"])
+                or any(s in title_lower for s in override["excluded_title_substrings"])
             ):
                 skipped += 1
                 continue
