@@ -14,6 +14,12 @@ import psycopg2
 DATABASE_URL = os.environ.get("RAILWAY_DATABASE_URL") or os.environ.get("DATABASE_URL")
 
 CATEGORY_KEYWORDS = {
+    # Checked before 7 ("bad") — some vendors nest baby scales under their
+    # own "Badezimmer"/"Badzubehör" merchandising path (e.g. DeubaXXL:
+    # "Möbel & Wohnen > Badezimmer > Badzubehör > Baby- & Personenwaagen"),
+    # and naive substring matching on "bad" would otherwise catch it before
+    # this more specific rule gets a chance.
+    52: ["babywaage"],
     36: ["garten", "terrasse", "balkon", "sonnenschirm", "pflanzk", "gartenmöbel"],
     8:  ["pool", "outdoor", "sport", "fahrrad", "camping", "freizeit"],
     5:  ["leuchte", "lampe", "licht", "led"],
