@@ -238,11 +238,17 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       page:            currentPage,
       inStockOnly:     showOutOfStock ? "false" : "true",
       includeInactive: showInactiveProducts ? "true" : "false",
-      ...(isDefaultView && { limit: 50 }),
+      ...(isDefaultView && { limit: 12 }),
       // Floor for "Günstigste Angebote heute" — excludes trivially-priced
       // novelty items (greeting cards, vouchers, etc.) that are technically
       // cheapest but aren't genuine comparison-shopping deals.
       ...(isDefaultView && { minPrice: 15 }),
+      // Cap each vendor to 2 of their own cheapest qualifying products
+      // *before* ranking overall — done server-side via a window function,
+      // since a client-side cap after fetching a small raw batch breaks
+      // down once one vendor's catalog is large enough to fill that batch
+      // almost entirely (as Voghion's 24k+ products did).
+      ...(isDefaultView && { perVendorLimit: 2 }),
     });
     if (selectedCategories.length > 0) params.set("category", selectedCategories.join(","));
     if (maxPriceFilter > 0 && maxPriceFilter < defaultMaxPrice) params.set("maxPrice", maxPriceFilter);
@@ -252,15 +258,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
     try {
       const res  = await fetch(`/api/products?${params}`);
       const data = await res.json();
-      const rawProducts = data.products ?? [];
-      let displayed = rawProducts;
-      if (isDefaultView) {
-        const vendorCount = {};
-        displayed = rawProducts.filter(p => {
-          vendorCount[p.vendor] = (vendorCount[p.vendor] || 0) + 1;
-          return vendorCount[p.vendor] <= 2;
-        }).slice(0, 12);
-      }
+      const displayed = data.products ?? [];
       setProducts(displayed);
       setTotalProducts(data.total ?? 0);
       setPageCount(data.pageCount ?? 1);

@@ -8,20 +8,26 @@ const getInitialData = unstable_cache(
   async () => {
     const [priceRes, prodRes, catRes, countRes] = await Promise.all([
       query(`SELECT MAX(price) AS max FROM products WHERE is_active = TRUE AND in_stock = TRUE`),
-      query(`SELECT
-        p.id, p.title, p.description, p.image, p.url,
-        p.price, p.old_price, p.currency,
-        p.category, p.ean,
-        v.name AS vendor, v.logo_url AS vendor_logo,
-        p.in_stock, p.is_active,
-        p.active_from, p.active_until, p.updated_at, p.created_at
-      FROM products p
-      LEFT JOIN vendors v ON v.id = p.vendor_id
-      WHERE p.is_active = TRUE AND p.in_stock = TRUE
-        AND p.price >= 15
-        AND p.image IS NOT NULL AND p.image != ''
-      ORDER BY p.price ASC
-      LIMIT 50`),
+      query(`
+      WITH ranked AS (
+        SELECT
+          p.id, p.title, p.description, p.image, p.url,
+          p.price, p.old_price, p.currency,
+          p.category, p.ean,
+          v.name AS vendor, v.logo_url AS vendor_logo,
+          p.in_stock, p.is_active,
+          p.active_from, p.active_until, p.updated_at, p.created_at,
+          ROW_NUMBER() OVER (PARTITION BY p.vendor_id ORDER BY p.price ASC) AS vendor_rank
+        FROM products p
+        LEFT JOIN vendors v ON v.id = p.vendor_id
+        WHERE p.is_active = TRUE AND p.in_stock = TRUE
+          AND p.price >= 15
+          AND p.image IS NOT NULL AND p.image != ''
+      )
+      SELECT * FROM ranked
+      WHERE vendor_rank <= 2
+      ORDER BY price ASC
+      LIMIT 12`),
       query(`SELECT
         c.id, c.slug, c.name, c.parent_id, c.icon, c.sort_order,
         COUNT(p.id) AS product_count
@@ -40,13 +46,9 @@ const getInitialData = unstable_cache(
     const initialMaxPrice = Math.ceil(rawMax / 100) * 100;
     const initialTotalProducts = parseInt(countRes.rows[0]?.total) || 0;
 
-    const vendorCount = {};
-    const initialProducts = prodRes.rows
-      .filter((p) => {
-        vendorCount[p.vendor] = (vendorCount[p.vendor] || 0) + 1;
-        return vendorCount[p.vendor] <= 2;
-      })
-      .slice(0, 12);
+    // Vendor diversity (max 2 per vendor) is already enforced by the
+    // window-function query above.
+    const initialProducts = prodRes.rows;
 
     const rows = catRes.rows.map((r) => ({
       id:           r.id,

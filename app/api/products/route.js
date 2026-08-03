@@ -19,8 +19,9 @@ export async function GET(request) {
   const inStockOnly     = searchParams.get("inStockOnly") !== "false";
   const includeInactive = searchParams.get("includeInactive") === "true";
   const vendor          = searchParams.get("vendor")?.trim() ?? "";
+  const perVendorLimit  = parseInt(searchParams.get("perVendorLimit") ?? "0");
 
-  const cacheKey = `products:${q}:${category}:${minPrice}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}:${vendor}`;
+  const cacheKey = `products:${q}:${category}:${minPrice}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}:${vendor}:${perVendorLimit}`;
   const cached = await cacheGet(cacheKey);
   if (cached) return NextResponse.json({ ...cached, source: "cache" });
 
@@ -108,33 +109,69 @@ export async function GET(request) {
       q ? "ts_rank(p.search_vector, to_tsquery('german', array_to_string(ARRAY(SELECT unaccent(word) || ':*' FROM unnest(regexp_split_to_array(trim($1), '\\s+')) AS word WHERE word <> ''), ' & '))) DESC" :
       "p.updated_at DESC";
 
-    const countResult = await query(`SELECT COUNT(*) FROM products p LEFT JOIN vendors v ON v.id = p.vendor_id ${where}`, params);
-    const total = parseInt(countResult.rows[0].count);
+    let dataResult, total;
 
-    params.push(pgLimit, offset);
-    const dataResult = await query(
-      `SELECT
-        p.id, p.title, p.description, p.image, p.url,
-        p.price, p.old_price, p.currency,
-        p.category, p.ean,
-        v.name AS vendor, v.logo_url AS vendor_logo,
-        p.in_stock, p.is_active,
-        p.active_from, p.active_until, p.updated_at, p.created_at,
-        (SELECT MIN(ph.price) FROM price_history ph
-         WHERE ph.product_id = p.id
-           AND ph.recorded_at >= CURRENT_DATE - INTERVAL '30 days'
-           AND ph.recorded_at < CURRENT_DATE
-           AND (SELECT COUNT(*) FROM price_history ph2
-                WHERE ph2.product_id = p.id
-                  AND ph2.recorded_at >= CURRENT_DATE - INTERVAL '30 days') >= 7
-        ) AS price_30d_min
-      FROM products p
-      LEFT JOIN vendors v ON v.id = p.vendor_id
-      ${where}
-      ORDER BY ${orderBy}
-      LIMIT $${params.length - 1} OFFSET $${params.length}`,
-      params
-    );
+    if (perVendorLimit > 0) {
+      // Diversity mode: rank each vendor's own cheapest/best-sorted products
+      // first, cap to N per vendor, then take the overall top results among
+      // those winners. A plain ORDER BY + LIMIT breaks down when one vendor's
+      // catalog is large and densely priced — it can fill the entire raw
+      // result set before any per-vendor diversity gets a chance to apply.
+      params.push(perVendorLimit);
+      const perVendorIdx = params.length;
+      params.push(pgLimit);
+      const limitIdx = params.length;
+
+      const dataQuery = `
+        WITH ranked AS (
+          SELECT
+            p.id, p.title, p.description, p.image, p.url,
+            p.price, p.old_price, p.currency,
+            p.category, p.ean,
+            v.name AS vendor, v.logo_url AS vendor_logo,
+            p.in_stock, p.is_active,
+            p.active_from, p.active_until, p.updated_at, p.created_at,
+            ROW_NUMBER() OVER (PARTITION BY p.vendor_id ORDER BY ${orderBy}) AS vendor_rank
+          FROM products p
+          LEFT JOIN vendors v ON v.id = p.vendor_id
+          ${where}
+        )
+        SELECT * FROM ranked
+        WHERE vendor_rank <= $${perVendorIdx}
+        ORDER BY price ASC
+        LIMIT $${limitIdx}`;
+
+      dataResult = await query(dataQuery, params);
+      total = dataResult.rows.length;
+    } else {
+      const countResult = await query(`SELECT COUNT(*) FROM products p LEFT JOIN vendors v ON v.id = p.vendor_id ${where}`, params);
+      total = parseInt(countResult.rows[0].count);
+
+      params.push(pgLimit, offset);
+      dataResult = await query(
+        `SELECT
+          p.id, p.title, p.description, p.image, p.url,
+          p.price, p.old_price, p.currency,
+          p.category, p.ean,
+          v.name AS vendor, v.logo_url AS vendor_logo,
+          p.in_stock, p.is_active,
+          p.active_from, p.active_until, p.updated_at, p.created_at,
+          (SELECT MIN(ph.price) FROM price_history ph
+           WHERE ph.product_id = p.id
+             AND ph.recorded_at >= CURRENT_DATE - INTERVAL '30 days'
+             AND ph.recorded_at < CURRENT_DATE
+             AND (SELECT COUNT(*) FROM price_history ph2
+                  WHERE ph2.product_id = p.id
+                    AND ph2.recorded_at >= CURRENT_DATE - INTERVAL '30 days') >= 7
+          ) AS price_30d_min
+        FROM products p
+        LEFT JOIN vendors v ON v.id = p.vendor_id
+        ${where}
+        ORDER BY ${orderBy}
+        LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        params
+      );
+    }
 
     const result = {
       products: dataResult.rows,
