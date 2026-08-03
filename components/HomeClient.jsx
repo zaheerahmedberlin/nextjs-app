@@ -183,12 +183,12 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       .then((data) => setElektronikProducts(data.products || []))
       .catch(() => {});
 
-    fetch("/api/products?category=gesundheit&sort=priceAsc&limit=6&inStockOnly=true")
+    fetch("/api/products?category=gesundheit&sort=priceAsc&limit=6&inStockOnly=true&perVendorLimit=2")
       .then((r) => r.json())
       .then((data) => setGesundheitProducts(data.products || []))
       .catch(() => {});
 
-    fetch("/api/products?category=sitzen&sort=priceAsc&limit=6&inStockOnly=true")
+    fetch("/api/products?category=sitzen&sort=priceAsc&limit=6&inStockOnly=true&perVendorLimit=2")
       .then((r) => r.json())
       .then((data) => setMoebelProducts(data.products || []))
       .catch(() => {});
