@@ -20,12 +20,17 @@ export async function GET(request) {
   const includeInactive = searchParams.get("includeInactive") === "true";
   const vendor          = searchParams.get("vendor")?.trim() ?? "";
   const perVendorLimit  = parseInt(searchParams.get("perVendorLimit") ?? "0");
+  const premiumOnly     = searchParams.get("premiumOnly") === "true";
 
-  const cacheKey = `products:${q}:${category}:${minPrice}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}:${vendor}:${perVendorLimit}`;
+  const cacheKey = `products:${q}:${category}:${minPrice}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}:${vendor}:${perVendorLimit}:${premiumOnly}`;
   const cached = await cacheGet(cacheKey);
   if (cached) return NextResponse.json({ ...cached, source: "cache" });
 
-  const esResult = await searchProducts({ q, category, minPrice, maxPrice, sort, page, limit, inStockOnly, includeInactive });
+  // ElasticSearch doesn't know about perVendorLimit or premiumOnly (Postgres-only
+  // features) — skip it for those queries rather than silently ignoring the filter.
+  const esResult = (perVendorLimit > 0 || premiumOnly)
+    ? null
+    : await searchProducts({ q, category, minPrice, maxPrice, sort, page, limit, inStockOnly, includeInactive });
   if (esResult) {
     await cacheSet(cacheKey, esResult, 300);
     return NextResponse.json({ ...esResult, source: "elasticsearch" });
@@ -89,6 +94,10 @@ export async function GET(request) {
     if (vendor) {
       params.push(vendor);
       conditions.push(`v.name ILIKE $${params.length}`);
+    }
+
+    if (premiumOnly) {
+      conditions.push(`p.vendor_id IN (SELECT vendor_id FROM premium_vendors WHERE is_active = TRUE)`);
     }
 
     if (maxPrice < 999999) {

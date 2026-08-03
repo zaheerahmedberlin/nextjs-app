@@ -146,6 +146,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   const [elektronikProducts, setElektronikProducts]     = useState([]);
   const [gesundheitProducts, setGesundheitProducts]     = useState([]);
   const [moebelProducts, setMoebelProducts]             = useState([]);
+  const [premiumProducts, setPremiumProducts]           = useState([]);
   const [selectedProduct, setSelectedProduct]           = useState(null);
   const [isLoading, setIsLoading]                       = useState(false);
 
@@ -191,6 +192,11 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
     fetch("/api/products?category=sitzen&sort=priceAsc&limit=6&inStockOnly=true&perVendorLimit=2")
       .then((r) => r.json())
       .then((data) => setMoebelProducts(data.products || []))
+      .catch(() => {});
+
+    fetch("/api/products?premiumOnly=true&sort=priceDesc&limit=6&inStockOnly=true&perVendorLimit=2")
+      .then((r) => r.json())
+      .then((data) => setPremiumProducts(data.products || []))
       .catch(() => {});
 
     // Offers from static file (optional)
@@ -474,6 +480,15 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                   </button>
                 </div>
                 <ProductGrid products={moebelProducts} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={false} />
+              </div>
+            )}
+
+            {isDefaultView && premiumProducts.length > 0 && (
+              <div className="mt-5">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h2 className="h6 fw-bold mb-0">💎 Premium Highlights</h2>
+                </div>
+                <ProductGrid products={premiumProducts} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={false} />
               </div>
             )}
 
