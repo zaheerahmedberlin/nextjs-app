@@ -34,6 +34,107 @@ def guess_category(merchant_category, title):
             return cat_id
     return 9  # Sonstiges
 
+# ── Vendor-specific overrides ────────────────────────────────────────────────
+# The generic keyword guesser above is too coarse for some vendors — either
+# it misclassifies them (e.g. "Armband" matches nothing, falls to Sonstiges)
+# or the vendor needs content excluded (Voghion's marketplace feed includes
+# Vape/Sex Products, not appropriate for a general-audience site and, for
+# Vape specifically, a German advertising/age-verification regulatory risk).
+# Ported from the one-off onboarding scripts in the scraper repo — keep in
+# sync with import_voghion.py / import_smartwatcharmbaender.py there if the
+# category taxonomy changes.
+
+VOGHION_EXCLUDED_TOP_LEVEL = {"vape", "sex products"}
+
+VOGHION_CATEGORY_RULES = [
+    # Schuhe (90) subtree
+    ("men's shoes", 91),
+    ("women's shoes", 92),
+    ("athletic shoes", 93),
+    ("shoes", 91),
+
+    # Schmuck (80) subtree
+    ("rings", 84),
+    ("necklace", 82),
+    ("earring", 81),
+    ("bracelet", 83),
+    ("anklet", 85),
+    ("jewelry sets", 86),
+    ("jewelry", 80),
+
+    # Uhren (79)
+    ("watches", 79),
+
+    # Baby World (52)
+    ("mother & kids", 52),
+
+    # Herrenmode (87) subtree
+    ("suits & blazers", 88),
+    ("hoodies", 89),
+    ("men's sets", 89),
+    ("men's clothing", 87),
+
+    # Damenmode (61) subtree
+    ("women's clothing/tops", 64),
+    ("women's clothing/dress", 62),
+    ("women's clothing/party wear", 62),
+    ("women's clothing/sets/shorts", 67),
+    ("women's clothing/sets", 62),
+    ("women's clothing", 61),
+
+    # Handyzubehör (94)
+    ("cellphones & telecommunications", 94),
+    ("computer & office", 94),
+
+    # Taschen & Koffer (95)
+    ("luggage & bags", 95),
+
+    # Unterwäsche (96)
+    ("underwear", 96),
+
+    # Consumer electronics generic -> Elektronik
+    ("consumer electronics", 27),
+
+    # Home Appliances/* — despite the name, entirely personal-care/small
+    # household electronics (hair trimmers/dryers/shavers, fans), not
+    # kitchen gear.
+    ("home appliances/personal care", 41),  # Gesundheit & Pflege
+    ("home appliances", 27),                # Elektronik (generic fallback)
+]
+
+def guess_voghion_category(product_type):
+    pt = product_type.lower()
+    for keyword, cat_id in VOGHION_CATEGORY_RULES:
+        if keyword in pt:
+            return cat_id
+    return 9  # Sonstiges
+
+VENDOR_OVERRIDES = {
+    "Voghion Global": {
+        "excluded_top_level": VOGHION_EXCLUDED_TOP_LEVEL,
+        "category_fn": guess_voghion_category,
+    },
+    "Smartwatcharmbaender DE": {
+        "excluded_top_level": set(),
+        "category_fn": lambda _category_text: 98,  # Smartwatch-Armbänder
+    },
+}
+
+# Some vendors are deliberately capped at a pilot size rather than their full
+# feed (e.g. Smartwatcharmbaender DE: ~91,620 raw rows, business decision to
+# import only 2,000). Without this, the daily sync would silently re-import
+# the full feed on its first run. Step-sampled (not a plain head-cut) so the
+# capped subset stays representative of the feed's overall distribution.
+VENDOR_ROW_LIMITS = {
+    "Smartwatcharmbaender DE": 2000,
+}
+
+def sample_rows(rows, limit):
+    if not limit or limit >= len(rows):
+        return rows
+    step = len(rows) / limit
+    return [rows[int(i * step)] for i in range(limit)]
+
 def parse_row(row, is_darwin):
     """Normalize a CSV row from either the classic AWIN format (product_name,
     search_price, aw_image_url, merchant_category) or the Darwin/Google
@@ -93,7 +194,15 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
     if is_darwin:
         print(f"  Detected Darwin/Google Shopping feed format for {vendor_name}")
 
-    for row in reader:
+    override = VENDOR_OVERRIDES.get(vendor_name)
+
+    rows = list(reader)
+    row_limit = VENDOR_ROW_LIMITS.get(vendor_name)
+    if row_limit:
+        rows = sample_rows(rows, row_limit)
+        print(f"  Capped to {len(rows)} rows (pilot limit for {vendor_name})")
+
+    for row in rows:
         parsed = parse_row(row, is_darwin)
         if not parsed:
             skipped += 1
@@ -101,7 +210,15 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
 
         title, url, price = parsed["title"], parsed["url"], parsed["price"]
         image, desc = parsed["image"], parsed["description"]
-        category_id = guess_category(parsed["category_text"], title)
+
+        if override:
+            top_level = parsed["category_text"].split("/")[0].strip().lower()
+            if top_level in override["excluded_top_level"]:
+                skipped += 1
+                continue
+            category_id = override["category_fn"](parsed["category_text"])
+        else:
+            category_id = guess_category(parsed["category_text"], title)
 
         cur.execute("SELECT id FROM products WHERE url = %s AND vendor_id = %s", (url, vendor_id))
         existing = cur.fetchone()

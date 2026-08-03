@@ -28,6 +28,11 @@ jobs:
           REDIS_URL: ${{ secrets.REDIS_URL }}
         run: python scripts/import_awin_feeds.py
 
+      - name: Refresh Shopify-API vendors (no AWIN feed available)
+        env:
+          RAILWAY_DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+        run: python scripts/refresh_shopify_vendors.py
+
       - name: Weekly dead-link check (Sundays only)
         env:
           RAILWAY_DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
