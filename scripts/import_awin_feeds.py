@@ -52,6 +52,14 @@ def guess_category(merchant_category, title):
 
 VOGHION_EXCLUDED_TOP_LEVEL = {"vape", "sex products"}
 
+# Some explicit-content leaf categories hide under an otherwise normal
+# top-level path (e.g. "Underwear & Sleepwears/Women's Intimates/Sexy
+# lingerie") and would slip past the top-level check above. Matched
+# against the full lowercased product_type string. "Plus Size Lingerie"
+# under the same top-level was checked and is ordinary clothing, not
+# excluded.
+VOGHION_EXCLUDED_SUBSTRINGS = {"sexy lingerie"}
+
 VOGHION_CATEGORY_RULES = [
     # Schuhe (90) subtree
     ("men's shoes", 91),
@@ -119,10 +127,12 @@ def guess_voghion_category(product_type):
 VENDOR_OVERRIDES = {
     "Voghion Global": {
         "excluded_top_level": VOGHION_EXCLUDED_TOP_LEVEL,
+        "excluded_substrings": VOGHION_EXCLUDED_SUBSTRINGS,
         "category_fn": guess_voghion_category,
     },
     "Smartwatcharmbaender DE": {
         "excluded_top_level": set(),
+        "excluded_substrings": set(),
         "category_fn": lambda _category_text: 98,  # Smartwatch-Armbänder
     },
 }
@@ -219,8 +229,11 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
         image, desc = parsed["image"], parsed["description"]
 
         if override:
-            top_level = parsed["category_text"].split("/")[0].strip().lower()
-            if top_level in override["excluded_top_level"]:
+            pt_lower = parsed["category_text"].lower()
+            top_level = pt_lower.split("/")[0].strip()
+            if top_level in override["excluded_top_level"] or any(
+                s in pt_lower for s in override["excluded_substrings"]
+            ):
                 skipped += 1
                 continue
             category_id = override["category_fn"](parsed["category_text"])
