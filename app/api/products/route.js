@@ -147,7 +147,7 @@ export async function GET(request) {
         )
         SELECT * FROM ranked
         WHERE vendor_rank <= $${perVendorIdx}
-        ORDER BY price ASC
+        ORDER BY price ${sort === "priceDesc" ? "DESC" : "ASC"}
         LIMIT $${limitIdx}`;
 
       dataResult = await query(dataQuery, params);
