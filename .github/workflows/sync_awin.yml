@@ -6,7 +6,12 @@ on:
   workflow_dispatch:       # Allow manual trigger from GitHub UI
 
 jobs:
-  sync:
+  # Voghion's feed (~92,000 raw rows, individual SELECT+INSERT/UPDATE per
+  # row) has repeatedly run past 60 minutes on GitHub's runners and gotten
+  # cancelled — which used to also skip every step after it in the same job,
+  # including the unrelated Shopify-vendor refresh below. Split into its own
+  # job so a slow/timed-out Voghion run can't block anything else.
+  sync-voghion:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -22,16 +27,78 @@ jobs:
       - name: Install dependencies
         run: pip install psycopg2-binary unidecode requests
 
-      - name: Run AWIN feed importer
+      - name: Run Voghion import
         env:
           RAILWAY_DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
+          VENDOR_FILTER: "Voghion Global"
         run: python scripts/import_awin_feeds.py
 
-      - name: Refresh Shopify-API vendors (no AWIN feed available)
+  # Everyone else with a feed_url (Centa-Star, DeubaXXL, GERMENS, BlazeVideo,
+  # Dowinx, Smartwatcharmbaender — all comfortably fast). Excludes Voghion by
+  # name rather than listing these explicitly, so a newly onboarded vendor's
+  # feed_url lands here automatically without a workflow edit.
+  sync-fast-vendors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install psycopg2-binary unidecode requests
+
+      - name: Run AWIN feed importer (all vendors except Voghion)
+        env:
+          RAILWAY_DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          VENDOR_EXCLUDE: "Voghion Global"
+        run: python scripts/import_awin_feeds.py
+
+  # Tsarbomba and Sparkle GmbH use Shopify's /products.json, not an AWIN
+  # feed — independent of both jobs above.
+  sync-shopify-vendors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install psycopg2-binary unidecode requests
+
+      - name: Refresh Shopify-API vendors
         env:
           RAILWAY_DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
         run: python scripts/refresh_shopify_vendors.py
+
+  weekly-dead-link-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install psycopg2-binary unidecode requests
 
       - name: Weekly dead-link check (Sundays only)
         env:

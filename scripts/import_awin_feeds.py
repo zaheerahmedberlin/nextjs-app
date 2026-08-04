@@ -340,6 +340,26 @@ def main():
         cur.execute("SELECT id, name, feed_url FROM vendors WHERE feed_url IS NOT NULL AND feed_url != ''")
         vendors = cur.fetchall()
     conn.close()
+
+    # Optional comma-separated allow/deny lists so the workflow can split
+    # vendors across parallel jobs (e.g. Voghion's large feed alone vs.
+    # everyone else) — a single job processing everything sequentially
+    # risks the 60-minute timeout, which silently skips every step after
+    # it (including the separate Shopify-vendor refresh) rather than just
+    # that one vendor. VENDOR_EXCLUDE is preferred for the "everyone else"
+    # bucket since it auto-adapts when a new vendor gets a feed_url later.
+    vendor_filter = os.environ.get("VENDOR_FILTER", "").strip()
+    if vendor_filter:
+        allowed = {v.strip() for v in vendor_filter.split(",") if v.strip()}
+        vendors = [v for v in vendors if v[1] in allowed]
+        print(f"VENDOR_FILTER active: {sorted(allowed)}")
+
+    vendor_exclude = os.environ.get("VENDOR_EXCLUDE", "").strip()
+    if vendor_exclude:
+        excluded = {v.strip() for v in vendor_exclude.split(",") if v.strip()}
+        vendors = [v for v in vendors if v[1] not in excluded]
+        print(f"VENDOR_EXCLUDE active: {sorted(excluded)}")
+
     print(f"Found {len(vendors)} vendor(s) with feed URLs")
 
     total = 0
