@@ -55,11 +55,17 @@ export async function GET(request) {
 
     if (q) {
       params.push(q);
+      // Match against the TITLE only, not p.search_vector (which also
+      // indexes the description) — a term appearing only in body copy
+      // (e.g. a dog ramp's description mentioning "reaches the sofa")
+      // isn't a relevant result. This matters most when sort overrides
+      // relevance ranking (priceAsc/priceDesc): irrelevant description-only
+      // matches would otherwise surface at the top just for being cheap.
       // Use prefix matching: split words and append :* to each for partial word support
       // e.g. "matrat" matches "Matratzen", "sofa 3" matches "Sofa 3-Sitzer"
       const qIdx = params.length;
       conditions.push(`(
-        p.search_vector @@ to_tsquery('german', array_to_string(
+        to_tsvector('german', unaccent(p.title)) @@ to_tsquery('german', array_to_string(
           ARRAY(SELECT unaccent(word) || ':*'
                 FROM unnest(regexp_split_to_array(trim($${qIdx}), '\\s+')) AS word
                 WHERE word <> ''),
