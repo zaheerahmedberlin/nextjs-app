@@ -5,6 +5,7 @@ Loops all vendors with a feed_url and upserts products into the DB.
 """
 import csv
 import gzip
+import hashlib
 import io
 import os
 import sys
@@ -167,10 +168,20 @@ VENDOR_ROW_LIMITS = {
 }
 
 def sample_rows(rows, limit):
+    # Keyed on aw_deep_link (stable per product/SKU across days) rather than
+    # position in the feed. A positional/step sample looked stable in testing
+    # but broke on the very next real run: the vendor's raw row count shifted
+    # day to day, which shifted every sampled index, selecting a mostly
+    # *different* set of products and leaving the previous day's selection
+    # in place too — capped-2000 grew to ~3,938 after a single re-run.
+    # Hashing the URL means the same subset of products gets selected every
+    # time regardless of how the feed reorders or grows/shrinks elsewhere.
     if not limit or limit >= len(rows):
         return rows
-    step = len(rows) / limit
-    return [rows[int(i * step)] for i in range(limit)]
+    def stable_key(row):
+        url = row.get("aw_deep_link", "")
+        return hashlib.md5(url.encode()).hexdigest()
+    return sorted(rows, key=stable_key)[:limit]
 
 def parse_row(row, is_darwin):
     """Normalize a CSV row from either the classic AWIN format (product_name,
