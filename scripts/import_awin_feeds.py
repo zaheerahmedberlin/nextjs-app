@@ -20,6 +20,16 @@ CATEGORY_KEYWORDS = {
     # and naive substring matching on "bad" would otherwise catch it before
     # this more specific rule gets a chance.
     52: ["babywaage"],
+    # Checked before 87 ("herren"/"hemd") — GERMENS titles like "Hemd Bluse
+    # Damen ..." contain both "damen" and "hemd", so the more specific
+    # gender needs first crack. GERMENS's merchant_category is blank for
+    # every row, so title is the only signal available.
+    61: ["damen"],
+    # "hemd"/"hemden" alone (no explicit gender) is GERMENS's men's shirt
+    # line under a different naming style (e.g. "Sommerhemden STOP NOW!",
+    # "Langarmhemd ..." vs. the explicitly-labeled "Herrenhemden ...") —
+    # same product family, just inconsistent titling from the vendor.
+    87: ["herren", "männer", "hemd"],
     36: ["garten", "terrasse", "balkon", "sonnenschirm", "pflanzk", "gartenmöbel"],
     8:  ["pool", "outdoor", "sport", "fahrrad", "camping", "freizeit"],
     5:  ["leuchte", "lampe", "licht", "led"],
