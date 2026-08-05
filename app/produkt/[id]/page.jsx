@@ -11,8 +11,9 @@ export async function generateMetadata({ params }) {
   if (!id) return {};
   try {
     const result = await query(
-      `SELECT p.title, p.description, p.image, p.price, v.name AS vendor
-       FROM products p LEFT JOIN vendors v ON v.id = p.vendor_id WHERE p.id = $1`,
+      `SELECT p.title, p.description, p.image, p.price, p.in_stock, v.name AS vendor
+       FROM products p LEFT JOIN vendors v ON v.id = p.vendor_id
+       WHERE p.id = $1 AND p.is_active = TRUE`,
       [id]
     );
     if (!result.rows.length) return {};
@@ -23,6 +24,12 @@ export async function generateMetadata({ params }) {
       description: `${p.title} jetzt für ${price} bei ${p.vendor || "Online-Shop"} kaufen. Preisverlauf und Preisalarm auf Preisgucken.de.`,
       alternates: { canonical: `https://www.preisgucken.de/produkt/${id}` },
       openGraph: { images: p.image ? [p.image] : [] },
+      // Out-of-stock listings stay reachable (price/history still useful,
+      // and it may come back in stock) but shouldn't compete for a crawl
+      // budget or index slot while unavailable — a large catalog with many
+      // thin, non-purchasable pages indexed is exactly what drags down
+      // Google's overall assessment of the site's crawl-worthiness.
+      robots: p.in_stock ? undefined : { index: false, follow: true },
     };
   } catch {
     return {};
@@ -46,7 +53,7 @@ async function getProduct(id) {
             ) AS price_30d_min
      FROM products p
      LEFT JOIN vendors v ON v.id = p.vendor_id
-     WHERE p.id = $1`,
+     WHERE p.id = $1 AND p.is_active = TRUE`,
     [id]
   );
   return result.rows[0] || null;
