@@ -63,12 +63,17 @@ export async function GET(request) {
       // matches would otherwise surface at the top just for being cheap.
       // Use prefix matching: split words and append :* to each for partial word support
       // e.g. "matrat" matches "Matratzen", "sofa 3" matches "Sofa 3-Sitzer"
+      // Strip everything but letters/digits from each word first — tsquery's
+      // own operator characters (: & | ( ) !) pass straight through
+      // otherwise, and a bare "&" or "(" in the search box broke to_tsquery's
+      // parser with a 500 instead of just matching nothing.
       const qIdx = params.length;
       conditions.push(`(
-        to_tsvector('german', unaccent(p.title)) @@ to_tsquery('german', array_to_string(
-          ARRAY(SELECT unaccent(word) || ':*'
-                FROM unnest(regexp_split_to_array(trim($${qIdx}), '\\s+')) AS word
-                WHERE word <> ''),
+        to_tsvector('german', immutable_unaccent(p.title)) @@ to_tsquery('german', array_to_string(
+          ARRAY(SELECT unaccent(w) || ':*'
+                FROM (SELECT regexp_replace(word, '[^[:alnum:]]', '', 'g') AS w
+                      FROM unnest(regexp_split_to_array(trim($${qIdx}), '\\s+')) AS word) sub
+                WHERE w <> ''),
           ' & '
         ))
         OR p.title ILIKE $${qIdx + 1}
@@ -121,7 +126,7 @@ export async function GET(request) {
     const orderBy =
       sort === "priceAsc"  ? "p.price ASC"  :
       sort === "priceDesc" ? "p.price DESC" :
-      q ? "ts_rank(p.search_vector, to_tsquery('german', array_to_string(ARRAY(SELECT unaccent(word) || ':*' FROM unnest(regexp_split_to_array(trim($1), '\\s+')) AS word WHERE word <> ''), ' & '))) DESC" :
+      q ? "ts_rank(p.search_vector, to_tsquery('german', array_to_string(ARRAY(SELECT unaccent(w) || ':*' FROM (SELECT regexp_replace(word, '[^[:alnum:]]', '', 'g') AS w FROM unnest(regexp_split_to_array(trim($1), '\\s+')) AS word) sub WHERE w <> ''), ' & '))) DESC" :
       "p.updated_at DESC";
 
     let dataResult, total;
