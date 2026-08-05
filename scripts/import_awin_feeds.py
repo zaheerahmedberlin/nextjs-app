@@ -11,6 +11,9 @@ import os
 import sys
 import urllib.request
 import psycopg2
+from psycopg2.extras import execute_values
+
+BATCH_SIZE = 500
 
 DATABASE_URL = os.environ.get("RAILWAY_DATABASE_URL") or os.environ.get("DATABASE_URL")
 
@@ -250,6 +253,10 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
         rows = sample_rows(rows, row_limit)
         print(f"  Capped to {len(rows)} rows (pilot limit for {vendor_name})")
 
+    # Parse + categorize every row first, deduping by url within this batch
+    # (keep the last occurrence, matching the old row-by-row loop's natural
+    # self-correcting behavior when a feed lists the same url twice).
+    parsed_by_url = {}
     for row in rows:
         parsed = parse_row(row, is_darwin)
         if not parsed:
@@ -274,26 +281,46 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
         else:
             category_id = guess_category(parsed["category_text"], title)
 
-        cur.execute("SELECT id FROM products WHERE url = %s AND vendor_id = %s", (url, vendor_id))
-        existing = cur.fetchone()
-        if existing:
-            cur.execute("""
-                UPDATE products SET price=%s, title=%s, image=%s, category_id=%s,
-                search_vector=to_tsvector('german', unaccent(coalesce(%s,'')||' '||coalesce(%s,'')))
-                WHERE id=%s
-            """, (price, title, image, category_id, title, desc, existing[0]))
-            updated += 1
-        else:
-            cur.execute("""
-                INSERT INTO products (title, description, image, price, url, vendor_id, category_id, in_stock, is_active, search_vector)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, true, true,
-                to_tsvector('german', unaccent(coalesce(%s,'')||' '||coalesce(%s,''))))
-            """, (title, desc, image, price, url, vendor_id, category_id, title, desc))
-            inserted += 1
+        parsed_by_url[url] = (title, desc, image, price, category_id)
 
-        # commit every 100 rows to avoid long transactions and connection timeouts
-        if (inserted + updated) % 100 == 0:
-            cur.connection.commit()
+    # One round-trip for every existing row instead of one SELECT per feed
+    # row — this (plus batching the writes below) is the whole fix: ~24,000
+    # individual round-trips to Railway from a GitHub runner is what pushed
+    # Voghion past the 60-minute job timeout, even though the same script
+    # finished in minutes when run locally.
+    cur.execute("SELECT url, id FROM products WHERE vendor_id = %s", (vendor_id,))
+    existing_by_url = dict(cur.fetchall())
+
+    to_update = []  # (id, price, title, image, category_id, desc)
+    to_insert = []  # (title, desc, image, price, url, vendor_id, category_id, title, desc)
+    for url, (title, desc, image, price, category_id) in parsed_by_url.items():
+        existing_id = existing_by_url.get(url)
+        if existing_id:
+            to_update.append((existing_id, price, title, image, category_id, desc))
+        else:
+            to_insert.append((title, desc, image, price, url, vendor_id, category_id, title, desc))
+
+    if to_update:
+        execute_values(cur, """
+            UPDATE products AS p SET
+                price = v.price, title = v.title, image = v.image, category_id = v.category_id,
+                search_vector = to_tsvector('german', unaccent(coalesce(v.title,'')||' '||coalesce(v.descr,'')))
+            FROM (VALUES %s) AS v(id, price, title, image, category_id, descr)
+            WHERE p.id = v.id
+        """, to_update, template="(%s,%s,%s,%s,%s,%s)", page_size=BATCH_SIZE)
+        updated = len(to_update)
+        cur.connection.commit()
+
+    if to_insert:
+        execute_values(cur, """
+            INSERT INTO products (title, description, image, price, url, vendor_id, category_id, in_stock, is_active, search_vector)
+            VALUES %s
+        """, to_insert, template=(
+            "(%s,%s,%s,%s,%s,%s,%s,true,true,"
+            "to_tsvector('german', unaccent(coalesce(%s,'')||' '||coalesce(%s,''))))"
+        ), page_size=BATCH_SIZE)
+        inserted = len(to_insert)
+        cur.connection.commit()
 
     print(f"  {vendor_name}: {inserted} inserted, {updated} updated, {skipped} skipped")
     return inserted + updated
