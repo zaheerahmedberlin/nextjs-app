@@ -216,8 +216,21 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   }, []);
 
   // ── Scroll: shrink navbar ──────────────────────────────────────
+  // A single 150px threshold flips isNavbarShrink on every scroll event
+  // that crosses it — since shrinking itself changes page layout (navbar
+  // padding + the hero collapsing by up to 600px), a scroll position that
+  // lands right near the boundary (trackpad momentum, slow wheel scroll)
+  // can flip the state back and forth on consecutive events, visibly
+  // blinking the hero/header search fields. A dead zone between the
+  // collapse and expand thresholds gives it hysteresis so it can't flap.
   useEffect(() => {
-    const handleScroll = () => setIsNavbarShrink(window.scrollY > 150);
+    const handleScroll = () => {
+      setIsNavbarShrink((prev) => {
+        if (window.scrollY > 180) return true;
+        if (window.scrollY < 120) return false;
+        return prev;
+      });
+    };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
