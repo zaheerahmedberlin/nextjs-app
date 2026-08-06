@@ -146,19 +146,28 @@ def guess_voghion_category(product_type, _title=None):
             return cat_id
     return 9  # Sonstiges
 
-# Peter Hahn's feed leaves merchant_category blank entirely (like GERMENS),
-# and the vendor is exclusively women's fashion — no need for the broader
-# keyword taxonomy other vendors use, just split shoes from everything else.
+# Peter Hahn leaves the standard merchant_category column blank, but its
+# feed supports AWIN's extended "product_type" field with a genuine
+# "Damen > ..." / "Herren > ..." / "Wohnen > ..." hierarchy — the vendor
+# sells both genders (not women's-only, despite the AWIN program being
+# named "Hochwertige Damenmode"). Title keywords and brand names both
+# proved unreliable here: most titles carry no gender word at all, and
+# the same brands (including the "Peter Hahn" house label itself) sell
+# both men's and women's lines under one name. product_type is real
+# per-product ground truth, not a guess.
 PETERHAHN_SHOE_KEYWORDS = (
     "sneaker", "mokassin", "pantolette", "schnürer", "stiefel", "sandale",
     "ballerina", "pumps", "slipper", "schuh", "clog", "espadrille",
 )
 
-def guess_peterhahn_category(_category_text, title):
-    t = title.lower()
-    if any(k in t for k in PETERHAHN_SHOE_KEYWORDS):
-        return 92  # Damenschuhe
-    return 61  # Damenmode
+def guess_peterhahn_category(category_text, title):
+    top_level = category_text.split(">")[0].strip().lower()
+    is_shoe = any(k in title.lower() for k in PETERHAHN_SHOE_KEYWORDS)
+    if top_level == "herren":
+        return 91 if is_shoe else 87  # Herrenschuhe / Herrenmode
+    if top_level == "damen":
+        return 92 if is_shoe else 61  # Damenschuhe / Damenmode
+    return 9  # Wohnen (home textiles) and anything unrecognized -> Sonstiges
 
 VENDOR_OVERRIDES = {
     "Voghion Global": {
@@ -182,6 +191,9 @@ VENDOR_OVERRIDES = {
         # aw_deep_link even though they share one real product page —
         # merchant_deep_link is the actual per-product identity here.
         "url_field": "merchant_deep_link",
+        # See guess_peterhahn_category — the vendor's stored feed_url must
+        # request the "product_type" column for this to be populated.
+        "category_field": "product_type",
     },
 }
 
@@ -210,7 +222,7 @@ def sample_rows(rows, limit):
         return hashlib.md5(url.encode()).hexdigest()
     return sorted(rows, key=stable_key)[:limit]
 
-def parse_row(row, is_darwin, url_field="aw_deep_link"):
+def parse_row(row, is_darwin, url_field="aw_deep_link", category_field="merchant_category"):
     """Normalize a CSV row from either the classic AWIN format (product_name,
     search_price, aw_image_url, merchant_category) or the Darwin/Google
     Shopping format (title, price, image_link, product_type) — Dowinx uses
@@ -247,7 +259,7 @@ def parse_row(row, is_darwin, url_field="aw_deep_link"):
         except ValueError:
             price = 0.0
         image = row.get("aw_image_url") or row.get("merchant_image_url", "")
-        category_text = row.get("merchant_category", "")
+        category_text = row.get(category_field, "")
         desc = (row.get("description", "") or "")[:1000]
 
     if not title or not url:
@@ -291,8 +303,9 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
     # self-correcting behavior when a feed lists the same url twice).
     parsed_by_url = {}
     url_field = override.get("url_field", "aw_deep_link") if override else "aw_deep_link"
+    category_field = override.get("category_field", "merchant_category") if override else "merchant_category"
     for row in rows:
-        parsed = parse_row(row, is_darwin, url_field)
+        parsed = parse_row(row, is_darwin, url_field, category_field)
         if not parsed:
             skipped += 1
             continue
