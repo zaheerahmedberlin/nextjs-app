@@ -1,4 +1,4 @@
-// app/sitemap.xml/route.js
+// app/sitemap-index/route.js
 //
 // app/sitemap.js exports generateSitemaps(), which makes Next.js serve the
 // chunks at /sitemap/0.xml, /sitemap/1.xml, ... — it does NOT also create an
@@ -7,6 +7,13 @@
 // robots.txt, so a plain 404 there looks broken even though the real
 // sitemaps are fine. This serves a standard sitemap index pointing at every
 // chunk instead.
+//
+// This can't live at app/sitemap.xml/route.js directly — Next.js reserves
+// that exact URL pattern for generateSitemaps()'s own internal catch-all
+// route (used for /sitemap/[id].xml), and defining a literal file route
+// with the same specificity is a fatal route-conflict error in `next dev`
+// (next.config.js rewrites /sitemap.xml here instead, so the public URL is
+// unaffected).
 import { getProductSitemapChunkCount } from "@/lib/sitemap";
 
 const BASE_URL = "https://www.preisgucken.de";

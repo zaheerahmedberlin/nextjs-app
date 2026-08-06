@@ -15,6 +15,12 @@ const nextConfig = {
       },
     ];
   },
+  // /sitemap.xml itself can't be a literal file route — see the comment in
+  // app/sitemap-index/route.js — so route external requests for it there
+  // instead, keeping the public URL crawlers expect.
+  async rewrites() {
+    return [{ source: "/sitemap.xml", destination: "/sitemap-index" }];
+  },
 };
 
 module.exports = nextConfig;

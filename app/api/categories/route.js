@@ -1,6 +1,7 @@
 // GET /api/categories — returns category tree with product counts
 import { query } from "@/lib/db";
 import { cacheGet, cacheSet } from "@/lib/redis";
+import { buildCategoryTree } from "@/lib/categoryTree";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -34,15 +35,7 @@ export async function GET() {
       productCount: parseInt(r.product_count),
     }));
 
-    // Build tree: parents with children array
-    const parents  = rows.filter((r) => !r.parentId);
-    const children = rows.filter((r) =>  r.parentId);
-
-    const tree = parents.map((parent) => {
-      const kids = children.filter((c) => c.parentId === parent.id);
-      const totalCount = kids.reduce((sum, c) => sum + c.productCount, 0) || parent.productCount;
-      return { ...parent, productCount: totalCount, children: kids };
-    });
+    const tree = buildCategoryTree(rows);
 
     await cacheSet(cacheKey, tree, 3600);
     return NextResponse.json(tree);

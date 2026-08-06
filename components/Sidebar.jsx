@@ -1,6 +1,81 @@
 "use client";
 import { useState } from "react";
 
+// Renders one category row and recurses into its children, to any depth —
+// e.g. Mode & Accessories (depth 0) > Damenmode (depth 1) > Damenpullover
+// (depth 2). Deeper levels get progressively indented and a lighter
+// background, matching the look the old hardcoded 2-level version had for
+// its single child tier.
+function CategoryNode({ node, depth, expanded, toggleExpand, selectedCategories, toggleCategory }) {
+  if (node.productCount === 0) return null; // hide empty categories
+
+  const isOpen = expanded[node.slug] !== false; // default open
+  const isSelected = selectedCategories.includes(node.slug);
+  const hasChildren = node.children?.length > 0;
+  const visibleChildren = hasChildren ? node.children.filter((c) => c.productCount > 0) : [];
+
+  return (
+    <li className={depth === 0 ? "border-bottom" : ""}>
+      <div
+        className="d-flex align-items-center px-3 py-2 gap-2 sidebar-cat-row"
+        style={{
+          cursor: hasChildren ? "pointer" : "default",
+          userSelect: "none",
+          paddingLeft: `${0.75 + depth * 0.75}rem`,
+          background: depth > 0 ? "var(--pg-blue-light)" : undefined,
+        }}
+        onClick={() => hasChildren && toggleExpand(node.slug)}
+      >
+        <input
+          className="form-check-input mt-0 flex-shrink-0"
+          type="checkbox"
+          id={`cat-${node.slug}`}
+          checked={isSelected}
+          onChange={() => toggleCategory(node.slug)}
+          onClick={(e) => e.stopPropagation()}
+        />
+        <label
+          className={`form-check-label small flex-grow-1 mb-0${depth === 0 ? " fw-semibold" : ""}`}
+          htmlFor={`cat-${node.slug}`}
+          style={{ cursor: "pointer" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {node.name}
+          <span className="text-muted fw-normal ms-1">({node.productCount})</span>
+        </label>
+        {hasChildren && (
+          <span
+            className="text-muted"
+            style={{
+              fontSize: 10,
+              transition: "transform 0.2s",
+              transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
+            }}
+          >
+            ▼
+          </span>
+        )}
+      </div>
+
+      {hasChildren && isOpen && visibleChildren.length > 0 && (
+        <ul className="list-unstyled mb-0">
+          {visibleChildren.map((child) => (
+            <CategoryNode
+              key={child.slug}
+              node={child}
+              depth={depth + 1}
+              expanded={expanded}
+              toggleExpand={toggleExpand}
+              selectedCategories={selectedCategories}
+              toggleCategory={toggleCategory}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 export default function Sidebar({
   categories,
   selectedCategories,
@@ -33,7 +108,10 @@ export default function Sidebar({
     setExpanded((prev) => ({ ...prev, [slug]: !prev[slug] }));
   }
 
-  // categories is now a tree: [{id, slug, name, children: [...]}]
+  // categories is now a tree: [{id, slug, name, children: [...]}] — children
+  // can themselves have children, to any depth (e.g. Mode & Accessories >
+  // Damenmode > Damenpullover), so rendering below recurses rather than
+  // assuming exactly one level of nesting.
   const isTree = categories.length > 0 && "children" in categories[0];
 
   return (
@@ -45,85 +123,17 @@ export default function Sidebar({
         <div className="card-body overflow-auto p-0" style={{ maxHeight: "45vh" }}>
           {isTree ? (
             <ul className="list-unstyled mb-0">
-              {categories.map((parent) => {
-                const isOpen = expanded[parent.slug] !== false; // default open
-                const parentSelected = selectedCategories.includes(parent.slug);
-                const hasChildren = parent.children?.length > 0;
-                const childrenCount = hasChildren
-                  ? parent.children.reduce((sum, c) => sum + c.productCount, 0)
-                  : 0;
-                const rollupCount = childrenCount > 0 ? childrenCount : parent.productCount;
-
-                if (rollupCount === 0) return null; // hide empty categories
-
-                return (
-                  <li key={parent.slug} className="border-bottom">
-                    {/* Parent row */}
-                    <div
-                      className="d-flex align-items-center px-3 py-2 gap-2 sidebar-cat-row"
-                      style={{ cursor: hasChildren ? "pointer" : "default", userSelect: "none" }}
-                      onClick={() => hasChildren && toggleExpand(parent.slug)}
-                    >
-                      <input
-                        className="form-check-input mt-0 flex-shrink-0"
-                        type="checkbox"
-                        id={`cat-${parent.slug}`}
-                        checked={parentSelected}
-                        onChange={() => toggleCategory(parent.slug)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <label
-                        className="form-check-label small fw-semibold flex-grow-1 mb-0"
-                        htmlFor={`cat-${parent.slug}`}
-                        style={{ cursor: "pointer" }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {parent.name}
-                        <span className="text-muted fw-normal ms-1">({rollupCount})</span>
-                      </label>
-                      {hasChildren && (
-                        <span
-                          className="text-muted"
-                          style={{
-                            fontSize: 10,
-                            transition: "transform 0.2s",
-                            transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
-                          }}
-                        >
-                          ▼
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Children */}
-                    {hasChildren && isOpen && (
-                      <ul className="list-unstyled mb-0" style={{ background: "var(--pg-blue-light)" }}>
-                        {parent.children.filter((c) => c.productCount > 0).map((child) => (
-                          <li key={child.slug}>
-                            <div className="d-flex align-items-center px-4 py-1 gap-2 sidebar-cat-row">
-                              <input
-                                className="form-check-input mt-0 flex-shrink-0"
-                                type="checkbox"
-                                id={`cat-${child.slug}`}
-                                checked={selectedCategories.includes(child.slug)}
-                                onChange={() => toggleCategory(child.slug)}
-                              />
-                              <label
-                                className="form-check-label small mb-0 flex-grow-1"
-                                htmlFor={`cat-${child.slug}`}
-                                style={{ cursor: "pointer" }}
-                              >
-                                {child.name}
-                                <span className="text-muted ms-1">({child.productCount})</span>
-                              </label>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                );
-              })}
+              {categories.map((node) => (
+                <CategoryNode
+                  key={node.slug}
+                  node={node}
+                  depth={0}
+                  expanded={expanded}
+                  toggleExpand={toggleExpand}
+                  selectedCategories={selectedCategories}
+                  toggleCategory={toggleCategory}
+                />
+              ))}
             </ul>
           ) : (
             // Fallback: flat list (old format)

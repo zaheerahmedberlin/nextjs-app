@@ -1,6 +1,7 @@
 // app/page.jsx — Server Component: pre-fetches initial data for LCP improvement
 import { unstable_cache } from "next/cache";
 import { query } from "@/lib/db";
+import { buildCategoryTree } from "@/lib/categoryTree";
 import HomeClient from "@/components/HomeClient";
 
 // In-process memory cache — no Redis network overhead, revalidates every 5 min
@@ -58,13 +59,7 @@ const getInitialData = unstable_cache(
       icon:         r.icon,
       productCount: parseInt(r.product_count),
     }));
-    const parents  = rows.filter((r) => !r.parentId);
-    const children = rows.filter((r) =>  r.parentId);
-    const initialCategories = parents.map((parent) => {
-      const kids = children.filter((c) => c.parentId === parent.id);
-      const totalCount = kids.reduce((sum, c) => sum + c.productCount, 0) || parent.productCount;
-      return { ...parent, productCount: totalCount, children: kids };
-    });
+    const initialCategories = buildCategoryTree(rows);
 
     return { initialProducts, initialMaxPrice, initialCategories, initialTotalProducts };
   },
