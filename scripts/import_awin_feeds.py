@@ -155,18 +155,50 @@ def guess_voghion_category(product_type, _title=None):
 # the same brands (including the "Peter Hahn" house label itself) sell
 # both men's and women's lines under one name. product_type is real
 # per-product ground truth, not a guess.
-PETERHAHN_SHOE_KEYWORDS = (
-    "sneaker", "mokassin", "pantolette", "schnürer", "stiefel", "sandale",
-    "ballerina", "pumps", "slipper", "schuh", "clog", "espadrille",
-)
+# Second-level product_type -> category id, built from the real distinct
+# values found in the feed (not a guess). Reuses whatever subcategory
+# already existed under Damenmode/Herrenmode/Mode & Accessories when the
+# name matched closely enough (e.g. Damen "Hosen" -> existing Damenhosen),
+# and adds new ones only where nothing fit.
+PETERHAHN_DAMEN_SUBCATEGORY = {
+    "hosen": 66,             # Damenhosen
+    "pullover": 99,          # Damenpullover
+    "blusen": 57,            # Blusen (top-level, shared)
+    "shirts": 100,           # Damenshirts
+    "schuhe": 92,            # Damenschuhe
+    "jeans": 101,            # Damenjeans
+    "wäsche": 96,            # Unterwäsche (top-level, shared)
+    "strickjacken": 69,      # Strickwaren
+    "jacken & mäntel": 68,   # Jacken & Mäntel (renamed from Mäntel)
+    "kleider": 62,           # Kleider
+    "röcke": 63,             # Röcke
+    "blazer": 102,           # Blazer
+    "accessoires": 70,       # Accessoires
+    "twinsets": 103,         # Twinsets
+    "westen": 104,           # Westen
+    "bademode": 105,         # Bademode
+    "lederbekleidung": 106,  # Lederbekleidung
+}
+PETERHAHN_HERREN_SUBCATEGORY = {
+    "shirts": 58,             # T-Shirts
+    "pullover": 107,          # Herrenpullover
+    "hosen": 59,              # Hosen
+    "wäsche": 96,             # Unterwäsche (top-level, shared)
+    "jacken & mäntel": 108,   # Herrenjacken
+    "strickjacken": 109,      # Herrenstrickjacken
+    "hemden": 56,             # Hemden
+    "jeans": 110,             # Herrenjeans
+    "sakkos": 88,             # Anzüge (folded — both are formal jackets)
+}
 
-def guess_peterhahn_category(category_text, title):
-    top_level = category_text.split(">")[0].strip().lower()
-    is_shoe = any(k in title.lower() for k in PETERHAHN_SHOE_KEYWORDS)
+def guess_peterhahn_category(category_text, _title=None):
+    parts = [p.strip() for p in category_text.split(">")]
+    top_level = parts[0].lower() if parts else ""
+    sub_level = parts[1].lower() if len(parts) > 1 else ""
     if top_level == "herren":
-        return 91 if is_shoe else 87  # Herrenschuhe / Herrenmode
+        return PETERHAHN_HERREN_SUBCATEGORY.get(sub_level, 87)  # fallback: Herrenmode
     if top_level == "damen":
-        return 92 if is_shoe else 61  # Damenschuhe / Damenmode
+        return PETERHAHN_DAMEN_SUBCATEGORY.get(sub_level, 61)  # fallback: Damenmode
     return 9  # Wohnen (home textiles) and anything unrecognized -> Sonstiges
 
 VENDOR_OVERRIDES = {
@@ -194,6 +226,10 @@ VENDOR_OVERRIDES = {
         # See guess_peterhahn_category — the vendor's stored feed_url must
         # request the "product_type" column for this to be populated.
         "category_field": "product_type",
+        # Multi-brand feed (Peter Hahn's own label plus Brax, BOSS, GANT,
+        # Bugatti, ...) — prepend the actual brand so it's the first thing
+        # a shopper reads, not buried in free-text description copy.
+        "brand_field": "brand_name",
     },
 }
 
@@ -222,7 +258,7 @@ def sample_rows(rows, limit):
         return hashlib.md5(url.encode()).hexdigest()
     return sorted(rows, key=stable_key)[:limit]
 
-def parse_row(row, is_darwin, url_field="aw_deep_link", category_field="merchant_category"):
+def parse_row(row, is_darwin, url_field="aw_deep_link", category_field="merchant_category", brand_field=None):
     """Normalize a CSV row from either the classic AWIN format (product_name,
     search_price, aw_image_url, merchant_category) or the Darwin/Google
     Shopping format (title, price, image_link, product_type) — Dowinx uses
@@ -265,6 +301,11 @@ def parse_row(row, is_darwin, url_field="aw_deep_link", category_field="merchant
     if not title or not url:
         return None
 
+    if brand_field:
+        brand = (row.get(brand_field) or "").strip()
+        if brand and not desc.lower().startswith(brand.lower()):
+            desc = f"{brand}. {desc}" if desc else brand
+
     return {"title": title, "url": url, "price": price, "image": image,
             "category_text": category_text, "description": desc}
 
@@ -304,8 +345,9 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
     parsed_by_url = {}
     url_field = override.get("url_field", "aw_deep_link") if override else "aw_deep_link"
     category_field = override.get("category_field", "merchant_category") if override else "merchant_category"
+    brand_field = override.get("brand_field") if override else None
     for row in rows:
-        parsed = parse_row(row, is_darwin, url_field, category_field)
+        parsed = parse_row(row, is_darwin, url_field, category_field, brand_field)
         if not parsed:
             skipped += 1
             continue
@@ -351,6 +393,7 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
         execute_values(cur, """
             UPDATE products AS p SET
                 price = v.price, title = v.title, image = v.image, category_id = v.category_id,
+                description = v.descr,
                 search_vector = to_tsvector('german', unaccent(coalesce(v.title,'')||' '||coalesce(v.descr,'')))
             FROM (VALUES %s) AS v(id, price, title, image, category_id, descr)
             WHERE p.id = v.id
