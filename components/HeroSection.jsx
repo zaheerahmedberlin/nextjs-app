@@ -1,7 +1,7 @@
 // components/HeroSection.jsx – SEO: keyword-rich headings, product count
 "use client";
 
-export default function HeroSection({ searchQuery, setSearchQuery, setCurrentPage, totalProducts, popularTerms = [] }) {
+export default function HeroSection({ searchQuery, setSearchQuery, setCurrentPage, popularTerms = [] }) {
   return (
     <section className="hero-section text-center py-5" aria-label="Preisvergleich Suche">
       <div className="container">
@@ -12,11 +12,6 @@ export default function HeroSection({ searchQuery, setSearchQuery, setCurrentPag
         <p className="text-muted mb-1 fs-5">
           Günstige Preise finden – einfach, schnell, kostenlos
         </p>
-        {totalProducts > 0 && (
-          <p className="text-muted small mb-4">
-            Aktuell <strong>{totalProducts.toLocaleString("de-DE")}</strong> Produkte im Vergleich
-          </p>
-        )}
         <div className="d-flex justify-content-center" style={{ maxWidth: 600, margin: "0 auto" }}>
           {/* aria-label helps Google understand the search function */}
           <label htmlFor="heroSearch" className="visually-hidden">Produkt suchen</label>

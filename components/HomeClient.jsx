@@ -387,7 +387,6 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
           searchQuery={searchQuery}
           setSearchQuery={(v) => { setSearchQuery(v); resetPage(); }}
           setCurrentPage={setCurrentPage}
-          totalProducts={totalProducts}
           popularTerms={popularTerms}
         />
       </div>
@@ -522,9 +521,6 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
 
             {isDefaultView && !isLoading && (
               <div className="text-center my-5">
-                <p className="text-muted small mb-3">
-                  Aktuell <strong>{totalProducts.toLocaleString("de-DE")}</strong> Produkte im Vergleich
-                </p>
                 {/* Category quick-links */}
                 <div className="d-flex flex-wrap justify-content-center gap-2 mb-4">
                   {categories.filter(c => (c.children?.reduce((s,k)=>s+k.productCount,0)||c.productCount)>0).slice(0,8).map(cat => (
