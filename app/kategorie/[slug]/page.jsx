@@ -66,14 +66,28 @@ export default async function KategoriePage({ params }) {
 
   // Build category object
   const first = catRes.rows[0];
+  const directChildren = catRes.rows
+    .filter((r) => r.child_id)
+    .map((r) => ({ id: r.child_id, name: r.child_name, slug: r.child_slug }));
+
+  // Linked categories: a category can pull in another category's products
+  // without being re-parented under it (e.g. Hochzeit shows Brautkleider's
+  // dresses, which stay filed under Damenmode too) — see category_links.
+  // More can be added later with a plain INSERT, no code change needed.
+  const linkedRes = await query(
+    `SELECT lc.id, lc.name, lc.slug
+     FROM category_links cl
+     JOIN categories lc ON lc.id = cl.linked_category_id AND lc.is_active = TRUE
+     WHERE cl.category_id = $1`,
+    [first.id]
+  );
+
   const category = {
     id: first.id,
     name: first.name,
     slug: first.slug,
     icon: first.icon,
-    children: catRes.rows
-      .filter((r) => r.child_id)
-      .map((r) => ({ id: r.child_id, name: r.child_name, slug: r.child_slug })),
+    children: [...directChildren, ...linkedRes.rows],
   };
 
   // Fetch top 24 products server-side (gives Google real content to index)
@@ -93,15 +107,17 @@ export default async function KategoriePage({ params }) {
 
   const products = prodRes.rows;
 
-  // Count per child category
-  const childCountRes = await query(
-    `SELECT c.slug, COUNT(p.id)::int AS cnt
-     FROM categories c
-     LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE AND p.in_stock = TRUE
-     WHERE c.parent_id = $1
-     GROUP BY c.slug`,
-    [category.id]
-  );
+  // Count per child category (direct children + linked categories)
+  const childCountRes = category.children.length
+    ? await query(
+        `SELECT c.slug, COUNT(p.id)::int AS cnt
+         FROM categories c
+         LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE AND p.in_stock = TRUE
+         WHERE c.id = ANY($1)
+         GROUP BY c.slug`,
+        [category.children.map((c) => c.id)]
+      )
+    : { rows: [] };
   const childCounts = Object.fromEntries(childCountRes.rows.map((r) => [r.slug, r.cnt]));
 
   // BreadcrumbList schema
