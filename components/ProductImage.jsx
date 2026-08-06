@@ -21,7 +21,7 @@ export default function ProductImage({ src, alt, height = 150, priority = false 
       className="card-img-top"
       alt={alt}
       onError={() => setBroken(true)}
-      style={{ height, objectFit: "cover" }}
+      style={{ height, objectFit: "contain", background: "#f8faff" }}
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : "auto"}
     />
