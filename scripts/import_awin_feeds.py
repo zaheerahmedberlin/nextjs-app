@@ -214,6 +214,15 @@ VENDOR_OVERRIDES = {
         "excluded_title_substrings": set(),
         "category_fn": lambda _category_text, _title=None: 98,  # Smartwatch-Armbänder
     },
+    "GERMENS DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        # Explicitly excluded by request — the daily sync would otherwise
+        # keep re-adding it every run since it's still in GERMENS's live
+        # feed; deleting the row alone doesn't stick.
+        "excluded_title_substrings": {"rückenabnäher"},
+        "category_fn": guess_category,
+    },
     "Peter Hahn": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
