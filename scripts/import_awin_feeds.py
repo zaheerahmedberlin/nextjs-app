@@ -214,7 +214,7 @@ VENDOR_OVERRIDES = {
         "excluded_title_substrings": set(),
         "category_fn": lambda _category_text, _title=None: 98,  # Smartwatch-Armbänder
     },
-    "Peter Hahn DE - Hochwertige Damenmode": {
+    "Peter Hahn": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
         "excluded_title_substrings": set(),
