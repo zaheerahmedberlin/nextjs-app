@@ -103,7 +103,7 @@ export async function GET(request) {
     }
 
     if (vendor) {
-      params.push(vendor);
+      params.push(`%${vendor}%`);
       conditions.push(`v.name ILIKE $${params.length}`);
     }
 
