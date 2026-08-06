@@ -9,6 +9,7 @@ import hashlib
 import html
 import io
 import os
+import re
 import sys
 import urllib.request
 import psycopg2
@@ -48,10 +49,21 @@ CATEGORY_KEYWORDS = {
     27: ["elektronik", "computer", "laptop", "smartphone", "tablet"],
 }
 
+def _keyword_starts_a_word(keyword, text):
+    """True if `keyword` appears at the start of a word in `text` — i.e. not
+    preceded by another letter. German compounds always lead with the
+    category word (Damenhose, Gartenmöbelset), they never bury it mid-word,
+    so a plain substring check has real false positives: "Fundament"
+    contains "damen" ("fun-damen-t"), miscategorizing greenhouse-foundation
+    products as Damenmode. No trailing boundary is required, since
+    compound suffixes (the "hose" in "Damenhose") are exactly what a
+    plain substring check is supposed to still catch."""
+    return re.search(rf"(?:^|[^a-zäöüß]){re.escape(keyword)}", text) is not None
+
 def guess_category(merchant_category, title):
     text = (merchant_category + " " + title).lower()
     for cat_id, keywords in CATEGORY_KEYWORDS.items():
-        if any(kw in text for kw in keywords):
+        if any(_keyword_starts_a_word(kw, text) for kw in keywords):
             return cat_id
     return 9  # Sonstiges
 
