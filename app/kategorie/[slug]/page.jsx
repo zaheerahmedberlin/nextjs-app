@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ProductImage from "@/components/ProductImage";
 
 const BASE_URL = "https://www.preisgucken.de";
 
@@ -211,16 +212,11 @@ export default async function KategoriePage({ params }) {
               {products.map((p, i) => (
                 <article key={p.id} className="col-6 col-sm-4 col-md-3 col-lg-2">
                   <div className="card h-100 shadow-sm">
-                    <img
-                      src={p.image || "/placeholder.png"}
-                      className="card-img-top"
+                    <ProductImage
+                      src={p.image}
                       alt={`${p.title} – günstig kaufen`}
-                      loading={i < 6 ? "eager" : "lazy"}
-                      fetchPriority={i < 3 ? "high" : "auto"}
-                      width={300}
                       height={150}
-                      style={{ objectFit: "cover", height: 150 }}
-                      onError={`this.src='/placeholder.png'`}
+                      priority={i < 3}
                     />
                     <div className="card-body p-2">
                       <h3 className="h6 text-truncate mb-1" title={p.title}>{p.title}</h3>
