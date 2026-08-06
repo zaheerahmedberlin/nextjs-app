@@ -5,6 +5,16 @@ on:
     - cron: "0 2 * * *"  # Every day at 2am UTC
   workflow_dispatch:       # Allow manual trigger from GitHub UI
 
+# A manual dispatch that lands close to the scheduled run (or two manual
+# triggers back to back) used to execute in parallel — each run's "which
+# rows already exist" snapshot was taken before the other's writes landed,
+# so both inserted their own copy of the same products. Queuing instead of
+# running concurrently makes that race impossible; the queued run just
+# starts fresh once the first one finishes.
+concurrency:
+  group: sync-awin-feeds
+  cancel-in-progress: false
+
 jobs:
   # Voghion's feed (~92,000 raw rows, individual SELECT+INSERT/UPDATE per
   # row) has repeatedly run past 60 minutes on GitHub's runners and gotten
