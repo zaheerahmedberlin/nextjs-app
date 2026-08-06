@@ -139,12 +139,26 @@ VOGHION_CATEGORY_RULES = [
     ("home appliances", 27),                # Elektronik (generic fallback)
 ]
 
-def guess_voghion_category(product_type):
+def guess_voghion_category(product_type, _title=None):
     pt = product_type.lower()
     for keyword, cat_id in VOGHION_CATEGORY_RULES:
         if keyword in pt:
             return cat_id
     return 9  # Sonstiges
+
+# Peter Hahn's feed leaves merchant_category blank entirely (like GERMENS),
+# and the vendor is exclusively women's fashion — no need for the broader
+# keyword taxonomy other vendors use, just split shoes from everything else.
+PETERHAHN_SHOE_KEYWORDS = (
+    "sneaker", "mokassin", "pantolette", "schnürer", "stiefel", "sandale",
+    "ballerina", "pumps", "slipper", "schuh", "clog", "espadrille",
+)
+
+def guess_peterhahn_category(_category_text, title):
+    t = title.lower()
+    if any(k in t for k in PETERHAHN_SHOE_KEYWORDS):
+        return 92  # Damenschuhe
+    return 61  # Damenmode
 
 VENDOR_OVERRIDES = {
     "Voghion Global": {
@@ -157,7 +171,17 @@ VENDOR_OVERRIDES = {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
         "excluded_title_substrings": set(),
-        "category_fn": lambda _category_text: 98,  # Smartwatch-Armbänder
+        "category_fn": lambda _category_text, _title=None: 98,  # Smartwatch-Armbänder
+    },
+    "Peter Hahn DE - Hochwertige Damenmode": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_peterhahn_category,
+        # Every size/color variant is its own feed row with a distinct
+        # aw_deep_link even though they share one real product page —
+        # merchant_deep_link is the actual per-product identity here.
+        "url_field": "merchant_deep_link",
     },
 }
 
@@ -186,15 +210,24 @@ def sample_rows(rows, limit):
         return hashlib.md5(url.encode()).hexdigest()
     return sorted(rows, key=stable_key)[:limit]
 
-def parse_row(row, is_darwin):
+def parse_row(row, is_darwin, url_field="aw_deep_link"):
     """Normalize a CSV row from either the classic AWIN format (product_name,
     search_price, aw_image_url, merchant_category) or the Darwin/Google
     Shopping format (title, price, image_link, product_type) — Dowinx uses
     Darwin, GERMENS/BlazeVideo/DeubaXXL use classic. Returns None to skip
-    the row (missing data, or non-EUR price in Darwin feeds)."""
+    the row (missing data, or non-EUR price in Darwin feeds).
+
+    url_field defaults to aw_deep_link (AWIN's own pclick.php tracking
+    redirect, unique per feed row) since that's what most vendors' url
+    column stores directly as the outbound affiliate link. Some feeds
+    (Peter Hahn) list every size/color as its own row with a distinct
+    aw_deep_link even though they share one real product page — for those,
+    the vendor override passes url_field="merchant_deep_link" instead, and
+    lib/affiliate.js wraps that raw URL into a proper AWIN tracking link
+    at render time via its merchant-id map."""
     if is_darwin:
         title = (row.get("title") or "").strip()
-        url = (row.get("aw_deep_link") or "").strip()
+        url = (row.get(url_field) or "").strip()
         price_raw = (row.get("price") or "").strip()
         parts = price_raw.split()
         if len(parts) == 2 and parts[1] != "EUR":
@@ -208,7 +241,7 @@ def parse_row(row, is_darwin):
         desc = (row.get("description", "") or "")[:1000]
     else:
         title = (row.get("product_name") or "").strip()
-        url = (row.get("aw_deep_link") or "").strip()
+        url = (row.get(url_field) or "").strip()
         try:
             price = float(row.get("search_price", "0") or 0)
         except ValueError:
@@ -257,8 +290,9 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
     # (keep the last occurrence, matching the old row-by-row loop's natural
     # self-correcting behavior when a feed lists the same url twice).
     parsed_by_url = {}
+    url_field = override.get("url_field", "aw_deep_link") if override else "aw_deep_link"
     for row in rows:
-        parsed = parse_row(row, is_darwin)
+        parsed = parse_row(row, is_darwin, url_field)
         if not parsed:
             skipped += 1
             continue
@@ -277,7 +311,7 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
             ):
                 skipped += 1
                 continue
-            category_id = override["category_fn"](parsed["category_text"])
+            category_id = override["category_fn"](parsed["category_text"], title)
         else:
             category_id = guess_category(parsed["category_text"], title)
 
