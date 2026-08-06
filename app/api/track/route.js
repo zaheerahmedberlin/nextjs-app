@@ -6,9 +6,8 @@ import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 
 export async function POST(request) {
+  const { productId, vendor, url } = await request.json();
   try {
-    const { productId, vendor, url } = await request.json();
-
     if (!vendor || !url) {
       return NextResponse.json({ error: "vendor and url required" }, { status: 400 });
     }
@@ -32,7 +31,6 @@ export async function POST(request) {
   } catch (err) {
     console.error("Track click error:", err);
     // Still return the URL so the user isn't blocked even if tracking fails
-    const body = await request.json().catch(() => ({}));
-    return NextResponse.json({ url: body.url }, { status: 200 });
+    return NextResponse.json({ url }, { status: 200 });
   }
 }
