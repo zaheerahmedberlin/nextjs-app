@@ -6,6 +6,7 @@ Loops all vendors with a feed_url and upserts products into the DB.
 import csv
 import gzip
 import hashlib
+import html
 import io
 import os
 import sys
@@ -309,6 +310,12 @@ def parse_row(row, is_darwin, url_field="aw_deep_link", category_field="merchant
 
     if not title or not url:
         return None
+
+    # Some merchant feeds (DeubaXXL, LIKA, ...) export title/description
+    # already HTML-entity-encoded (e.g. "&" -> "&amp;"/"&#038;") — unescape
+    # so stored text matches what a shopper actually reads.
+    title = html.unescape(title)
+    desc = html.unescape(desc)
 
     if brand_field:
         brand = (row.get(brand_field) or "").strip()

@@ -8,6 +8,7 @@ vendors (Tsarbomba, Sparkle GmbH) don't have one. Ported from the one-off
 onboarding scripts in the scraper repo (import_tsarbomba.py, import_sparkle.py)
 — keep in sync there if category taxonomy or exclusions change.
 """
+import html
 import json
 import os
 import time
@@ -113,7 +114,10 @@ def get_vendor_id(cur, vendor_name):
 
 
 def upsert_product(cur, product, vendor_id, base_url, awin_mid, category_fn, skip_fn):
-    title = product.get("title", "").strip()
+    # Shopify's JSON API returns title/body_html with HTML entities intact
+    # (e.g. "&" -> "&amp;") — unescape so stored text matches what a
+    # shopper actually reads, not the raw markup encoding.
+    title = html.unescape(product.get("title", "").strip())
     handle = product.get("handle", "")
     if not title or not handle:
         return "skipped"
@@ -121,7 +125,7 @@ def upsert_product(cur, product, vendor_id, base_url, awin_mid, category_fn, ski
         return "skipped"
 
     category_id = category_fn(product)
-    description = (product.get("body_html") or "").strip()
+    description = html.unescape((product.get("body_html") or "").strip())
     product_url = f"{base_url}/products/{handle}"
     url = affiliate_url(awin_mid, product_url)
 
