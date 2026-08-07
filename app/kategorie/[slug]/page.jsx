@@ -50,8 +50,9 @@ export async function generateMetadata({ params }) {
   }
 }
 
-export default async function KategoriePage({ params }) {
+export default async function KategoriePage({ params, searchParams }) {
   const { slug } = params;
+  const vendorFilter = typeof searchParams?.vendor === "string" ? searchParams.vendor : null;
 
   // Fetch category + children from DB (server-side, crawlable)
   const catRes = await query(
@@ -93,20 +94,43 @@ export default async function KategoriePage({ params }) {
 
   // Fetch top 24 products server-side (gives Google real content to index)
   const catIds = [category.id, ...category.children.map((c) => c.id)];
-  const placeholders = catIds.map((_, i) => `$${i + 1}`).join(",");
+
+  // Vendor filter (?vendor=SIRUI+Optical) — narrows the same category view
+  // to one vendor's products, e.g. useful when one vendor dominates a
+  // category. Plain query param + server re-render, no client JS.
+  const queryParams = [catIds];
+  let vendorCondition = "";
+  if (vendorFilter) {
+    queryParams.push(vendorFilter);
+    vendorCondition = "AND v.name = $2";
+  }
   const prodRes = await query(
     `SELECT p.id, p.title, p.price, p.old_price, p.image, p.url, p.in_stock,
             v.name AS vendor, v.logo_url AS vendor_logo
      FROM products p
      LEFT JOIN vendors v ON v.id = p.vendor_id
-     WHERE p.category_id IN (${placeholders})
+     WHERE p.category_id = ANY($1) ${vendorCondition}
        AND p.is_active = TRUE AND p.in_stock = TRUE
      ORDER BY p.price ASC
      LIMIT 24`,
-    catIds
+    queryParams
   );
 
   const products = prodRes.rows;
+
+  // Vendor chips: every vendor selling in this category, regardless of
+  // which one (if any) is currently selected, so a shopper can switch
+  // between them freely.
+  const vendorCountRes = await query(
+    `SELECT v.name, COUNT(p.id)::int AS cnt
+     FROM products p
+     JOIN vendors v ON v.id = p.vendor_id
+     WHERE p.category_id = ANY($1) AND p.is_active = TRUE AND p.in_stock = TRUE
+     GROUP BY v.name
+     ORDER BY cnt DESC`,
+    [catIds]
+  );
+  const vendorCounts = vendorCountRes.rows;
 
   // Count per child category (direct children + linked categories)
   const childCountRes = category.children.length
@@ -186,7 +210,7 @@ export default async function KategoriePage({ params }) {
 
       {/* Sub-category pills — server rendered, crawlable links */}
       {category.children.length > 0 && (
-        <div className="container py-3">
+        <div className="container pt-3">
           <div className="d-flex flex-wrap gap-2">
             {category.children.map((child) => (
               <a
@@ -198,6 +222,32 @@ export default async function KategoriePage({ params }) {
                 {childCounts[child.slug] > 0 && (
                   <span className="ms-1 text-muted">({childCounts[child.slug]})</span>
                 )}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Vendor filter pills — same category, narrowed to one vendor via
+          a plain query param. Server rendered, crawlable links. */}
+      {vendorCounts.length > 1 && (
+        <div className="container pt-3 pb-1">
+          <p className="small text-muted mb-2 fw-semibold">Marken:</p>
+          <div className="d-flex flex-wrap gap-2">
+            <a
+              href={`/kategorie/${slug}`}
+              className={`btn btn-sm ${vendorFilter ? "btn-outline-secondary" : "btn-secondary"}`}
+            >
+              Alle
+            </a>
+            {vendorCounts.map((v) => (
+              <a
+                key={v.name}
+                href={`/kategorie/${slug}?vendor=${encodeURIComponent(v.name)}`}
+                className={`btn btn-sm ${vendorFilter === v.name ? "btn-secondary" : "btn-outline-secondary"}`}
+              >
+                {v.name}
+                <span className={vendorFilter === v.name ? "ms-1" : "ms-1 text-muted"}>({v.cnt})</span>
               </a>
             ))}
           </div>
@@ -237,13 +287,22 @@ export default async function KategoriePage({ params }) {
             </div>
             <p className="text-muted text-center small">
               Zeige die günstigsten {products.length} {category.name}-Angebote.{" "}
-              <a href="/">Alle Produkte durchsuchen →</a>
+              <a href={`/?category=${category.slug}`}>Alle {category.name}-Angebote durchsuchen →</a>
             </p>
           </>
         ) : (
           <p className="text-muted py-5 text-center">
-            Aktuell keine Produkte in dieser Kategorie verfügbar.{" "}
-            <a href="/">Zum Preisvergleich</a>
+            {vendorFilter ? (
+              <>
+                Keine {category.name}-Produkte von {vendorFilter} verfügbar.{" "}
+                <a href={`/kategorie/${slug}`}>Filter zurücksetzen</a>
+              </>
+            ) : (
+              <>
+                Aktuell keine Produkte in dieser Kategorie verfügbar.{" "}
+                <a href="/">Zum Preisvergleich</a>
+              </>
+            )}
           </p>
         )}
 

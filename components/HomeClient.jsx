@@ -152,7 +152,13 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
 
   // Filters
   const [searchQuery, setSearchQuery]                   = useState(searchParams.get("q") ?? "");
-  const [selectedCategories, setSelectedCategories]     = useState([]);
+  // Lazy initializer — runs once on mount only, same as searchQuery above.
+  // Supports comma-separated slugs to match how the rest of the app already
+  // builds category query strings (e.g. "sofas,betten").
+  const [selectedCategories, setSelectedCategories]     = useState(() => {
+    const cat = searchParams.get("category");
+    return cat ? cat.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  });
   const [sortOption, setSortOption]                     = useState("relevance");
   const [maxPriceFilter, setMaxPriceFilter]             = useState(initialMaxPrice);
   const [defaultMaxPrice, setDefaultMaxPrice]           = useState(initialMaxPrice);
