@@ -244,8 +244,16 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   // ── Products: debounced fetch on any filter change ─────────────
   const debounceRef = useRef(null);
   useEffect(() => {
-    // Skip first mount — initial products already server-rendered
-    if (isFirstMount.current) { isFirstMount.current = false; return; }
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      // The server-rendered initial products are always the generic
+      // unfiltered homepage view (getInitialData() doesn't read the
+      // request's URL) — only safe to reuse as-is when nothing from the
+      // URL pre-populated a filter on load (e.g. /?category=elektronik or
+      // /?q=sofa). Otherwise still need the real first fetch, or the page
+      // shows the unfiltered SSR data while claiming to be filtered.
+      if (!searchQuery && selectedCategories.length === 0) return;
+    }
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(loadProducts, 400);
     return () => clearTimeout(debounceRef.current);
