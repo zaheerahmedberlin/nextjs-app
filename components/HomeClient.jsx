@@ -253,6 +253,15 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       // /?q=sofa). Otherwise still need the real first fetch, or the page
       // shows the unfiltered SSR data while claiming to be filtered.
       if (!searchQuery && selectedCategories.length === 0) return;
+      // Fetch immediately, skipping the debounce below — that debounce
+      // exists to avoid firing on every keystroke while typing a search
+      // query, which doesn't apply here: the filter arrived pre-set from
+      // the URL (e.g. a category page's "Alle X-Angebote durchsuchen"
+      // link), so delaying it just shows the generic SSR view for ~400ms
+      // before snapping to the correct one — a visible flash of unrelated
+      // products the debounce was never meant to cause.
+      loadProducts();
+      return;
     }
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(loadProducts, 400);
