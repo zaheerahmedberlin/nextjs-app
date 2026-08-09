@@ -486,7 +486,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
               </div>
             )}
 
-            <ProductGrid products={products} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={isLoading} />
+            <ProductGrid products={products} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={isLoading} />
 
             {isDefaultView && elektronikProducts.length > 0 && (
               <div className="mt-5">
@@ -499,7 +499,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                     Alle Elektronik →
                   </button>
                 </div>
-                <ProductGrid products={elektronikProducts} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={false} />
+                <ProductGrid products={elektronikProducts} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={false} />
               </div>
             )}
 
@@ -514,7 +514,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                     Alle Möbel →
                   </button>
                 </div>
-                <ProductGrid products={moebelProducts} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={false} />
+                <ProductGrid products={moebelProducts} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={false} />
               </div>
             )}
 
@@ -523,7 +523,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                 <div className="d-flex align-items-center justify-content-between mb-3">
                   <h2 className="h6 fw-bold mb-0">💎 Premium Highlights</h2>
                 </div>
-                <ProductGrid products={premiumProducts} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={false} />
+                <ProductGrid products={premiumProducts} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={false} />
               </div>
             )}
 
@@ -538,7 +538,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                     Alle Gesundheit →
                   </button>
                 </div>
-                <ProductGrid products={gesundheitProducts} onOpenProduct={openProduct} formatPrice={formatPrice} isLoading={false} />
+                <ProductGrid products={gesundheitProducts} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={false} />
               </div>
             )}
 

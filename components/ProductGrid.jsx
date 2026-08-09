@@ -3,6 +3,7 @@
 import Link from "next/link";
 import PriceDisplay from "@/components/PriceDisplay";
 import ProductImage from "@/components/ProductImage";
+import { buildAffiliateUrl } from "@/lib/affiliate";
 
 function ProductSchema({ product }) {
   const schema = {
@@ -33,7 +34,12 @@ function ProductSchema({ product }) {
   );
 }
 
-export default function ProductGrid({ products, onOpenProduct, formatPrice, isLoading }) {
+// onOpenProduct is currently unused here (2026-08-09: "Preis prüfen" now
+// links straight to the vendor instead of opening the price-history modal,
+// to cut a click out of the affiliate conversion path) — kept wired through
+// from HomeClient rather than removed, so reverting to the modal is a
+// one-line change back to onClick={() => onOpenProduct(product)} below.
+export default function ProductGrid({ products, onOpenProduct, onBuy, formatPrice, isLoading }) {
   if (isLoading) {
     return (
       <div className="text-center py-5" role="status" aria-live="polite">
@@ -168,23 +174,36 @@ export default function ProductGrid({ products, onOpenProduct, formatPrice, isLo
                 )}
 
                 <div className="d-flex gap-1 mt-1">
-                  <button
-                    className="btn btn-sm btn-outline-secondary flex-grow-1"
-                    onClick={() => onOpenProduct(product)}
-                    disabled={!product.in_stock || !product.is_active}
-                    aria-label={`${product.title} anzeigen – ${formatPrice(product.price)}`}
-                    style={{ fontSize: "0.72rem" }}
-                  >
-                    {product.in_stock && product.is_active ? "Preis prüfen" : "Nicht verfügbar"}
-                  </button>
+                  {product.in_stock && product.is_active ? (
+                    <a
+                      href={buildAffiliateUrl(product.url, product.vendor)}
+                      target="_blank"
+                      rel="noopener sponsored"
+                      onClick={(e) => { e.stopPropagation(); onBuy && onBuy(product); }}
+                      className="btn btn-sm btn-outline-secondary flex-grow-1"
+                      aria-label={`${product.title} beim Händler ansehen – ${formatPrice(product.price)}`}
+                      style={{ fontSize: "0.72rem" }}
+                    >
+                      Preis prüfen
+                    </a>
+                  ) : (
+                    <button
+                      className="btn btn-sm btn-outline-secondary flex-grow-1"
+                      disabled
+                      aria-label={`${product.title} – nicht verfügbar`}
+                      style={{ fontSize: "0.72rem" }}
+                    >
+                      Nicht verfügbar
+                    </button>
+                  )}
                   <Link
                     href={`/produkt/${product.id}`}
                     className="btn btn-sm"
                     style={{ background: "#1A3A6B", color: "#fff", fontSize: "0.72rem" }}
-                    title="Produktdetailseite"
+                    title="Preisverlauf ansehen"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    ↗
+                    Preisverlauf
                   </Link>
                 </div>
               </div>
