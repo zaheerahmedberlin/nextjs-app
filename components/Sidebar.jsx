@@ -36,9 +36,16 @@ function CategoryNode({ node, depth, expanded, toggleExpand, selectedCategories,
         />
         <label
           className={`form-check-label small flex-grow-1 mb-0${depth === 0 ? " fw-semibold" : ""}`}
-          htmlFor={`cat-${node.slug}`}
+          // For parent rows, the label expands/collapses instead of
+          // selecting — it's the only part of the row with real width, so
+          // it's a far bigger, easier target than the tiny arrow icon. No
+          // htmlFor means no native browser label→checkbox click, and no
+          // onClick means the click bubbles up to the row's own onClick
+          // (toggleExpand) instead of being stopped here. Checkbox stays
+          // the one dedicated way to select a category either way.
+          htmlFor={hasChildren ? undefined : `cat-${node.slug}`}
           style={{ cursor: "pointer" }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={hasChildren ? undefined : (e) => e.stopPropagation()}
         >
           {node.name}
           <span className="text-muted fw-normal ms-1">({node.productCount})</span>
