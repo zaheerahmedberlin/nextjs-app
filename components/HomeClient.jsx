@@ -176,6 +176,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   const [gesundheitProducts, setGesundheitProducts]     = useState([]);
   const [moebelProducts, setMoebelProducts]             = useState([]);
   const [premiumProducts, setPremiumProducts]           = useState([]);
+  const [modeProducts, setModeProducts]                 = useState([]);
   const [selectedProduct, setSelectedProduct]           = useState(null);
   const [isLoading, setIsLoading]                       = useState(false);
 
@@ -232,6 +233,11 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
     fetch("/api/products?premiumOnly=true&sort=priceDesc&limit=6&inStockOnly=true&perVendorLimit=2")
       .then((r) => r.json())
       .then((data) => setPremiumProducts(data.products || []))
+      .catch(() => {});
+
+    fetch("/api/products?category=mode&sort=priceAsc&limit=6&inStockOnly=true&minPrice=15&perVendorLimit=2")
+      .then((r) => r.json())
+      .then((data) => setModeProducts(data.products || []))
       .catch(() => {});
 
     // Offers from static file (optional)
@@ -572,6 +578,21 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                   </button>
                 </div>
                 <ProductGrid products={gesundheitProducts} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={false} />
+              </div>
+            )}
+
+            {isDefaultView && modeProducts.length > 0 && (
+              <div className="mt-5">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h2 className="h6 fw-bold mb-0">👗 Mode & Accessories</h2>
+                  <button
+                    className="btn btn-link btn-sm p-0 text-decoration-none"
+                    onClick={() => { setSelectedCategories(["mode"]); resetPage(); }}
+                  >
+                    Alle Mode →
+                  </button>
+                </div>
+                <ProductGrid products={modeProducts} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={false} />
               </div>
             )}
 
