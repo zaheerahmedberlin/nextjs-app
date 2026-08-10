@@ -235,13 +235,15 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       .then((data) => setPremiumProducts(data.products || []))
       .catch(() => {});
 
-    // Higher floor than the other featured sections (€30 vs €15) — below
-    // that, the cheapest-per-vendor picks skew toward spare parts (watch
-    // "Interchangeable Crown" repair pieces) and vague filler listings
-    // rather than real, presentable fashion items. Verified against
-    // production data 2026-08-09: €30 is where the picks become genuine
-    // clothing/jewelry across all vendors.
-    fetch("/api/products?category=mode&excludeCategory=unterwaesche&sort=priceAsc&limit=6&inStockOnly=true&minPrice=30&perVendorLimit=2")
+    // Narrowed to exactly these 3 subcategories (not the whole Mode &
+    // Accessories tree) — standard €15 floor is fine here since Blazer/
+    // Damenhosen/Blusen don't include the jewelry/watch-parts/underwear
+    // that made the broader category need a higher floor. Only 2 vendors
+    // (Peter Hahn, LIKA) currently stock this exact combination, so with
+    // the standard perVendorLimit=2 diversity cap this naturally returns
+    // 4 items, not 6 — same graceful "however many exist" handling as
+    // every other featured section already has.
+    fetch("/api/products?category=blazer,damenhosen,blusen&sort=priceAsc&limit=6&inStockOnly=true&minPrice=15&perVendorLimit=2")
       .then((r) => r.json())
       .then((data) => setModeProducts(data.products || []))
       .catch(() => {});
@@ -590,12 +592,12 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
             {isDefaultView && modeProducts.length > 0 && (
               <div className="mt-5">
                 <div className="d-flex align-items-center justify-content-between mb-3">
-                  <h2 className="h6 fw-bold mb-0">👗 Mode & Accessories</h2>
+                  <h2 className="h6 fw-bold mb-0">👗 Blazer, Hosen & Blusen</h2>
                   <button
                     className="btn btn-link btn-sm p-0 text-decoration-none"
-                    onClick={() => { setSelectedCategories(["mode"]); resetPage(); }}
+                    onClick={() => { setSelectedCategories(["blazer", "damenhosen", "blusen"]); resetPage(); }}
                   >
-                    Alle Mode →
+                    Alle Damenmode →
                   </button>
                 </div>
                 <ProductGrid products={modeProducts} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={false} />
