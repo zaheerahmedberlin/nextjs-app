@@ -24,6 +24,10 @@ const getInitialData = unstable_cache(
         WHERE p.is_active = TRUE AND p.in_stock = TRUE
           AND p.price >= 15
           AND p.image IS NOT NULL AND p.image != ''
+          -- Keep Unterwäsche out of this curated "cheapest today" showcase
+          -- (mirrors the same excludeCategory logic in /api/products) —
+          -- IS DISTINCT FROM so uncategorized products aren't dropped too.
+          AND p.category_id IS DISTINCT FROM (SELECT id FROM categories WHERE slug = 'unterwaesche')
       )
       SELECT * FROM ranked
       WHERE vendor_rank <= 2

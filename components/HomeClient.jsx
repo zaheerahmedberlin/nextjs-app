@@ -320,6 +320,10 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       // down once one vendor's catalog is large enough to fill that batch
       // almost entirely (as Voghion's 24k+ products did).
       ...(isDefaultView && { perVendorLimit: 2 }),
+      // Keep this specific category out of the homepage's curated "cheapest
+      // today" showcase — it stays fully browsable/searchable everywhere
+      // else on the site, this only affects what gets featured here.
+      ...(isDefaultView && { excludeCategory: "unterwaesche" }),
     });
     if (selectedCategories.length > 0) params.set("category", selectedCategories.join(","));
     if (maxPriceFilter > 0 && maxPriceFilter < defaultMaxPrice) params.set("maxPrice", maxPriceFilter);

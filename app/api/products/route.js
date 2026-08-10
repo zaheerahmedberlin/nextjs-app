@@ -21,8 +21,9 @@ export async function GET(request) {
   const vendor          = searchParams.get("vendor")?.trim() ?? "";
   const perVendorLimit  = parseInt(searchParams.get("perVendorLimit") ?? "0");
   const premiumOnly     = searchParams.get("premiumOnly") === "true";
+  const excludeCategory = searchParams.get("excludeCategory") ?? "";
 
-  const cacheKey = `products:${q}:${category}:${minPrice}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}:${vendor}:${perVendorLimit}:${premiumOnly}`;
+  const cacheKey = `products:${q}:${category}:${minPrice}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}:${vendor}:${perVendorLimit}:${premiumOnly}:${excludeCategory}`;
   const cached = await cacheGet(cacheKey);
   if (cached) return NextResponse.json({ ...cached, source: "cache" });
 
@@ -100,6 +101,17 @@ export async function GET(request) {
           SELECT id FROM categories WHERE parent_id IN (SELECT id FROM categories WHERE slug = ANY($${params.length}))
         )`);
       }
+    }
+
+    if (excludeCategory) {
+      // Used by the homepage's default "Günstigste Angebote heute" view to
+      // keep a specific category out of that curated showcase (e.g.
+      // Unterwäsche) without hiding it from normal category browsing or
+      // search — the category stays fully functional everywhere else.
+      // IS DISTINCT FROM (not !=) so products with no category assigned
+      // (category_id IS NULL) aren't silently dropped by the exclusion.
+      params.push(excludeCategory);
+      conditions.push(`p.category_id IS DISTINCT FROM (SELECT id FROM categories WHERE slug = $${params.length})`);
     }
 
     if (vendor) {
