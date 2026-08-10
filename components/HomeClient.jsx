@@ -235,7 +235,13 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       .then((data) => setPremiumProducts(data.products || []))
       .catch(() => {});
 
-    fetch("/api/products?category=mode&sort=priceAsc&limit=6&inStockOnly=true&minPrice=15&perVendorLimit=2")
+    // Higher floor than the other featured sections (€30 vs €15) — below
+    // that, the cheapest-per-vendor picks skew toward spare parts (watch
+    // "Interchangeable Crown" repair pieces) and vague filler listings
+    // rather than real, presentable fashion items. Verified against
+    // production data 2026-08-09: €30 is where the picks become genuine
+    // clothing/jewelry across all vendors.
+    fetch("/api/products?category=mode&excludeCategory=unterwaesche&sort=priceAsc&limit=6&inStockOnly=true&minPrice=30&perVendorLimit=2")
       .then((r) => r.json())
       .then((data) => setModeProducts(data.products || []))
       .catch(() => {});
