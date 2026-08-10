@@ -167,6 +167,11 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   const [activeOffers, setActiveOffers]                 = useState([]);
   const [lowestPriceProducts, setLowestPriceProducts]   = useState([]);
   const [totalProducts, setTotalProducts]               = useState(initialTotalProducts);
+  // Set only when a search+category combo returns 0 results but the same
+  // search term matches something outside the active category filter —
+  // lets the empty state explain *why* nothing showed up instead of
+  // looking like the product just doesn't exist on the site at all.
+  const [fallbackTotal, setFallbackTotal]                = useState(null);
   const [pageCount, setPageCount]                       = useState(1);
   const [lowestStartIndex, setLowestStartIndex]         = useState(0);
   const [isNavbarShrink, setIsNavbarShrink]             = useState(false);
@@ -351,6 +356,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       setProducts(displayed);
       setTotalProducts(data.total ?? 0);
       setPageCount(data.pageCount ?? 1);
+      setFallbackTotal(data.fallbackTotal ?? null);
     } catch (err) {
       console.error("loadProducts error:", err);
     } finally {
@@ -530,6 +536,22 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
             {isDefaultView && (
               <div className="mb-3">
                 <h2 className="h6 fw-bold text-muted mb-3">🔥 Günstigste Angebote heute</h2>
+              </div>
+            )}
+
+            {!isLoading && products.length === 0 && fallbackTotal > 0 && (
+              <div className="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <span>
+                  <strong>0 Ergebnisse</strong> für „{searchQuery}" in{" "}
+                  {selectedCategories.map((s) => slugToName(categories, s) ?? s).join(", ")} —{" "}
+                  {fallbackTotal.toLocaleString("de-DE")} Treffer in anderen Kategorien.
+                </span>
+                <button
+                  className="btn btn-sm btn-brand"
+                  onClick={() => { setSelectedCategories([]); resetPage(); }}
+                >
+                  Alle Kategorien durchsuchen →
+                </button>
               </div>
             )}
 

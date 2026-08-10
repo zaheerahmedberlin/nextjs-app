@@ -6,6 +6,34 @@ import { NextResponse } from "next/server";
 
 export const revalidate = 0;
 
+// Match against the TITLE only, not p.search_vector (which also indexes the
+// description) — a term appearing only in body copy (e.g. a dog ramp's
+// description mentioning "reaches the sofa") isn't a relevant result. This
+// matters most when sort overrides relevance ranking (priceAsc/priceDesc):
+// irrelevant description-only matches would otherwise surface at the top
+// just for being cheap. Prefix matching: split words and append :* to each
+// for partial word support, e.g. "matrat" matches "Matratzen". Strip
+// everything but letters/digits from each word first — tsquery's own
+// operator characters (: & | ( ) !) pass straight through otherwise, and a
+// bare "&" or "(" in the search box broke to_tsquery's parser with a 500
+// instead of just matching nothing.
+// paramIdx is the 1-based position of the search term in the query's params
+// array — this condition consumes two consecutive placeholders ($paramIdx
+// for the tsquery match, $paramIdx+1 for the ILIKE fallback), both bound to
+// the same search term value by the caller.
+function titleSearchCondition(paramIdx) {
+  return `(
+    to_tsvector('german', immutable_unaccent(p.title)) @@ to_tsquery('german', array_to_string(
+      ARRAY(SELECT unaccent(w) || ':*'
+            FROM (SELECT regexp_replace(word, '[^[:alnum:]]', '', 'g') AS w
+                  FROM unnest(regexp_split_to_array(trim($${paramIdx}), '\\s+')) AS word) sub
+            WHERE w <> ''),
+      ' & '
+    ))
+    OR p.title ILIKE $${paramIdx + 1}
+  )`;
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
 
@@ -56,29 +84,8 @@ export async function GET(request) {
 
     if (q) {
       params.push(q);
-      // Match against the TITLE only, not p.search_vector (which also
-      // indexes the description) — a term appearing only in body copy
-      // (e.g. a dog ramp's description mentioning "reaches the sofa")
-      // isn't a relevant result. This matters most when sort overrides
-      // relevance ranking (priceAsc/priceDesc): irrelevant description-only
-      // matches would otherwise surface at the top just for being cheap.
-      // Use prefix matching: split words and append :* to each for partial word support
-      // e.g. "matrat" matches "Matratzen", "sofa 3" matches "Sofa 3-Sitzer"
-      // Strip everything but letters/digits from each word first — tsquery's
-      // own operator characters (: & | ( ) !) pass straight through
-      // otherwise, and a bare "&" or "(" in the search box broke to_tsquery's
-      // parser with a 500 instead of just matching nothing.
       const qIdx = params.length;
-      conditions.push(`(
-        to_tsvector('german', immutable_unaccent(p.title)) @@ to_tsquery('german', array_to_string(
-          ARRAY(SELECT unaccent(w) || ':*'
-                FROM (SELECT regexp_replace(word, '[^[:alnum:]]', '', 'g') AS w
-                      FROM unnest(regexp_split_to_array(trim($${qIdx}), '\\s+')) AS word) sub
-                WHERE w <> ''),
-          ' & '
-        ))
-        OR p.title ILIKE $${qIdx + 1}
-      )`);
+      conditions.push(titleSearchCondition(qIdx));
       params.push(`%${q}%`);
     }
 
@@ -141,7 +148,7 @@ export async function GET(request) {
       q ? "ts_rank(p.search_vector, to_tsquery('german', array_to_string(ARRAY(SELECT unaccent(w) || ':*' FROM (SELECT regexp_replace(word, '[^[:alnum:]]', '', 'g') AS w FROM unnest(regexp_split_to_array(trim($1), '\\s+')) AS word) sub WHERE w <> ''), ' & '))) DESC" :
       "p.updated_at DESC";
 
-    let dataResult, total;
+    let dataResult, total, fallbackTotal = null;
 
     if (perVendorLimit > 0) {
       // Diversity mode: rank each vendor's own cheapest/best-sorted products
@@ -179,6 +186,34 @@ export async function GET(request) {
       const countResult = await query(`SELECT COUNT(*) FROM products p LEFT JOIN vendors v ON v.id = p.vendor_id ${where}`, params);
       total = parseInt(countResult.rows[0].count);
 
+      // A leftover category checkbox silently narrows every search — a user
+      // who forgot it's still checked sees "0 results" for a term that
+      // genuinely exists elsewhere on the site, with no indication why.
+      // NOTE: only reachable on this Postgres path — searches currently
+      // always land here since ELASTICSEARCH_URL isn't configured
+      // (verified live: /api/products returns source:"postgresql"). If ES
+      // is ever enabled, this fallback needs equivalent logic added to
+      // lib/elasticsearch.js's searchProducts(), or zero-result ES
+      // searches with an active category would silently lose this message.
+      // Only runs on the actual zero-result path (rare), so it's not an
+      // extra query on every normal search. Built as its own minimal query
+      // rather than reusing/slicing `conditions`+`params` — those arrays
+      // have positional $N placeholders baked in per condition, so removing
+      // just the category entry after the fact would silently break every
+      // later parameter's index.
+      if (total === 0 && q && category) {
+        const fbConditions = ["p.is_active = TRUE", "p.price > 0", "p.image IS NOT NULL AND p.image != ''"];
+        if (inStockOnly) fbConditions.push("p.in_stock = TRUE");
+        const fbParams = [q];
+        fbConditions.push(titleSearchCondition(1));
+        fbParams.push(`%${q}%`);
+        const fbResult = await query(
+          `SELECT COUNT(*) FROM products p WHERE ${fbConditions.join(" AND ")}`,
+          fbParams
+        );
+        fallbackTotal = parseInt(fbResult.rows[0].count);
+      }
+
       params.push(pgLimit, offset);
       dataResult = await query(
         `SELECT
@@ -211,6 +246,7 @@ export async function GET(request) {
       page,
       pageCount: Math.ceil(total / pgLimit),
       source: "postgresql",
+      ...(fallbackTotal !== null && { fallbackTotal }),
     };
 
     await cacheSet(cacheKey, result, 300);
