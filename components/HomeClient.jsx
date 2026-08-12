@@ -484,25 +484,68 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
 
       <div className="container-fluid p-3">
         <div className="row">
-          <Sidebar
-            categories={categories}
-            selectedCategories={selectedCategories}
-            setSelectedCategories={(v) => { setSelectedCategories(v); resetPage(); }}
-            maxPriceFilter={maxPriceFilter ?? defaultMaxPrice}
-            setMaxPriceFilter={(v) => { setMaxPriceFilter(v); resetPage(); }}
-            defaultMaxPrice={defaultMaxPrice}
-            formatPrice={formatPrice}
-            showOutOfStock={showOutOfStock}
-            setShowOutOfStock={(v) => { setShowOutOfStock(v); resetPage(); }}
-            showInactiveProducts={showInactiveProducts}
-            setShowInactiveProducts={(v) => { setShowInactiveProducts(v); resetPage(); }}
-          />
+          {/* Desktop: sidebar sits beside the products, same as before. */}
+          <div className="d-none d-md-block col-md-3 col-lg-2 mb-3 mb-md-0">
+            <Sidebar
+              categories={categories}
+              selectedCategories={selectedCategories}
+              setSelectedCategories={(v) => { setSelectedCategories(v); resetPage(); }}
+              maxPriceFilter={maxPriceFilter ?? defaultMaxPrice}
+              setMaxPriceFilter={(v) => { setMaxPriceFilter(v); resetPage(); }}
+              defaultMaxPrice={defaultMaxPrice}
+              formatPrice={formatPrice}
+              showOutOfStock={showOutOfStock}
+              setShowOutOfStock={(v) => { setShowOutOfStock(v); resetPage(); }}
+              showInactiveProducts={showInactiveProducts}
+              setShowInactiveProducts={(v) => { setShowInactiveProducts(v); resetPage(); }}
+            />
+          </div>
+
+          {/* Mobile: same filters, tucked behind a toggle instead of
+              rendering full-width above every homepage section. */}
+          <div className="offcanvas offcanvas-start d-md-none" tabIndex="-1" id="mobileFilterOffcanvas" aria-labelledby="mobileFilterOffcanvasLabel">
+            <div className="offcanvas-header border-bottom">
+              <h5 className="offcanvas-title fw-bold" id="mobileFilterOffcanvasLabel">Filter &amp; Kategorien</h5>
+              <button type="button" className="btn-close" data-bs-dismiss="offcanvas" aria-label="Schließen"></button>
+            </div>
+            <div className="offcanvas-body p-0">
+              <div className="p-3">
+                <Sidebar
+                  categories={categories}
+                  selectedCategories={selectedCategories}
+                  setSelectedCategories={(v) => { setSelectedCategories(v); resetPage(); }}
+                  maxPriceFilter={maxPriceFilter ?? defaultMaxPrice}
+                  setMaxPriceFilter={(v) => { setMaxPriceFilter(v); resetPage(); }}
+                  defaultMaxPrice={defaultMaxPrice}
+                  formatPrice={formatPrice}
+                  showOutOfStock={showOutOfStock}
+                  setShowOutOfStock={(v) => { setShowOutOfStock(v); resetPage(); }}
+                  showInactiveProducts={showInactiveProducts}
+                  setShowInactiveProducts={(v) => { setShowInactiveProducts(v); resetPage(); }}
+                />
+              </div>
+            </div>
+          </div>
 
           <main className="col-12 col-md-9 col-lg-10" role="main">
             <h1 className="visually-hidden">
               Preisvergleich Deutschland – Günstige Preise für{" "}
               {selectedCategories.length > 0 ? selectedCategories.map((s) => slugToName(categories, s) ?? s).join(", ") : "alle Produkte"}
             </h1>
+
+            <button
+              type="button"
+              className="btn btn-outline-primary w-100 mb-3 d-md-none d-flex align-items-center justify-content-center gap-2"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#mobileFilterOffcanvas"
+              aria-controls="mobileFilterOffcanvas"
+            >
+              <i className="bi bi-sliders"></i>
+              Filter &amp; Kategorien
+              {selectedCategories.length > 0 && (
+                <span className="badge rounded-pill" style={{ background: "var(--pg-blue)" }}>{selectedCategories.length}</span>
+              )}
+            </button>
 
             <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
               {!isDefaultView && (

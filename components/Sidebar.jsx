@@ -9,7 +9,7 @@ import { useState } from "react";
 function CategoryNode({ node, depth, expanded, toggleExpand, selectedCategories, toggleCategory }) {
   if (node.productCount === 0) return null; // hide empty categories
 
-  const isOpen = expanded[node.slug] !== false; // default open
+  const isOpen = expanded[node.slug] === true; // default collapsed
   const isSelected = selectedCategories.includes(node.slug);
   const hasChildren = node.children?.length > 0;
   const visibleChildren = hasChildren ? node.children.filter((c) => c.productCount > 0) : [];
@@ -122,7 +122,7 @@ export default function Sidebar({
   const isTree = categories.length > 0 && "children" in categories[0];
 
   return (
-    <aside className="col-12 col-md-3 col-lg-2 mb-3 mb-md-0">
+    <aside className="w-100">
 
       {/* ── Categories ── */}
       <div className="card shadow-sm mb-3">
