@@ -137,8 +137,12 @@ export default function ProductGrid({ products, onOpenProduct, onBuy, formatPric
                     {product.title}
                   </Link>
                 </h3>
-                {product.vendor && (
-                  <p className="small text-muted mb-1">{product.vendor}</p>
+                {(product.vendor || product.category_name) && (
+                  <p className="small text-muted mb-1 text-truncate">
+                    {product.vendor}
+                    {product.vendor && product.category_name && " · "}
+                    {product.category_name}
+                  </p>
                 )}
 
                 <div>

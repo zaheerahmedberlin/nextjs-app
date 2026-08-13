@@ -168,11 +168,13 @@ export async function GET(request) {
             p.price, p.old_price, p.currency,
             p.category, p.ean,
             v.name AS vendor, v.logo_url AS vendor_logo,
+            c.name AS category_name,
             p.in_stock, p.is_active,
             p.active_from, p.active_until, p.updated_at, p.created_at,
             ROW_NUMBER() OVER (PARTITION BY p.vendor_id ORDER BY ${orderBy}) AS vendor_rank
           FROM products p
           LEFT JOIN vendors v ON v.id = p.vendor_id
+          LEFT JOIN categories c ON c.id = p.category_id
           ${where}
         )
         SELECT * FROM ranked
@@ -221,6 +223,7 @@ export async function GET(request) {
           p.price, p.old_price, p.currency,
           p.category, p.ean,
           v.name AS vendor, v.logo_url AS vendor_logo,
+          c.name AS category_name,
           p.in_stock, p.is_active,
           p.active_from, p.active_until, p.updated_at, p.created_at,
           (SELECT MIN(ph.price) FROM price_history ph
@@ -233,6 +236,7 @@ export async function GET(request) {
           ) AS price_30d_min
         FROM products p
         LEFT JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
         ${where}
         ORDER BY ${orderBy}
         LIMIT $${params.length - 1} OFFSET $${params.length}`,
