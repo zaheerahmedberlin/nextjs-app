@@ -33,16 +33,41 @@ export async function generateMetadata({ params }) {
     if (!res.rows.length) return {};
     const { name, cnt } = res.rows[0];
     const count = parseInt(cnt) || 0;
+    // Shorter than the old "{name} Preisvergleich – Günstige {name} kaufen" (which
+    // repeated the category name twice and pushed the title tag past 100 chars
+    // once the root layout's " | Preisgucken – Preisvergleich" suffix was added,
+    // getting truncated in search results). Also switched to de-DE thousands
+    // separators and more natural phrasing than the old "{count} {name} im..."
+    // construction, which read awkwardly for plural/compound category names.
+    const countText = count > 0 ? `${count.toLocaleString("de-DE")} Angebote` : "Aktuelle Angebote";
+    const socialTitle = `${name} günstig kaufen – Preisvergleich`;
+    const socialDescription = `${countText} für ${name} im direkten Preisvergleich auf Preisgucken.de.`;
     return {
-      title: `${name} Preisvergleich – Günstige ${name} kaufen`,
-      description: `${count > 0 ? count : "Viele"} ${name} im Preisvergleich. Finden Sie die günstigsten Angebote für ${name} aus deutschen Online-Shops – täglich aktualisiert.`,
+      title: `${name} günstig kaufen`,
+      description: `${countText} für ${name} im Preisvergleich – täglich aktualisiert aus deutschen Online-Shops, kostenlos & ohne Anmeldung.`,
       alternates: { canonical: `${BASE_URL}/kategorie/${slug}` },
+      // openGraph/twitter objects fully replace (not merge with) the root
+      // layout's defaults once a page defines its own, so the image has to
+      // be repeated here — omitting it silently drops the preview image on
+      // Facebook/WhatsApp/LinkedIn shares even though Twitter still shows
+      // one (twitter inherits separately since this page never redefined it).
       openGraph: {
         type: "website",
         locale: "de_DE",
         url: `${BASE_URL}/kategorie/${slug}`,
-        title: `${name} günstig kaufen – Preisvergleich`,
-        description: `${count > 0 ? count : "Alle"} ${name}-Produkte im Preisvergleich auf Preisgucken.de`,
+        title: socialTitle,
+        description: socialDescription,
+        images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: `${name} – Preisvergleich` }],
+      },
+      // Defining any twitter object here means the page's own values are
+      // used verbatim, not merged with the root layout's — card has to be
+      // repeated too or it silently reverts to Next's "summary" default
+      // instead of "summary_large_image" (caught by checking the actual
+      // rendered output, not just assuming inheritance would hold).
+      twitter: {
+        card: "summary_large_image",
+        title: socialTitle,
+        description: socialDescription,
       },
     };
   } catch {
