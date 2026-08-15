@@ -11,8 +11,12 @@ function CategoryNode({ node, depth, expanded, toggleExpand, selectedCategories,
 
   const isOpen = expanded[node.slug] === true; // default collapsed
   const isSelected = selectedCategories.includes(node.slug);
-  const hasChildren = node.children?.length > 0;
-  const visibleChildren = hasChildren ? node.children.filter((c) => c.productCount > 0) : [];
+  const visibleChildren = node.children?.filter((c) => c.productCount > 0) ?? [];
+  // "Has children" means "has children worth expanding into" — a
+  // category whose child rows all currently have 0 products (several
+  // predate this session's vendor imports and were never populated)
+  // must not get an arrow that expands into nothing.
+  const hasChildren = visibleChildren.length > 0;
 
   return (
     <li className={depth === 0 ? "border-bottom" : ""}>
@@ -64,7 +68,7 @@ function CategoryNode({ node, depth, expanded, toggleExpand, selectedCategories,
         )}
       </div>
 
-      {hasChildren && isOpen && visibleChildren.length > 0 && (
+      {hasChildren && isOpen && (
         <ul className="list-unstyled mb-0">
           {visibleChildren.map((child) => (
             <CategoryNode
