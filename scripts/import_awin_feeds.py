@@ -35,7 +35,13 @@ CATEGORY_KEYWORDS = {
     # line under a different naming style (e.g. "Sommerhemden STOP NOW!",
     # "Langarmhemd ..." vs. the explicitly-labeled "Herrenhemden ...") —
     # same product family, just inconsistent titling from the vendor.
-    87: ["herren", "männer", "hemd"],
+    # "langarmhemd"/"kurzarmhemd"/"sommerhemd" are listed separately
+    # because _keyword_starts_a_word only matches "hemd" at the front of
+    # a compound — these titles put it at the *end* (Langarm+hemd,
+    # Kurzarm+hemd, Sommer+hemd), which German compounding does just as
+    # often as the leading form. Found 2026-08-16: 180 GERMENS shirts
+    # sitting in Sonstiges instead of Herrenmode because of this.
+    87: ["herren", "männer", "hemd", "langarmhemd", "kurzarmhemd", "sommerhemd"],
     36: ["garten", "terrasse", "balkon", "sonnenschirm", "pflanzk", "gartenmöbel"],
     8:  ["pool", "outdoor", "sport", "fahrrad", "camping", "freizeit"],
     5:  ["leuchte", "lampe", "licht", "led"],
