@@ -383,6 +383,16 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
         title, url, price = parsed["title"], parsed["url"], parsed["price"]
         image, desc = parsed["image"], parsed["description"]
 
+        # AWIN's own "no image available" placeholder is a real URL, not
+        # an empty string — this script had no image check at all before,
+        # so it silently imported it as if it were a real product photo.
+        # Found 2026-08-14: 36,132 live products site-wide (727 of them
+        # Peter Hahn, synced nightly by this exact script) were showing
+        # this broken placeholder instead of being skipped.
+        if not image or "noimage" in image.lower():
+            skipped += 1
+            continue
+
         if override:
             pt_lower = parsed["category_text"].lower()
             top_level = pt_lower.split("/")[0].strip()
