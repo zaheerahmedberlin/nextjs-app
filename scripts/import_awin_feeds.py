@@ -41,7 +41,11 @@ CATEGORY_KEYWORDS = {
     # Kurzarm+hemd, Sommer+hemd), which German compounding does just as
     # often as the leading form. Found 2026-08-16: 180 GERMENS shirts
     # sitting in Sonstiges instead of Herrenmode because of this.
-    87: ["herren", "männer", "hemd", "langarmhemd", "kurzarmhemd", "sommerhemd"],
+    # "t shirt" is GERMENS's gender-unlabeled artfashion T-shirt line
+    # ("Coole T Shirts ...", "Bedruckte T Shirts ..."). Found 2026-08-16:
+    # same gap as the Langarmhemd bug above — no keyword covered it at
+    # all, so these fell straight through to Sonstiges.
+    87: ["herren", "männer", "hemd", "langarmhemd", "kurzarmhemd", "sommerhemd", "t shirt"],
     36: ["garten", "terrasse", "balkon", "sonnenschirm", "pflanzk", "gartenmöbel"],
     8:  ["pool", "outdoor", "sport", "fahrrad", "camping", "freizeit"],
     5:  ["leuchte", "lampe", "licht", "led"],
