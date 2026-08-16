@@ -320,7 +320,7 @@ DEUBAXXL_CATEGORY_RULES = [
     (174, ["heizlüfter", "heizstrahler", "elektrischer kamin", "elektrischer wandkamin",
            "elektrischer doppeltür-kamin"]),
     (115, ["druckluft", "werkzeugkoffer", "schraubendreherset", "werkzeugwand", "crimpzange",
-           "rohrreinigungsset", "pinselset"]),  # Werkzeug & Heimwerken
+           "rohrreinigungsset", "pinselset", "sortimentskasten"]),  # Werkzeug & Heimwerken
     (171, ["hundetransportbox", "hunderampe", "hundebox"]),  # Tierbedarf > Hunde
     (172, ["kratzbaum", "katzenhaus", "katzentransportbox"]),  # Tierbedarf > Katzen
     (170, ["hasenstall", "kaninchenstall", "freilaufgehege", "hühnerstall"]),  # Tierbedarf (generic)
