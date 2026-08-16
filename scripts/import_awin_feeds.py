@@ -170,7 +170,11 @@ VOGHION_CATEGORY_RULES = [
 # nightly sync was silently re-undoing a manual DB fix every night.
 # A handful of titles really are accessories, not chairs, and stay in
 # Sonstiges since there's no dedicated category for them yet.
-DOWINX_NON_CHAIR_SUBSTRINGS = ("footrest", "glasses", "chair mat", "chair castors", "gaming desk")
+# "desk footrest"/"underdesk footrest" (not the bare word "footrest")
+# because real chairs like "Dowinx Chair LS-66D89C with Extended
+# Footrest Brown" also contain "footrest" as a built-in feature —
+# found 2026-08-16, the bare-word version excluded 10 genuine chairs.
+DOWINX_NON_CHAIR_SUBSTRINGS = ("desk footrest", "underdesk footrest", "glasses", "chair mat", "chair castors", "gaming desk")
 
 def guess_dowinx_category(_category_text, title=None):
     title_lower = (title or "").lower()
