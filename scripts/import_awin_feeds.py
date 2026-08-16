@@ -317,8 +317,9 @@ DEUBAXXL_CATEGORY_RULES = [
     (168, ["babyfußsack", "bollerwagen"]),
     (31,  ["mobile klimaanlage"]),  # Elektronik > Kühlen & Gefrieren
     (115, ["druckluft", "werkzeugkoffer", "schraubendreherset"]),  # Werkzeug & Heimwerken
-    (171, ["hundetransportbox", "hunderampe"]),  # Tierbedarf > Hunde
-    (172, ["kratzbaum"]),                        # Tierbedarf > Katzen
+    (171, ["hundetransportbox", "hunderampe", "hundebox"]),  # Tierbedarf > Hunde
+    (172, ["kratzbaum", "katzenhaus"]),                      # Tierbedarf > Katzen
+    (170, ["hasenstall", "kaninchenstall"]),                 # Tierbedarf (generic)
     # Baseline, ported from fix_deubaxxx_categories.py (scraper repo) —
     # keep in sync there if the category taxonomy changes.
     (52,  ["baby", "kinderwagen", "buggy", "kinderbet", "babywiege", "kinderfahrrad", "laufrad"]),
