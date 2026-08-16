@@ -53,6 +53,12 @@ CATEGORY_KEYWORDS = {
     # through to Sonstiges and the nightly sync kept undoing the manual
     # DB fix that moved them.
     71: ["seidentuch", "seidenschal", "wolltuch"],
+    # GERMENS socks — new dedicated category created 2026-08-16, same
+    # no-keyword-at-all gap as the scarves above. "socken"/"socke " (not
+    # the bare word "socke") because that's also a prefix of "Sockel"
+    # ("CPU Sockel AM4", "Sockel-Eckstück") — caught before push by
+    # checking real 0815 titles, not left to reset something new.
+    169: ["socken", "socke "],
     36: ["garten", "terrasse", "balkon", "sonnenschirm", "pflanzk", "gartenmöbel"],
     8:  ["pool", "outdoor", "sport", "fahrrad", "camping", "freizeit"],
     5:  ["leuchte", "lampe", "licht", "led"],
