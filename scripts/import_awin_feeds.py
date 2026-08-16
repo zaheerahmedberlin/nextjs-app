@@ -370,17 +370,25 @@ def guess_deubaxxl_category(_category_text, title=None):
             return cat_id
     return 9  # Sonstiges
 
-# Centa-Star DE is a bedding-only vendor. Only the blanket/duvet product
-# lines are covered here — pillows (Kopfkissen/Nackenstützkissen), mattress
-# toppers, and covers found 2026-08-16 still need their own category and
-# are left at the Sonstiges fallback for now.
+# Centa-Star DE is a bedding-only vendor. Blanket/duvet and pillow
+# product lines are covered here — mattress toppers and covers found
+# 2026-08-16 still need their own category and are left at the
+# Sonstiges fallback for now.
 CENTASTAR_DECKEN_KEYWORDS = ["winterdecke", "sommerdecke", "ganzjahresdecke",
                              "vierjahreszeitendecke", "wohndecke", "gesteppt"]
+# "kissen" alone isn't used here — it's already a generic-classifier
+# keyword, but only matches when it STARTS a word (see
+# _keyword_starts_a_word), and "Kopfkissen"/"Nackenstützkissen" have it
+# as a compound suffix instead — same bug class as Langarmhemd.
+CENTASTAR_KISSEN_KEYWORDS = ["kopfkissen", "nackenstützkissen", "seitenschläferkissen",
+                             "stillkissen", "kissenbezug", "kissenhülle"]
 
 def guess_centastar_category(category_text, title=None):
     t = (title or "").lower()
     if any(kw in t for kw in CENTASTAR_DECKEN_KEYWORDS):
         return 175  # Schlafen > Decken
+    if any(kw in t for kw in CENTASTAR_KISSEN_KEYWORDS):
+        return 176  # Schlafen > Kissen
     # Fall through to the generic classifier instead of hardcoding
     # Sonstiges — titles like "Bettwäsche ..." and "... Matratzenauflage"
     # already route correctly via its "bett"/"matratze"/"kissen" rules
