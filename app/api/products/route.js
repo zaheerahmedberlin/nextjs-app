@@ -93,19 +93,32 @@ export async function GET(request) {
       // Support comma-separated slugs e.g. "sofas,betten" or single slug
       const slugs = category.split(",").map((s) => s.trim()).filter(Boolean);
       if (slugs.length === 1) {
-        // Match the category itself OR any of its children
+        // Match the category itself, plus its children — but only pull in
+        // children when the parent has no products of its own. Purely
+        // organizational parents (e.g. PC & IT-Zubehör, 0 direct products)
+        // need the rollup to show anything at all; parents that already
+        // have real content of their own (e.g. Monitore & Beamer) would
+        // otherwise show the exact same listing as their child category.
         params.push(slugs[0]);
         conditions.push(`p.category_id IN (
           SELECT id FROM categories WHERE slug = $${params.length}
           UNION
-          SELECT id FROM categories WHERE parent_id = (SELECT id FROM categories WHERE slug = $${params.length})
+          SELECT ch.id FROM categories ch
+          WHERE ch.parent_id = (SELECT id FROM categories WHERE slug = $${params.length})
+            AND NOT EXISTS (
+              SELECT 1 FROM products pp WHERE pp.category_id = ch.parent_id AND pp.is_active = TRUE
+            )
         )`);
       } else {
         params.push(slugs);
         conditions.push(`p.category_id IN (
           SELECT id FROM categories WHERE slug = ANY($${params.length})
           UNION
-          SELECT id FROM categories WHERE parent_id IN (SELECT id FROM categories WHERE slug = ANY($${params.length}))
+          SELECT ch.id FROM categories ch
+          WHERE ch.parent_id IN (SELECT id FROM categories WHERE slug = ANY($${params.length}))
+            AND NOT EXISTS (
+              SELECT 1 FROM products pp WHERE pp.category_id = ch.parent_id AND pp.is_active = TRUE
+            )
         )`);
       }
     }
