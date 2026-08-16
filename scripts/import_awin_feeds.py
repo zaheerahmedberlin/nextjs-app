@@ -370,7 +370,31 @@ def guess_deubaxxl_category(_category_text, title=None):
             return cat_id
     return 9  # Sonstiges
 
+# Centa-Star DE is a bedding-only vendor. Only the blanket/duvet product
+# lines are covered here — pillows (Kopfkissen/Nackenstützkissen), mattress
+# toppers, and covers found 2026-08-16 still need their own category and
+# are left at the Sonstiges fallback for now.
+CENTASTAR_DECKEN_KEYWORDS = ["winterdecke", "sommerdecke", "ganzjahresdecke",
+                             "vierjahreszeitendecke", "wohndecke", "gesteppt"]
+
+def guess_centastar_category(category_text, title=None):
+    t = (title or "").lower()
+    if any(kw in t for kw in CENTASTAR_DECKEN_KEYWORDS):
+        return 175  # Schlafen > Decken
+    # Fall through to the generic classifier instead of hardcoding
+    # Sonstiges — titles like "Bettwäsche ..." and "... Matratzenauflage"
+    # already route correctly via its "bett"/"matratze"/"kissen" rules
+    # (bucket 1). A hardcoded fallback here would have reset those
+    # already-correct products on the next sync.
+    return guess_category(category_text, title)
+
 VENDOR_OVERRIDES = {
+    "Centa-Star DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_centastar_category,
+    },
     "DeubaXXL": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
