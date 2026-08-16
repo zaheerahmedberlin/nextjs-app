@@ -283,7 +283,72 @@ def guess_peterhahn_category(category_text, _title=None):
         return PETERHAHN_DAMEN_SUBCATEGORY.get(sub_level, 61)  # fallback: Damenmode
     return 9  # Wohnen (home textiles) and anything unrecognized -> Sonstiges
 
+# DeubaXXL has feed_url set but had no vendor override at all, so the
+# nightly sync fell back to the generic guess_category() — which has no
+# keyword covering Sessel(17), Spielzeug(137), Baby-Ausstattung(168), or
+# Auto & Fahrzeugzubehör(144), so it defaulted everything to Sonstiges.
+# Found 2026-08-16: every manual DB fix made to DeubaXXL products this
+# session (chairs, toys, baby gear, car parts) was silently undone by
+# the 2am run. Title-only, same approach as the pre-existing standalone
+# fix_deubaxxx_categories.py in the scraper repo (merchant_category is
+# not reliably populated for this vendor) — today's specific product
+# lines are checked first since they're more precise than that script's
+# broad keyword buckets, which stays as the fallback for everything else.
+# Each entry: (category_id, [keywords]) — first match wins.
+DEUBAXXL_CATEGORY_RULES = [
+    # Today's session fixes (2026-08-16), most specific first.
+    (144, ["wagenheber", "felgenbaum", "gummiauflage wagenheber", "kofferraumschutz"]),
+    (17,  ["gaming stuhl", "gaming chair", "gaming-sessel", "gaming-stuhl",
+           "bürostuhl", "büro-stuhl", "office chair", "rollhocker"]),
+    # SPIELWERK kids' foam play mat — not the generic gym/floor mats below.
+    (137, ["puzzlematte 86-tlg", "tipi spielzelt", "multifunktionales kinderdreirad",
+           "spielküche", "aufblasbare weihnachtsdeko"]),
+    (168, ["babyfußsack", "bollerwagen"]),
+    # Baseline, ported from fix_deubaxxx_categories.py (scraper repo) —
+    # keep in sync there if the category taxonomy changes.
+    (52,  ["baby", "kinderwagen", "buggy", "kinderbet", "babywiege", "kinderfahrrad", "laufrad"]),
+    (41,  ["puzzlematte", "bodenschutz", "basketballkorb", "hantelbank", "hanteln", "fitness",
+           "massag", "blutdruck", "heizkissen", "rollator", "gehhilfe", "orthopäd"]),
+    (36,  ["gartenmöbel", "gartenmoebel", "garten-lounge", "gartenset", "loungeset", "garten-set",
+           "gartentisch", "gartenbank", "gartenliege", "liegestuhl", "sonnenlieg", "hängematte",
+           "haengematte", "pavillon", "hollywoodschaukel", "pflanzkübel", "pflanzkasten", "hochbeet",
+           "blumenkübel", "blumentopf", "blumenkasten", "beeteinfassung", "rankgitter", "sichtschutz",
+           "wäschespinne", "briefkasten"]),
+    (37,  ["gartenstuhl", "gartenstühle", "klappstuhl", "stapelstuhl"]),
+    (8,   ["garten", "outdoor", "terrasse", "balkon", "sonnenschirm", "rasenm", "gewächshaus", "trampolin"]),
+    (5,   ["leuchte", "lampe", "licht", "led", "stehlampe", "tischlampe", "wandlampe", "hängelampe",
+           "deckenlampe", "lichterkette", "fluter", "solar"]),
+    (3,   ["regal", "aufbewahrungsbox", "aufbewahrung", "sideboard", "truhe", "aktenschrank"]),
+    (20,  ["kleiderschrank", "garderobe", "garderobenschrank"]),
+    (21,  ["kommode", "schubladenkommode"]),
+    (22,  ["standregal", "wandregal", "bücherregal", "schuhregal"]),
+    (6,   ["küche", "kueche", "kaffeemaschine", "wasserkocher", "geschirrspüler", "kühlschrank",
+           "kuehlschrank", "mikrowelle", "toaster", "mixer", "entsafter", "grill", "fritteuse",
+           "backofen", "sandwichmaker"]),
+    (1,   ["bett", "matratze", "kopfkissen", "bettdecke", "bettwäsche", "lattenrost", "klappbett", "schlafsof"]),
+    (7,   ["bad", "dusche", "waschbecken", "badezimmer", "badmöbel", "badschrank", "wc", "toilette", "badewanne"]),
+    (25,  ["couchtisch"]),
+    (24,  ["esstisch"]),
+    (4,   ["tisch", "beistelltisch", "schreibtisch", "klapptisch", "bartisch"]),
+    (16,  ["sofa", "couch", "ecksofa", "schlafsofa"]),
+    (17,  ["sessel", "relaxstuhl", "fernsehsessel"]),
+    (2,   ["stuhl", "hocker", "sitzbank"]),
+]
+
+def guess_deubaxxl_category(_category_text, title=None):
+    t = (title or "").lower()
+    for cat_id, keywords in DEUBAXXL_CATEGORY_RULES:
+        if any(kw in t for kw in keywords):
+            return cat_id
+    return 9  # Sonstiges
+
 VENDOR_OVERRIDES = {
+    "DeubaXXL": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_deubaxxl_category,
+    },
     "Voghion Global": {
         "excluded_top_level": VOGHION_EXCLUDED_TOP_LEVEL,
         "excluded_substrings": VOGHION_EXCLUDED_SUBSTRINGS,
