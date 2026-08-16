@@ -157,14 +157,27 @@ export default async function KategoriePage({ params, searchParams }) {
   );
   const vendorCounts = vendorCountRes.rows;
 
-  // Count per child category (direct children + linked categories)
+  // Count per child category (direct children + linked categories). Rolls
+  // up the child's own grandchildren when the child itself has no direct
+  // products (e.g. "Monitore & Beamer" now only organizes its own
+  // Monitore/Beamer/Zubehör children and would otherwise always show a
+  // hidden/zero count here) — same conditional-rollup rule as the
+  // products API.
   const childCountRes = category.children.length
     ? await query(
-        `SELECT c.slug, COUNT(p.id)::int AS cnt
+        `SELECT c.slug, (
+           SELECT COUNT(*)::int FROM products p
+           WHERE p.is_active = TRUE AND p.in_stock = TRUE
+             AND p.category_id IN (
+               SELECT c.id
+               UNION
+               SELECT gc.id FROM categories gc
+               WHERE gc.parent_id = c.id
+                 AND NOT EXISTS (SELECT 1 FROM products pp WHERE pp.category_id = c.id AND pp.is_active = TRUE)
+             )
+         ) AS cnt
          FROM categories c
-         LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE AND p.in_stock = TRUE
-         WHERE c.id = ANY($1)
-         GROUP BY c.slug`,
+         WHERE c.id = ANY($1)`,
         [category.children.map((c) => c.id)]
       )
     : { rows: [] };
