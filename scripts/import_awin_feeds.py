@@ -381,13 +381,19 @@ CENTASTAR_DECKEN_KEYWORDS = ["winterdecke", "sommerdecke", "ganzjahresdecke",
 # _keyword_starts_a_word), and "Kopfkissen"/"Nackenstützkissen" have it
 # as a compound suffix instead — same bug class as Langarmhemd.
 CENTASTAR_KISSEN_KEYWORDS = ["kopfkissen", "nackenstützkissen", "seitenschläferkissen",
-                             "stillkissen", "kissenbezug", "kissenhülle"]
+                             "stillkissen", "kissenbezug", "kissenhülle", "seitenkissen",
+                             "jerseybezug für recharge"]
+# Product-line names with no "kissen" in the title at all — verified
+# against each product's description (all confirmed Kopfkissen or
+# Nackenstützkissen lines) before adding, 2026-08-16.
+CENTASTAR_KISSEN_PRODUCT_LINES = ["classic supersoft", "comfort exquisit variabel",
+                                  "comfort soft soft", "golf von alaska soft"]
 
 def guess_centastar_category(category_text, title=None):
     t = (title or "").lower()
     if any(kw in t for kw in CENTASTAR_DECKEN_KEYWORDS):
         return 175  # Schlafen > Decken
-    if any(kw in t for kw in CENTASTAR_KISSEN_KEYWORDS):
+    if any(kw in t for kw in CENTASTAR_KISSEN_KEYWORDS) or any(kw in t for kw in CENTASTAR_KISSEN_PRODUCT_LINES):
         return 176  # Schlafen > Kissen
     # Fall through to the generic classifier instead of hardcoding
     # Sonstiges — titles like "Bettwäsche ..." and "... Matratzenauflage"
