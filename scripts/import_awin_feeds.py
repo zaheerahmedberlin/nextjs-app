@@ -312,7 +312,8 @@ DEUBAXXL_CATEGORY_RULES = [
            "bürostuhl", "büro-stuhl", "office chair", "rollhocker"]),
     # SPIELWERK kids' foam play mat — not the generic gym/floor mats below.
     (137, ["puzzlematte 86-tlg", "tipi spielzelt", "multifunktionales kinderdreirad",
-           "spielküche", "aufblasbare weihnachtsdeko"]),
+           "spielküche", "aufblasbare weihnachtsdeko", "aufblasbarer weihnachtsmann",
+           "plüschtier", "kuscheltier"]),
     (168, ["babyfußsack", "bollerwagen"]),
     (31,  ["mobile klimaanlage"]),  # Elektronik > Kühlen & Gefrieren
     (115, ["druckluft", "werkzeugkoffer", "schraubendreherset"]),  # Werkzeug & Heimwerken
