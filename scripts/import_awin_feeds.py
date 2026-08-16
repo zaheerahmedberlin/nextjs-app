@@ -323,7 +323,8 @@ DEUBAXXL_CATEGORY_RULES = [
     (115, ["druckluft", "werkzeugkoffer", "schraubendreherset", "werkzeugwand", "crimpzange",
            "rohrreinigungsset", "pinselset", "sortimentskasten", "werkzeug", "nietzange",
            "magnetleiste", "drehmomentschlüssel", "heißluftpistole", "schlagtacker",
-           "elektrotacker", "maßband", "abschleppstange", "tackerklammern"]),  # Werkzeug & Heimwerken
+           "elektrotacker", "maßband", "abschleppstange", "tackerklammern",
+           "abisolierzange"]),  # Werkzeug & Heimwerken
     (171, ["hundetransportbox", "hunderampe", "hundebox"]),  # Tierbedarf > Hunde
     (172, ["kratzbaum", "katzenhaus", "katzentransportbox", "katzenrucksack"]),  # Tierbedarf > Katzen
     (170, ["hasenstall", "kaninchenstall", "freilaufgehege", "hühnerstall"]),  # Tierbedarf (generic)
