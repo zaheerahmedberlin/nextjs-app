@@ -316,7 +316,7 @@ DEUBAXXL_CATEGORY_RULES = [
            "plüschtier", "kuscheltier"]),
     (168, ["babyfußsack", "bollerwagen"]),
     (31,  ["mobile klimaanlage"]),  # Elektronik > Kühlen & Gefrieren
-    (115, ["druckluft", "werkzeugkoffer", "schraubendreherset"]),  # Werkzeug & Heimwerken
+    (115, ["druckluft", "werkzeugkoffer", "schraubendreherset", "werkzeugwand", "crimpzange"]),  # Werkzeug & Heimwerken
     (171, ["hundetransportbox", "hunderampe", "hundebox"]),  # Tierbedarf > Hunde
     (172, ["kratzbaum", "katzenhaus", "katzentransportbox"]),  # Tierbedarf > Katzen
     (170, ["hasenstall", "kaninchenstall", "freilaufgehege", "hühnerstall"]),  # Tierbedarf (generic)
