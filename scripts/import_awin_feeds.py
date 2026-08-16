@@ -315,7 +315,10 @@ DEUBAXXL_CATEGORY_RULES = [
            "spielküche", "aufblasbare weihnachtsdeko", "aufblasbarer weihnachtsmann",
            "plüschtier", "kuscheltier"]),
     (168, ["babyfußsack", "bollerwagen"]),
-    (31,  ["mobile klimaanlage"]),  # Elektronik > Kühlen & Gefrieren
+    (31,  ["mobile klimaanlage"]),  # Elektronik > Klima > Kühlen & Gefrieren
+    # Elektronik > Klima > Heizung — new category created 2026-08-16.
+    (174, ["heizlüfter", "heizstrahler", "elektrischer kamin", "elektrischer wandkamin",
+           "elektrischer doppeltür-kamin"]),
     (115, ["druckluft", "werkzeugkoffer", "schraubendreherset", "werkzeugwand", "crimpzange",
            "rohrreinigungsset", "pinselset"]),  # Werkzeug & Heimwerken
     (171, ["hundetransportbox", "hunderampe", "hundebox"]),  # Tierbedarf > Hunde
