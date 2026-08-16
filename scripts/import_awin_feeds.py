@@ -313,6 +313,7 @@ DEUBAXXL_CATEGORY_RULES = [
            "spielküche", "aufblasbare weihnachtsdeko"]),
     (168, ["babyfußsack", "bollerwagen"]),
     (31,  ["mobile klimaanlage"]),  # Elektronik > Kühlen & Gefrieren
+    (115, ["druckluft", "werkzeugkoffer", "schraubendreherset"]),  # Werkzeug & Heimwerken
     # Baseline, ported from fix_deubaxxx_categories.py (scraper repo) —
     # keep in sync there if the category taxonomy changes.
     (52,  ["baby", "kinderwagen", "buggy", "kinderbet", "babywiege", "kinderfahrrad", "laufrad"]),
