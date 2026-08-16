@@ -307,7 +307,7 @@ DEUBAXXL_CATEGORY_RULES = [
     # Today's session fixes (2026-08-16), most specific first.
     (144, ["wagenheber", "felgenbaum", "gummiauflage wagenheber", "kofferraumschutz",
            "autoschutzdecke", "autositzbezug", "kfz-montageliege", "metallkanister",
-           "reifenregal", "starthilfekabel"]),
+           "reifenregal", "starthilfekabel", "anhängerschloss"]),
     (17,  ["gaming stuhl", "gaming chair", "gaming-sessel", "gaming-stuhl",
            "bürostuhl", "büro-stuhl", "office chair", "rollhocker"]),
     # SPIELWERK kids' foam play mat — not the generic gym/floor mats below.
@@ -320,7 +320,9 @@ DEUBAXXL_CATEGORY_RULES = [
     (174, ["heizlüfter", "heizstrahler", "elektrischer kamin", "elektrischer wandkamin",
            "elektrischer doppeltür-kamin"]),
     (115, ["druckluft", "werkzeugkoffer", "schraubendreherset", "werkzeugwand", "crimpzange",
-           "rohrreinigungsset", "pinselset", "sortimentskasten"]),  # Werkzeug & Heimwerken
+           "rohrreinigungsset", "pinselset", "sortimentskasten", "werkzeug", "nietzange",
+           "magnetleiste", "drehmomentschlüssel", "heißluftpistole", "schlagtacker",
+           "elektrotacker", "maßband", "abschleppstange", "tackerklammern"]),  # Werkzeug & Heimwerken
     (171, ["hundetransportbox", "hunderampe", "hundebox"]),  # Tierbedarf > Hunde
     (172, ["kratzbaum", "katzenhaus", "katzentransportbox"]),  # Tierbedarf > Katzen
     (170, ["hasenstall", "kaninchenstall", "freilaufgehege", "hühnerstall"]),  # Tierbedarf (generic)
