@@ -117,21 +117,40 @@ VOGHION_CATEGORY_RULES = [
     ("men's shoes", 91),
     ("women's shoes", 92),
     ("athletic shoes", 93),
-    ("shoes", 91),
+    ("mother & kids/children's shoes", 166),  # Kinderschuhe — must precede the generic "shoes" fallback below
+    ("shoes", 91),  # generic shoes fallback -> Herrenschuhe (majority of raw volume is men's)
 
     # Schmuck (80) subtree
+    # "earring" MUST be checked before "rings": the string "earrings"
+    # itself contains "rings" as a substring, so every single Earrings
+    # leaf was matching "rings" first and landing in Ringe(84) instead
+    # of Ohrringe(81). Found 2026-08-11 in the scraper-repo copy of this
+    # logic; this embedded copy still had the old buggy order until
+    # 2026-08-16, since nothing had kept the two in sync.
+    ("earring", 81),
     ("rings", 84),
     ("necklace", 82),
-    ("earring", 81),
     ("bracelet", 83),
     ("anklet", 85),
-    ("jewelry sets", 86),
+    ("jewelry sets", 86),  # leaf-only match — see LEAF_ONLY_KEYWORDS below
     ("jewelry", 80),
 
     # Uhren (79)
     ("watches", 79),
 
-    # Baby World (52)
+    # Baby World (52) — "Mother & Kids" bundles genuine infant-care with
+    # children's clothing, shoes, and toys. These specific rules must
+    # come first; the blanket "mother & kids" fallback below still
+    # catches genuine infant-care items. Ported 2026-08-16 from the
+    # scraper-repo fix (found 2026-08-15) — this embedded copy still had
+    # only the blanket rule, so the nightly sync kept re-routing kids'
+    # shoes/clothing/toys back into Baby World every night.
+    ("mother & kids/baby girls' clothing", 165),      # Kinderbekleidung
+    ("mother & kids/baby boys' clothing", 165),
+    ("mother & kids/toddler boys clothing", 165),
+    ("mother & kids/toddler girls clothing", 165),
+    ("mother & kids/matching family outfits", 165),
+    ("mother & kids/activity & entertainment", 137),  # Spielzeug
     ("mother & kids", 52),
 
     # Herrenmode (87) subtree
@@ -169,6 +188,14 @@ VOGHION_CATEGORY_RULES = [
     ("home appliances", 27),                # Elektronik (generic fallback)
 ]
 
+# Keywords that must match the taxonomy path's LEAF segment exactly, not
+# just appear anywhere in the path. Voghion nests unrelated leaves like
+# "Tie Clips & Cufflinks" under a parent GROUP labeled "Jewelry Sets &
+# More", so a plain substring match on "jewelry sets" wrongly swept
+# those into Schmucksets(86) too. Found 2026-08-11 in the scraper-repo
+# copy; ported here 2026-08-16 since this embedded copy never had it.
+VOGHION_LEAF_ONLY_KEYWORDS = {"jewelry sets"}
+
 # Dowinx is a single-product-line vendor (gaming/office chairs) whose
 # feed has no usable merchant_category and titles like "Cute Series
 # LS-6655" or "Luxury Series LS-66D89D" that don't contain "chair" or
@@ -191,7 +218,12 @@ def guess_dowinx_category(_category_text, title=None):
 
 def guess_voghion_category(product_type, _title=None):
     pt = product_type.lower()
+    leaf = pt.rsplit("/", 1)[-1].strip()
     for keyword, cat_id in VOGHION_CATEGORY_RULES:
+        if keyword in VOGHION_LEAF_ONLY_KEYWORDS:
+            if leaf == keyword:
+                return cat_id
+            continue
         if keyword in pt:
             return cat_id
     return 9  # Sonstiges
