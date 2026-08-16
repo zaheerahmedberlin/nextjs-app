@@ -46,6 +46,13 @@ CATEGORY_KEYWORDS = {
     # same gap as the Langarmhemd bug above — no keyword covered it at
     # all, so these fell straight through to Sonstiges.
     87: ["herren", "männer", "hemd", "langarmhemd", "kurzarmhemd", "sommerhemd", "t shirt"],
+    # GERMENS silk scarves — wearable fashion accessories, but placed in
+    # Wohntextilien (home textiles) per explicit user decision on
+    # 2026-08-16 despite the mismatch, since no scarf-specific category
+    # exists yet. No keyword covered these at all before, so they fell
+    # through to Sonstiges and the nightly sync kept undoing the manual
+    # DB fix that moved them.
+    71: ["seidentuch", "seidenschal", "wolltuch"],
     36: ["garten", "terrasse", "balkon", "sonnenschirm", "pflanzk", "gartenmöbel"],
     8:  ["pool", "outdoor", "sport", "fahrrad", "camping", "freizeit"],
     5:  ["leuchte", "lampe", "licht", "led"],
