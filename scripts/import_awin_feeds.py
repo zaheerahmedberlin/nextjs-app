@@ -303,13 +303,16 @@ def guess_peterhahn_category(category_text, _title=None):
 # Each entry: (category_id, [keywords]) — first match wins.
 DEUBAXXL_CATEGORY_RULES = [
     # Today's session fixes (2026-08-16), most specific first.
-    (144, ["wagenheber", "felgenbaum", "gummiauflage wagenheber", "kofferraumschutz"]),
+    (144, ["wagenheber", "felgenbaum", "gummiauflage wagenheber", "kofferraumschutz",
+           "autoschutzdecke", "autositzbezug", "kfz-montageliege", "metallkanister",
+           "reifenregal", "starthilfekabel"]),
     (17,  ["gaming stuhl", "gaming chair", "gaming-sessel", "gaming-stuhl",
            "bürostuhl", "büro-stuhl", "office chair", "rollhocker"]),
     # SPIELWERK kids' foam play mat — not the generic gym/floor mats below.
     (137, ["puzzlematte 86-tlg", "tipi spielzelt", "multifunktionales kinderdreirad",
            "spielküche", "aufblasbare weihnachtsdeko"]),
     (168, ["babyfußsack", "bollerwagen"]),
+    (31,  ["mobile klimaanlage"]),  # Elektronik > Kühlen & Gefrieren
     # Baseline, ported from fix_deubaxxx_categories.py (scraper repo) —
     # keep in sync there if the category taxonomy changes.
     (52,  ["baby", "kinderwagen", "buggy", "kinderbet", "babywiege", "kinderfahrrad", "laufrad"]),
