@@ -325,7 +325,7 @@ DEUBAXXL_CATEGORY_RULES = [
            "magnetleiste", "drehmomentschlüssel", "heißluftpistole", "schlagtacker",
            "elektrotacker", "maßband", "abschleppstange", "tackerklammern"]),  # Werkzeug & Heimwerken
     (171, ["hundetransportbox", "hunderampe", "hundebox"]),  # Tierbedarf > Hunde
-    (172, ["kratzbaum", "katzenhaus", "katzentransportbox"]),  # Tierbedarf > Katzen
+    (172, ["kratzbaum", "katzenhaus", "katzentransportbox", "katzenrucksack"]),  # Tierbedarf > Katzen
     (170, ["hasenstall", "kaninchenstall", "freilaufgehege", "hühnerstall"]),  # Tierbedarf (generic)
     # Must precede the generic "regal" -> Aufbewahrung(3) rule below,
     # which would otherwise catch these first and miss the more
