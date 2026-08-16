@@ -162,6 +162,22 @@ VOGHION_CATEGORY_RULES = [
     ("home appliances", 27),                # Elektronik (generic fallback)
 ]
 
+# Dowinx is a single-product-line vendor (gaming/office chairs) whose
+# feed has no usable merchant_category and titles like "Cute Series
+# LS-6655" or "Luxury Series LS-66D89D" that don't contain "chair" or
+# "stuhl" at all — the generic keyword map defaulted every row to
+# Sonstiges. Found 2026-08-16: this vendor has feed_url set, so the
+# nightly sync was silently re-undoing a manual DB fix every night.
+# A handful of titles really are accessories, not chairs, and stay in
+# Sonstiges since there's no dedicated category for them yet.
+DOWINX_NON_CHAIR_SUBSTRINGS = ("footrest", "glasses", "chair mat", "chair castors", "gaming desk")
+
+def guess_dowinx_category(_category_text, title=None):
+    title_lower = (title or "").lower()
+    if any(s in title_lower for s in DOWINX_NON_CHAIR_SUBSTRINGS):
+        return 9  # Sonstiges
+    return 17  # Sessel
+
 def guess_voghion_category(product_type, _title=None):
     pt = product_type.lower()
     for keyword, cat_id in VOGHION_CATEGORY_RULES:
@@ -245,6 +261,14 @@ VENDOR_OVERRIDES = {
         # feed; deleting the row alone doesn't stick.
         "excluded_title_substrings": {"rückenabnäher"},
         "category_fn": guess_category,
+    },
+    "Dowinx": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        # Checkout add-ons that AWIN's feed lists as if they were real,
+        # separately-orderable products. Found 2026-08-16: 103 rows.
+        "excluded_title_substrings": {"shipping protection", "gift wrap"},
+        "category_fn": guess_dowinx_category,
     },
     "Peter Hahn": {
         "excluded_top_level": set(),
