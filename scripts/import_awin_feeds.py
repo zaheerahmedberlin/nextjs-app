@@ -214,10 +214,12 @@ VOGHION_LEAF_ONLY_KEYWORDS = {"jewelry sets"}
 # because real chairs like "Dowinx Chair LS-66D89C with Extended
 # Footrest Brown" also contain "footrest" as a built-in feature —
 # found 2026-08-16, the bare-word version excluded 10 genuine chairs.
-DOWINX_NON_CHAIR_SUBSTRINGS = ("desk footrest", "underdesk footrest", "glasses", "chair mat", "chair castors", "gaming desk")
+DOWINX_NON_CHAIR_SUBSTRINGS = ("desk footrest", "underdesk footrest", "glasses", "chair mat", "chair castors")
 
 def guess_dowinx_category(_category_text, title=None):
     title_lower = (title or "").lower()
+    if "gaming desk" in title_lower:
+        return 26  # Schreibtische — the "L-Shaped Cute Gaming Desk" line
     if any(s in title_lower for s in DOWINX_NON_CHAIR_SUBSTRINGS):
         return 9  # Sonstiges
     return 17  # Sessel
