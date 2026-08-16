@@ -320,6 +320,10 @@ DEUBAXXL_CATEGORY_RULES = [
     (171, ["hundetransportbox", "hunderampe", "hundebox"]),  # Tierbedarf > Hunde
     (172, ["kratzbaum", "katzenhaus"]),                      # Tierbedarf > Katzen
     (170, ["hasenstall", "kaninchenstall"]),                 # Tierbedarf (generic)
+    # Must precede the generic "regal" -> Aufbewahrung(3) rule below,
+    # which would otherwise catch these first and miss the more
+    # specific Regale(22) subcategory.
+    (22,  ["schwerlastregal", "schwerlasteckregal"]),
     # Baseline, ported from fix_deubaxxx_categories.py (scraper repo) —
     # keep in sync there if the category taxonomy changes.
     (52,  ["baby", "kinderwagen", "buggy", "kinderbet", "babywiege", "kinderfahrrad", "laufrad"]),
