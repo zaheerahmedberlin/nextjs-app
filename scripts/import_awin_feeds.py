@@ -316,6 +316,7 @@ DEUBAXXL_CATEGORY_RULES = [
            "plüschtier", "kuscheltier"]),
     (168, ["babyfußsack", "bollerwagen"]),
     (31,  ["mobile klimaanlage"]),  # Elektronik > Klima > Kühlen & Gefrieren
+    (173, ["luftentfeuchter"]),     # Elektronik > Klima
     # Elektronik > Klima > Heizung — new category created 2026-08-16.
     (174, ["heizlüfter", "heizstrahler", "elektrischer kamin", "elektrischer wandkamin",
            "elektrischer doppeltür-kamin"]),
