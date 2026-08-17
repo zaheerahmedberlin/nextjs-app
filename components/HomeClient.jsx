@@ -503,7 +503,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
 
           {/* Mobile: same filters, tucked behind a toggle instead of
               rendering full-width above every homepage section. */}
-          <div className="offcanvas offcanvas-start d-md-none" tabIndex="-1" id="mobileFilterOffcanvas" aria-labelledby="mobileFilterOffcanvasLabel">
+          <div className="offcanvas offcanvas-start d-md-none d-flex flex-column" tabIndex="-1" id="mobileFilterOffcanvas" aria-labelledby="mobileFilterOffcanvasLabel">
             <div className="offcanvas-header border-bottom">
               <h5 className="offcanvas-title fw-bold" id="mobileFilterOffcanvasLabel">Filter &amp; Kategorien</h5>
               <button type="button" className="btn-close" data-bs-dismiss="offcanvas" aria-label="Schließen"></button>
@@ -524,6 +524,22 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                   setShowInactiveProducts={(v) => { setShowInactiveProducts(v); resetPage(); }}
                 />
               </div>
+            </div>
+            {/* Sticky footer — the offcanvas covers the results behind it,
+                so without this the count only becomes visible once the
+                drawer is manually dismissed. Live count + one tap to apply. */}
+            <div className="border-top p-3 bg-white">
+              <button
+                type="button"
+                className="btn btn-brand w-100"
+                data-bs-dismiss="offcanvas"
+              >
+                {isLoading
+                  ? "Ergebnisse werden geladen…"
+                  : isDefaultView
+                    ? "Ergebnisse anzeigen"
+                    : `${totalProducts.toLocaleString("de-DE")} Ergebnisse anzeigen`}
+              </button>
             </div>
           </div>
 
