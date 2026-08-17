@@ -59,6 +59,14 @@ CATEGORY_KEYWORDS = {
     # ("CPU Sockel AM4", "Sockel-Eckstück") — caught before push by
     # checking real 0815 titles, not left to reset something new.
     169: ["socken", "socke "],
+    # BlazeVideo (feed_url vendor) titles their trail/wildlife cameras and
+    # solar-kit accessories under a generic "Elektronik" merchant_category,
+    # and some solar-kit titles also say "Outdoor" — must be checked before
+    # 8 below or "outdoor" wins first. Found 2026-08-17: 22 products
+    # scattered across Elektronik/Outdoor/Gartenmöbel/Leuchten instead of
+    # grouped with the site's existing Überwachungskameras (78) category
+    # (ieGeek/Imou security cameras).
+    78: ["wildkamera", "wildtierkamera", "jagdkamera", "fotofalle"],
     36: ["garten", "terrasse", "balkon", "sonnenschirm", "pflanzk", "gartenmöbel"],
     8:  ["pool", "outdoor", "sport", "fahrrad", "camping", "freizeit"],
     5:  ["leuchte", "lampe", "licht", "led"],
