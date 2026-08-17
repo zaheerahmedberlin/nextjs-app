@@ -312,6 +312,57 @@ def guess_peterhahn_category(category_text, _title=None):
 # broad keyword buckets, which stays as the fallback for everything else.
 # Each entry: (category_id, [keywords]) — first match wins.
 DEUBAXXL_CATEGORY_RULES = [
+    # Root-cause fix (2026-08-17): this whole file had been running from a
+    # months-stale `develop` branch — GitHub Actions schedule triggers use
+    # the repo's default branch, which was `develop`, not `main` where every
+    # fix in this file actually landed. Default branch switched to `main`;
+    # this block is the backlog of DeubaXXL titles that piled up in
+    # Sonstiges as a result, audited against all 456 real Sonstiges rows
+    # for this vendor with zero left unmatched.
+    (150, ["fenstergriff", "handlauf", "treppengeländer", "eingangsgeländer"]),  # Beschläge & Schlösser
+    (144, ["auffahrrampe", "bremsscheibenschloss", "kofferraumtasche", "ölabsaugpumpe",
+           "parkplatzsperre", "fahrradanhänger", "fahrrad-montageständer", "fahrradständer",
+           "fahrradtasche", "felgen-reinigungsbürste", "rollentrainer fahrrad",
+           "batterieladegerät", "fahrradschloss"]),  # Auto & Fahrzeugzubehör
+    (95,  ["hartschalenkoffer", "reisetasche", "koffer set", "wasserdichte tasche",
+           "einkaufstrolley"]),  # Taschen & Koffer
+    (119, ["häcksler", "unkrautbrenner", "elektrischer hochentaster", "laubsauger",
+           "rasensprenger", "rasenwalze", "schubkarre", "schubkarrenrad", "mähroboter garage",
+           "doppel-fadenspule", "streuwagen", "freischneider"]),  # Gartengeräte
+    (146, ["heringe", "festzelt"]),  # Zelte & Markisen
+    (36,  ["rankhilfe", "rosenbogen", "rosensäule", "pflanzenschutzhaube",
+           "ausgießer"]),  # Gartenmöbel
+    (38,  ["ampelschirm", "schirmständer"]),  # Sonnenschirme
+    (137, ["adventskalender", "sandkasten", "schaukeltier", "kindersitzgruppe", "schwibbogen",
+           "weihnachtskugeln", "stuntscooter"]),  # Spielzeug
+    (52,  ["kinderdreirad", "lernturm"]),  # Baby World
+    (41,  ["digitale personenwaage", "elektrischer fußwärmer", "heimtrainer fahrrad",
+           "erste hilfe-medizinschrank", "medizinschrank", "arzneischrank"]),  # Gesundheit
+    (118, ["knieschoner"]),  # Arbeitskleidung & Arbeitsschutz
+    (175, ["heizdecke", "kuscheldecke"]),  # Schlafen > Decken
+    (3,   ["mülleimer", "elektrischer möbeltresor", "elektrischer tresor",
+           "elektr möbeltresor"]),  # Aufbewahrung
+    (6,   ["holzkohlebriketts", "nudelmaschine", "schüsselset", "teegläser", "teekanne",
+           "wurstfüller", "spülmaschine"]),  # Küche
+    (145, ["nass- trockensauger", "waschsauger", "staubsaugerbeutel",
+           "staubwedel", "heizkörperbürste"]),  # Reinigung & Wäsche
+    (140, ["funkwanduhr", "retrolook bahnhofsuhr", "wandhalter", "zugluftstopper"]),  # Wohnaccessoires
+    (139, ["teleskopschublade"]),  # Möbelbeschläge
+    (148, ["digitaler messschieber"]),  # Messwerkzeuge
+    (115, ["beil", "spaltaxt", "spaltkeil", "arbeitsbock", "holzsägebock", "trockenbauschleifer",
+           "farbsprühgerät", "automatik kabeltrommel", "dachrinnenschutzgitter",
+           "stahl türspanner", "zargenspanner", "tauchpumpe", "ersatz-klingen", "cuttermesser",
+           "doppel-stahlzylinder", "hochdruck luftpumpe", "trapezblech",
+           "bodenanker"]),  # Werkzeug & Heimwerken
+    (8,   ["abdeckplane", "pool", "schwimmliege", "schwimmring", "insektenhotel", "komposter",
+           "feuerschale", "feuerstelle", "paravent", "gerätehaus", "geräteschuppen",
+           "doppelstegplatten", "fahnenmast", "flagge", "holzfliese", "nordic walking",
+           "schlauchstück", "schlauchverbinder", "tropfschlauch", "wasserschlauchaufroller",
+           "wassertester", "wasser tester", "wasser messgerät", "druckwächter", "dosierschwimmer",
+           "variolux schnellkupplung", "elektrische fliegenklatsche", "sackkarre",
+           "sackkarrenrad", "seilwinde", "treppenkarre", "gummiauflage", "getränkekühler",
+           "getränkehalter", "lay-z-spa", "sandfilter", "sandfilfteranlage", "eisspikes",
+           "auflagenbox", "spanngummi", "pumpensteuerung"]),  # Outdoor
     # Today's session fixes (2026-08-16), most specific first.
     (144, ["wagenheber", "felgenbaum", "gummiauflage wagenheber", "kofferraumschutz",
            "autoschutzdecke", "autositzbezug", "kfz-montageliege", "metallkanister",
