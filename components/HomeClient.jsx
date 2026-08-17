@@ -131,39 +131,6 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   const searchParams = useSearchParams();
   const [products, setProducts]                         = useState(initialProducts);
   const [categories, setCategories]                     = useState(initialCategories);
-  const [popularTerms, setPopularTerms]                 = useState(() => {
-    // "Sonstiges" is a meaningless catch-all bucket, never a real "popular"
-    // signal. "Unterwäsche" is a genuinely large, fully-browsable category
-    // (~669 active products) but isn't a good homepage headline tag for a
-    // general-audience price-comparison site — both excluded from this
-    // specific front-page display only, not from search/browsing anywhere
-    // else on the site.
-    const EXCLUDED_FROM_POPULAR = new Set(["Sonstiges", "Unterwäsche"]);
-    // Cap 2 tags per top-level parent category so raw import volume from
-    // one vendor (e.g. Voghion's 24k+ fashion products) can't fill the
-    // whole list — tags should reflect the site's actual category breadth
-    // (Elektronik, Möbel, Balkonkraftwerke, ...), not just whichever single
-    // vertical happens to have the most SKUs at any given moment.
-    const MAX_PER_PARENT = 2;
-    const leaves = initialCategories
-      .flatMap((parent) =>
-        (parent.children?.length > 0 ? parent.children : [parent])
-          .map((c) => ({ ...c, parentName: parent.name }))
-      )
-      .filter((c) => !EXCLUDED_FROM_POPULAR.has(c.name))
-      .sort((a, b) => b.productCount - a.productCount);
-
-    const perParentCount = {};
-    const capped = [];
-    for (const c of leaves) {
-      const used = perParentCount[c.parentName] ?? 0;
-      if (used >= MAX_PER_PARENT) continue;
-      perParentCount[c.parentName] = used + 1;
-      capped.push(c);
-      if (capped.length >= 6) break;
-    }
-    return capped.map((c) => c.name);
-  });
   const [activeOffers, setActiveOffers]                 = useState([]);
   const [lowestPriceProducts, setLowestPriceProducts]   = useState([]);
   const [totalProducts, setTotalProducts]               = useState(initialTotalProducts);
@@ -463,7 +430,6 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
           searchQuery={searchQuery}
           setSearchQuery={(v) => { setSearchQuery(v); resetPage(); }}
           setCurrentPage={setCurrentPage}
-          popularTerms={popularTerms}
         />
       </div>
 

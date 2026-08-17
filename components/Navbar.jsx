@@ -50,50 +50,28 @@ export default function Navbar({ isNavbarShrink = true, searchQuery, setSearchQu
           <img src="/preisgucken_logo.svg" alt="Preisgucken.de Logo" className="me-2 logo-img" style={{ height: "80px", width: "auto" }} />
         </a>
 
-        {/* Mobile toggle button */}
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
+        {/* Mobile toggle button — only shown once the collapsed search form
+            is actually visible (isNavbarShrink). On the homepage before
+            scrolling, the form stays hidden (the hero has its own visible
+            search bar), so showing the toggler there would open an empty
+            panel with nothing in it. */}
+        {isNavbarShrink && (
+          <button
+            className="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarNav"
+            aria-controls="navbarNav"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span className="navbar-toggler-icon"></span>
+          </button>
+        )}
 
         <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-            <li className="nav-item nav-center">
-              <a className="nav-link" href="/kategorie/elektronik">
-                <i className="bi bi-plugin custom-icon"></i><br />Elektro
-              </a>
-            </li>
-            <li className="nav-item nav-center">
-              <a className="nav-link" href="/kategorie/baby-world">
-                <i className="bi bi-balloon custom-icon"></i><br />Baby World
-              </a>
-            </li>
-            <li className="nav-item nav-center">
-              <a className="nav-link" href="/kategorie/hochzeit">
-                <i className="bi bi-arrow-through-heart-fill custom-icon"></i><br />Hochzeit
-              </a>
-            </li>
-            <li className="nav-item nav-center">
-              <a className="nav-link" href="/kategorie/mode">
-                <i className="bi bi-incognito custom-icon"></i><br />Mode &amp; Accessories
-              </a>
-            </li>
-            <li className="nav-item nav-center">
-              <a className="nav-link" href="/kategorie/hilfsmittel">
-                <i className="bi bi-person-wheelchair custom-icon"></i><br />Hilfsmittel für behinderte
-              </a>
-            </li>
-          </ul>
-
           <form
-            className="d-flex header-search align-items-center"
+            className="d-flex header-search align-items-center ms-auto"
             style={{ visibility: isNavbarShrink ? "visible" : "hidden", opacity: isNavbarShrink ? 1 : 0, transition: "opacity 0.2s" }}
             onSubmit={(e) => { e.preventDefault(); runSearch(); }}
           >
