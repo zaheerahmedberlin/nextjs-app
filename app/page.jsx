@@ -8,20 +8,19 @@ import HomeClient from "@/components/HomeClient";
 const getInitialData = unstable_cache(
   async () => {
     const [priceRes, prodRes, catRes, countRes] = await Promise.all([
-      // p95 drives the slider's default drag range — a single outlier
-      // listing (e.g. a mispriced B2B tool at €200k+) would otherwise
-      // stretch the whole slider so far that every real-world price gets
-      // crushed into a sliver of it. The true MAX is fetched alongside it
-      // as the number input's ceiling, so typing a higher price than the
-      // slider's default (e.g. filtering "under €6000" for printers) is
-      // still possible and always reflects the real current catalog
-      // instead of a stale guessed constant.
-      query(`
-        SELECT
-          PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY price) AS p95,
-          MAX(price) AS absolute_max
-        FROM products WHERE is_active = TRUE AND in_stock = TRUE AND price > 0
-      `),
+      // Price-filter slider bounds — read from site_stats instead of
+      // computing PERCENTILE_CONT/MAX live on every cache refresh. Prices
+      // only really change once a night (the AWIN sync), so
+      // scripts/snapshot_prices.py recomputes these nightly at 4am
+      // alongside the price-history snapshot and stores them here; this
+      // is just a 2-row lookup. p95 drives the slider's default drag
+      // range — a single outlier listing (e.g. a mispriced B2B tool at
+      // €200k+) would otherwise stretch the whole slider so far that
+      // every real-world price gets crushed into a sliver of it. The
+      // true MAX is stored alongside it as the number input's ceiling,
+      // so typing a higher price than the slider's default (e.g.
+      // filtering "under €6000" for printers) is still possible.
+      query(`SELECT key, value FROM site_stats WHERE key IN ('price_slider_max', 'price_absolute_max')`),
       query(`
       WITH ranked AS (
         SELECT
@@ -60,9 +59,10 @@ const getInitialData = unstable_cache(
         AND p.image IS NOT NULL AND p.image != ''`),
     ]);
 
-    const rawP95 = parseFloat(priceRes.rows[0]?.p95) || 10000;
+    const stats = Object.fromEntries(priceRes.rows.map((r) => [r.key, parseFloat(r.value)]));
+    const rawP95 = stats.price_slider_max || 10000;
     const initialMaxPrice = Math.ceil(rawP95 / 100) * 100;
-    const rawAbsoluteMax = parseFloat(priceRes.rows[0]?.absolute_max) || initialMaxPrice;
+    const rawAbsoluteMax = stats.price_absolute_max || initialMaxPrice;
     const initialAbsoluteMaxPrice = Math.ceil(rawAbsoluteMax / 100) * 100;
     const initialTotalProducts = parseInt(countRes.rows[0]?.total) || 0;
 
