@@ -94,6 +94,7 @@ export default function Sidebar({
   maxPriceFilter,
   setMaxPriceFilter,
   defaultMaxPrice,
+  absoluteMaxPrice,
   formatPrice,
   showOutOfStock,
   setShowOutOfStock,
@@ -109,10 +110,12 @@ export default function Sidebar({
   // it must NOT share that cap — otherwise anyone shopping in a category
   // with genuinely pricier items (printers, servers, ...) can't type e.g.
   // "5000" to filter for them; it'd just get silently clamped back down to
-  // ~500. Text input gets a much higher, effectively unbounded ceiling.
-  const MAX_TYPEABLE_PRICE = 1000000;
+  // ~500. Text input's ceiling is the real current highest price in the
+  // DB (fetched server-side, not a guessed constant), so it always tracks
+  // the actual catalog instead of going stale as prices change.
+  const maxTypeablePrice = absoluteMaxPrice || defaultMaxPrice;
   function handlePriceChange(v) {
-    const clamped = Math.min(Math.max(0, Number(v) || 0), MAX_TYPEABLE_PRICE);
+    const clamped = Math.min(Math.max(0, Number(v) || 0), maxTypeablePrice);
     setMaxPriceFilter(clamped);
   }
 
@@ -200,7 +203,7 @@ export default function Sidebar({
               className="form-control"
               value={price}
               min={0}
-              max={MAX_TYPEABLE_PRICE}
+              max={maxTypeablePrice}
               onChange={(e) => handlePriceChange(e.target.value)}
             />
           </div>

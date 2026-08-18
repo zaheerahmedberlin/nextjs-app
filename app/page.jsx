@@ -8,12 +8,18 @@ import HomeClient from "@/components/HomeClient";
 const getInitialData = unstable_cache(
   async () => {
     const [priceRes, prodRes, catRes, countRes] = await Promise.all([
-      // 95th percentile, not raw MAX — a single outlier listing (e.g. a
-      // mispriced B2B tool at €200k+) would otherwise stretch the whole
-      // slider so far that every real-world price gets crushed into a
-      // sliver of it. Matches /api/products/price-range's existing logic.
+      // p95 drives the slider's default drag range — a single outlier
+      // listing (e.g. a mispriced B2B tool at €200k+) would otherwise
+      // stretch the whole slider so far that every real-world price gets
+      // crushed into a sliver of it. The true MAX is fetched alongside it
+      // as the number input's ceiling, so typing a higher price than the
+      // slider's default (e.g. filtering "under €6000" for printers) is
+      // still possible and always reflects the real current catalog
+      // instead of a stale guessed constant.
       query(`
-        SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY price) AS max
+        SELECT
+          PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY price) AS p95,
+          MAX(price) AS absolute_max
         FROM products WHERE is_active = TRUE AND in_stock = TRUE AND price > 0
       `),
       query(`
@@ -54,8 +60,10 @@ const getInitialData = unstable_cache(
         AND p.image IS NOT NULL AND p.image != ''`),
     ]);
 
-    const rawMax = parseFloat(priceRes.rows[0]?.max) || 10000;
-    const initialMaxPrice = Math.ceil(rawMax / 100) * 100;
+    const rawP95 = parseFloat(priceRes.rows[0]?.p95) || 10000;
+    const initialMaxPrice = Math.ceil(rawP95 / 100) * 100;
+    const rawAbsoluteMax = parseFloat(priceRes.rows[0]?.absolute_max) || initialMaxPrice;
+    const initialAbsoluteMaxPrice = Math.ceil(rawAbsoluteMax / 100) * 100;
     const initialTotalProducts = parseInt(countRes.rows[0]?.total) || 0;
 
     // Vendor diversity (max 2 per vendor) is already enforced by the
@@ -72,7 +80,7 @@ const getInitialData = unstable_cache(
     }));
     const initialCategories = buildCategoryTree(rows);
 
-    return { initialProducts, initialMaxPrice, initialCategories, initialTotalProducts };
+    return { initialProducts, initialMaxPrice, initialAbsoluteMaxPrice, initialCategories, initialTotalProducts };
   },
   ["homepage-initial-data"],
   { revalidate: 300 } // refresh every 5 minutes
@@ -81,7 +89,7 @@ const getInitialData = unstable_cache(
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  let data = { initialProducts: [], initialMaxPrice: 10000, initialCategories: [], initialTotalProducts: 0 };
+  let data = { initialProducts: [], initialMaxPrice: 10000, initialAbsoluteMaxPrice: 10000, initialCategories: [], initialTotalProducts: 0 };
   try {
     data = await getInitialData();
   } catch (e) {
@@ -92,6 +100,7 @@ export default async function Page() {
     <HomeClient
       initialProducts={data.initialProducts}
       initialMaxPrice={data.initialMaxPrice}
+      initialAbsoluteMaxPrice={data.initialAbsoluteMaxPrice}
       initialCategories={data.initialCategories}
       initialTotalProducts={data.initialTotalProducts}
     />

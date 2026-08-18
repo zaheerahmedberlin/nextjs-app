@@ -127,7 +127,7 @@ const faqSchema = {
   ],
 };
 
-export default function HomeClient({ initialProducts = [], initialMaxPrice = 10000, initialCategories = [], initialTotalProducts = 0 }) {
+export default function HomeClient({ initialProducts = [], initialMaxPrice = 10000, initialAbsoluteMaxPrice = 10000, initialCategories = [], initialTotalProducts = 0 }) {
   const searchParams = useSearchParams();
   const [products, setProducts]                         = useState(initialProducts);
   const [categories, setCategories]                     = useState(initialCategories);
@@ -164,6 +164,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   const [sortOption, setSortOption]                     = useState("relevance");
   const [maxPriceFilter, setMaxPriceFilter]             = useState(initialMaxPrice);
   const [defaultMaxPrice, setDefaultMaxPrice]           = useState(initialMaxPrice);
+  const [absoluteMaxPrice]                              = useState(initialAbsoluteMaxPrice);
   const [currentPage, setCurrentPage]                   = useState(1);
   const [showOutOfStock, setShowOutOfStock]             = useState(false);
   const [showInactiveProducts, setShowInactiveProducts] = useState(false);
@@ -463,6 +464,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
               maxPriceFilter={maxPriceFilter ?? defaultMaxPrice}
               setMaxPriceFilter={(v) => { setMaxPriceFilter(v); resetPage(); }}
               defaultMaxPrice={defaultMaxPrice}
+              absoluteMaxPrice={absoluteMaxPrice}
               formatPrice={formatPrice}
               showOutOfStock={showOutOfStock}
               setShowOutOfStock={(v) => { setShowOutOfStock(v); resetPage(); }}
@@ -487,6 +489,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                   maxPriceFilter={maxPriceFilter ?? defaultMaxPrice}
                   setMaxPriceFilter={(v) => { setMaxPriceFilter(v); resetPage(); }}
                   defaultMaxPrice={defaultMaxPrice}
+                  absoluteMaxPrice={absoluteMaxPrice}
                   formatPrice={formatPrice}
                   showOutOfStock={showOutOfStock}
                   setShowOutOfStock={(v) => { setShowOutOfStock(v); resetPage(); }}
