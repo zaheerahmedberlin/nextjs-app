@@ -8,7 +8,14 @@ import HomeClient from "@/components/HomeClient";
 const getInitialData = unstable_cache(
   async () => {
     const [priceRes, prodRes, catRes, countRes] = await Promise.all([
-      query(`SELECT MAX(price) AS max FROM products WHERE is_active = TRUE AND in_stock = TRUE`),
+      // 95th percentile, not raw MAX — a single outlier listing (e.g. a
+      // mispriced B2B tool at €200k+) would otherwise stretch the whole
+      // slider so far that every real-world price gets crushed into a
+      // sliver of it. Matches /api/products/price-range's existing logic.
+      query(`
+        SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY price) AS max
+        FROM products WHERE is_active = TRUE AND in_stock = TRUE AND price > 0
+      `),
       query(`
       WITH ranked AS (
         SELECT
