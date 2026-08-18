@@ -104,8 +104,15 @@ export default function Sidebar({
   // Track which parent groups are expanded
   const [expanded, setExpanded] = useState({});
 
+  // The slider itself is capped at defaultMaxPrice (the 95th percentile) so
+  // dragging it stays usable for typical prices. But the number box next to
+  // it must NOT share that cap — otherwise anyone shopping in a category
+  // with genuinely pricier items (printers, servers, ...) can't type e.g.
+  // "5000" to filter for them; it'd just get silently clamped back down to
+  // ~500. Text input gets a much higher, effectively unbounded ceiling.
+  const MAX_TYPEABLE_PRICE = 1000000;
   function handlePriceChange(v) {
-    const clamped = Math.min(Math.max(0, Number(v) || 0), defaultMaxPrice);
+    const clamped = Math.min(Math.max(0, Number(v) || 0), MAX_TYPEABLE_PRICE);
     setMaxPriceFilter(clamped);
   }
 
@@ -174,7 +181,7 @@ export default function Sidebar({
         <div className="card-body">
           <label htmlFor="priceRange" className="form-label d-flex justify-content-between">
             <span className="small fw-semibold">Bis</span>
-            <span className="text-muted small">max: {formatPrice(defaultMaxPrice)}</span>
+            <span className="text-muted small">Regler bis {formatPrice(defaultMaxPrice)}, höhere Preise eingeben möglich</span>
           </label>
           <input
             type="range"
@@ -193,7 +200,7 @@ export default function Sidebar({
               className="form-control"
               value={price}
               min={0}
-              max={defaultMaxPrice}
+              max={MAX_TYPEABLE_PRICE}
               onChange={(e) => handlePriceChange(e.target.value)}
             />
           </div>

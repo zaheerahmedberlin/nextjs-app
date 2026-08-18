@@ -284,8 +284,12 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   }, [searchQuery, selectedCategories, maxPriceFilter, sortOption, currentPage,
       showOutOfStock, showInactiveProducts, showAllProducts]);
 
+  // Equality, not >=, against defaultMaxPrice — the price box now accepts
+  // values above the slider's default ceiling (e.g. filtering "under
+  // €5000" for printers/servers), so ">= defaultMaxPrice" would wrongly
+  // treat a deliberate high constraint as "untouched, no filter."
   const isDefaultView = !searchQuery && selectedCategories.length === 0 &&
-    (maxPriceFilter === null || maxPriceFilter >= defaultMaxPrice) &&
+    (maxPriceFilter === null || maxPriceFilter === defaultMaxPrice) &&
     !showOutOfStock && !showInactiveProducts && !showAllProducts;
 
   async function loadProducts() {
@@ -312,7 +316,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       ...(isDefaultView && { excludeCategory: "unterwaesche" }),
     });
     if (selectedCategories.length > 0) params.set("category", selectedCategories.join(","));
-    if (maxPriceFilter > 0 && maxPriceFilter < defaultMaxPrice) params.set("maxPrice", maxPriceFilter);
+    if (maxPriceFilter > 0 && maxPriceFilter !== defaultMaxPrice) params.set("maxPrice", maxPriceFilter);
 
 
     setIsLoading(true);
