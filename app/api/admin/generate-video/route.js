@@ -5,10 +5,19 @@ import { writeFile, mkdir, readFile, unlink, rmdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
-ffmpeg.setFfmpegPath(process.env.FFMPEG_BIN ?? "/root/.nix-profile/bin/ffmpeg");
+// Railway migrated this service from Nixpacks to their newer Railpack
+// builder at some point — nixpacks.toml (Nix packages, installed under
+// /root/.nix-profile/bin/) is now silently ignored, which broke this
+// entirely. ffmpeg is now provisioned via railpack.json's apt packages,
+// which installs to the standard system path instead.
+ffmpeg.setFfmpegPath(process.env.FFMPEG_BIN ?? "/usr/bin/ffmpeg");
 
 const W = 1080;
 const H = 1920;
+const FPS = 30;
+const SCENE_DURATION = 3;   // seconds each scene holds before the next crossfade starts
+const TRANSITION = 0.6;     // crossfade duration between scenes
+const CLIP_DURATION = SCENE_DURATION + TRANSITION; // each looped image needs this much runway
 const BLUE = "#1A3A6B";
 const DARK_BLUE = "#0d2347";
 const ORANGE = "#F5A623";
@@ -134,33 +143,48 @@ export async function POST(request) {
       frame4CTA(),
     ]);
 
-    const frames = [
-      { buf: f1, duration: 3 },
-      { buf: f2, duration: 3 },
-      { buf: f3, duration: 3 },
-      { buf: f4, duration: 3 },
-    ];
-
+    const frames = [f1, f2, f3, f4];
     const framePaths = [];
     for (let i = 0; i < frames.length; i++) {
       const p = join(dir, `frame${i}.png`);
-      await writeFile(p, frames[i].buf);
-      framePaths.push({ path: p, duration: frames[i].duration });
+      await writeFile(p, frames[i]);
+      framePaths.push(p);
     }
-
-    const concatFile = join(dir, "concat.txt");
-    const concatContent = framePaths.map(f => `file '${f.path}'\nduration ${f.duration}`).join("\n")
-      + `\nfile '${framePaths[framePaths.length - 1].path}'`;
-    await writeFile(concatFile, concatContent);
 
     const outputPath = join(dir, "output.mp4");
 
+    // Crossfade transitions chained between scenes, instead of the old
+    // hard-cut static-image slideshow. (Ken Burns via zoompan was tried first but
+    // is frame-by-frame CPU-expensive — 60-120s per video on a 2x-upscaled
+    // 1080x1920 source, unusable for a one-click tool. Crossfades alone
+    // are still a real visual upgrade over hard cuts and orders of
+    // magnitude cheaper.)
+    const zoomFilters = framePaths.map((_, i) =>
+      `[${i}:v]format=yuv420p,setsar=1[v${i}]`
+    ).join(";\n");
+
+    const xfadeChain = [];
+    let prevLabel = "v0";
+    for (let i = 1; i < framePaths.length; i++) {
+      const offset = i * SCENE_DURATION;
+      const outLabel = i === framePaths.length - 1 ? "outv" : `vx${i}`;
+      xfadeChain.push(
+        `[${prevLabel}][v${i}]xfade=transition=fade:duration=${TRANSITION}:offset=${offset}[${outLabel}]`
+      );
+      prevLabel = outLabel;
+    }
+
+    const filterComplex = `${zoomFilters};\n${xfadeChain.join(";\n")}`;
+
     await new Promise((resolve, reject) => {
-      ffmpeg()
-        .input(concatFile)
-        .inputOptions(["-f concat", "-safe 0"])
+      const cmd = ffmpeg();
+      for (const p of framePaths) {
+        cmd.input(p).inputOptions(["-loop 1", `-t ${CLIP_DURATION}`]);
+      }
+      cmd
+        .complexFilter(filterComplex, "outv")
         .videoCodec("libx264")
-        .outputOptions(["-pix_fmt yuv420p", "-r 30", "-movflags +faststart"])
+        .outputOptions(["-pix_fmt yuv420p", `-r ${FPS}`, "-movflags +faststart"])
         .output(outputPath)
         .on("end", resolve)
         .on("error", reject)
@@ -169,8 +193,7 @@ export async function POST(request) {
 
     const videoBuffer = await readFile(outputPath);
 
-    for (const f of framePaths) unlink(f.path).catch(() => {});
-    unlink(concatFile).catch(() => {});
+    for (const f of framePaths) unlink(f).catch(() => {});
     unlink(outputPath).catch(() => {});
     rmdir(dir).catch(() => {});
 
