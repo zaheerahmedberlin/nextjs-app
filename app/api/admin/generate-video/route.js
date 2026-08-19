@@ -5,12 +5,16 @@ import { writeFile, mkdir, readFile, unlink, rmdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
-// Railway migrated this service from Nixpacks to their newer Railpack
-// builder at some point — nixpacks.toml (Nix packages, installed under
-// /root/.nix-profile/bin/) is now silently ignored, which broke this
-// entirely. ffmpeg is now provisioned via railpack.json's apt packages,
-// which installs to the standard system path instead.
-ffmpeg.setFfmpegPath(process.env.FFMPEG_BIN ?? "/usr/bin/ffmpeg");
+// This service's build driver has flipped between Nixpacks and Railpack
+// across deployments (Railway-side, not a repo config change) — those
+// install ffmpeg to different paths (/root/.nix-profile/bin/ vs
+// /usr/bin/), so hardcoding either one breaks under the other builder.
+// Only override the path when FFMPEG_BIN is explicitly set; otherwise
+// leave fluent-ffmpeg to resolve "ffmpeg" via $PATH, which works under
+// both (both builders add their install location to PATH).
+if (process.env.FFMPEG_BIN) {
+  ffmpeg.setFfmpegPath(process.env.FFMPEG_BIN);
+}
 
 const W = 1080;
 const H = 1920;
