@@ -54,9 +54,52 @@ def main():
     """, (p95, absolute_max))
     conn.commit()
 
+    # Per-category price ceilings — a single sitewide p95 is a bad fit for
+    # categories whose real prices sit well above it (E-Scooter: p95 ~€1200
+    # vs. sitewide €500). "Effective" product set per category mirrors the
+    # conditional-rollup rule used everywhere else: a category with its own
+    # directly-assigned products uses those; a purely organizational parent
+    # (zero own products) rolls up to its children's combined products.
+    cur.execute("""
+        WITH own_counts AS (
+            SELECT category_id, COUNT(*) AS cnt
+            FROM products
+            WHERE is_active = TRUE AND in_stock = TRUE AND price > 0
+            GROUP BY category_id
+        ),
+        cat_effective AS (
+            SELECT c.id AS category_id, c.id AS effective_id
+            FROM categories c
+            UNION ALL
+            SELECT c.id AS category_id, ch.id AS effective_id
+            FROM categories c
+            JOIN categories ch ON ch.parent_id = c.id
+            LEFT JOIN own_counts oc ON oc.category_id = c.id
+            WHERE COALESCE(oc.cnt, 0) = 0
+        )
+        SELECT
+            ce.category_id,
+            PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY p.price) AS p95_price,
+            MAX(p.price) AS max_price
+        FROM cat_effective ce
+        JOIN products p
+            ON p.category_id = ce.effective_id
+            AND p.is_active = TRUE AND p.in_stock = TRUE AND p.price > 0
+        GROUP BY ce.category_id
+    """)
+    category_rows = cur.fetchall()
+    cur.execute("DELETE FROM category_price_stats")
+    for category_id, cat_p95, cat_max in category_rows:
+        cur.execute("""
+            INSERT INTO category_price_stats (category_id, p95_price, max_price, updated_at)
+            VALUES (%s, %s, %s, NOW())
+        """, (category_id, cat_p95, cat_max))
+    conn.commit()
+
     cur.close()
     conn.close()
-    print(f"Done — {count} price snapshots recorded, site_stats refreshed (p95={p95}, max={absolute_max})")
+    print(f"Done — {count} price snapshots recorded, site_stats refreshed (p95={p95}, max={absolute_max}), "
+          f"category_price_stats refreshed for {len(category_rows)} categories")
 
 if __name__ == "__main__":
     main()

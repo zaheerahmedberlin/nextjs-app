@@ -28,6 +28,17 @@ function slugToName(tree, slug) {
   return null;
 }
 
+// Finds a category node by slug at any depth (categories can nest deeper
+// than one level, e.g. Mode & Accessories > Damenmode > Damenpullover).
+function findCategoryNode(tree, slug) {
+  for (const node of tree) {
+    if (node.slug === slug) return node;
+    const found = findCategoryNode(node.children ?? [], slug);
+    if (found) return found;
+  }
+  return null;
+}
+
 export function formatPrice(value) {
   const n = parseFloat(value);
   if (isNaN(n)) return value;
@@ -164,7 +175,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   const [sortOption, setSortOption]                     = useState("relevance");
   const [maxPriceFilter, setMaxPriceFilter]             = useState(initialMaxPrice);
   const [defaultMaxPrice, setDefaultMaxPrice]           = useState(initialMaxPrice);
-  const [absoluteMaxPrice]                              = useState(initialAbsoluteMaxPrice);
+  const [absoluteMaxPrice, setAbsoluteMaxPrice]         = useState(initialAbsoluteMaxPrice);
   const [currentPage, setCurrentPage]                   = useState(1);
   const [showOutOfStock, setShowOutOfStock]             = useState(false);
   const [showInactiveProducts, setShowInactiveProducts] = useState(false);
@@ -284,6 +295,45 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
     return () => clearTimeout(debounceRef.current);
   }, [searchQuery, selectedCategories, maxPriceFilter, sortOption, currentPage,
       showOutOfStock, showInactiveProducts, showAllProducts]);
+
+  // Re-calibrate the price slider to whatever category is selected — a
+  // single sitewide default is nearly useless for a category whose real
+  // prices sit well above it (E-Scooter: products run €452-1499, but the
+  // sitewide 95th percentile was €500, so moving the slider at all hid
+  // every real scooter). Reads straight off the category tree already in
+  // state (priceP95/priceMax, nightly-cron-computed — see
+  // backfill_category_price_stats.py) — no network call, so this can just
+  // run synchronously on every selection change, including the very first
+  // render for a hard page-load of e.g. /?category=e-scooter. Free-text
+  // search has no per-term precomputed stats (infinite possible terms), so
+  // it keeps using the sitewide default rather than adding a live query.
+  // With multiple categories selected, takes the max across their p95s/
+  // maxes so the range covers whichever one needs the most headroom.
+  useEffect(() => {
+    if (selectedCategories.length === 0) {
+      setDefaultMaxPrice(initialMaxPrice);
+      setAbsoluteMaxPrice(initialAbsoluteMaxPrice);
+      setMaxPriceFilter(initialMaxPrice);
+      return;
+    }
+    const stats = selectedCategories
+      .map((slug) => findCategoryNode(categories, slug))
+      .filter(Boolean);
+    if (stats.length === 0) return; // categories not loaded yet
+    const p95s = stats.map((s) => s.priceP95).filter((v) => v != null);
+    const maxes = stats.map((s) => s.priceMax).filter((v) => v != null);
+    if (p95s.length === 0 && maxes.length === 0) return; // cron hasn't covered these yet
+    const newMax = Math.ceil((Math.max(...p95s, ...maxes, 0) || initialMaxPrice) / 100) * 100;
+    const newAbsoluteMax = Math.ceil((Math.max(...maxes, newMax) || newMax) / 100) * 100;
+    setDefaultMaxPrice(newMax);
+    setAbsoluteMaxPrice(newAbsoluteMax);
+    // Reset to "untouched" for the new scope — same convention resetPage()
+    // already applies to pagination on every filter change, so a leftover
+    // price filter from a different category doesn't silently narrow this
+    // one too.
+    setMaxPriceFilter(newMax);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategories, categories]);
 
   // Equality, not >=, against defaultMaxPrice — the price box now accepts
   // values above the slider's default ceiling (e.g. filtering "under

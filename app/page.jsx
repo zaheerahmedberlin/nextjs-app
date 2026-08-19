@@ -47,11 +47,13 @@ const getInitialData = unstable_cache(
       LIMIT 12`),
       query(`SELECT
         c.id, c.slug, c.name, c.parent_id, c.icon, c.sort_order,
-        COUNT(p.id) AS product_count
+        COUNT(p.id) AS product_count,
+        cps.p95_price, cps.max_price
       FROM categories c
       LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE AND p.in_stock = TRUE
+      LEFT JOIN category_price_stats cps ON cps.category_id = c.id
       WHERE c.is_active = TRUE
-      GROUP BY c.id
+      GROUP BY c.id, cps.p95_price, cps.max_price
       ORDER BY c.parent_id NULLS FIRST, c.sort_order, c.name`),
       query(`SELECT COUNT(*) AS total FROM products p
       WHERE p.is_active = TRUE AND p.in_stock = TRUE
@@ -77,6 +79,8 @@ const getInitialData = unstable_cache(
       parentId:     r.parent_id,
       icon:         r.icon,
       productCount: parseInt(r.product_count),
+      priceP95:     r.p95_price != null ? parseFloat(r.p95_price) : null,
+      priceMax:     r.max_price != null ? parseFloat(r.max_price) : null,
     }));
     const initialCategories = buildCategoryTree(rows);
 
