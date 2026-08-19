@@ -184,7 +184,7 @@ export default function Sidebar({
         <div className="card-body">
           <label htmlFor="priceRange" className="form-label d-flex justify-content-between">
             <span className="small fw-semibold">Bis</span>
-            <span className="text-muted small">Regler bis {formatPrice(defaultMaxPrice)}, höhere Preise eingeben möglich</span>
+            <span className="text-muted small">bis {formatPrice(defaultMaxPrice)} (höher? Zahl eingeben)</span>
           </label>
           <input
             type="range"
