@@ -1,5 +1,5 @@
 {
-  "$comment": "Replaces nixpacks.toml — Railway migrated this service from the Nixpacks builder to Railpack, which doesn't read nixpacks.toml at all. This installs the same system packages (ffmpeg for video generation in app/api/admin/generate-video, plus the fonts its SVG-based frames render text with) via apt instead of Nix.",
+  "$schema": "https://schema.railpack.com",
   "deploy": {
     "aptPackages": ["...", "ffmpeg", "fontconfig", "fonts-dejavu", "fonts-liberation"]
   }
