@@ -6,11 +6,19 @@ import { useState } from "react";
 // (depth 2). Deeper levels get progressively indented and a lighter
 // background, matching the look the old hardcoded 2-level version had for
 // its single child tier.
-function CategoryNode({ node, depth, expanded, toggleExpand, selectedCategories, toggleCategory }) {
+//
+// Plain click-to-navigate instead of checkboxes (changed 2026-08-21 —
+// checkboxes implied "combine multiple categories," which was confusing
+// most users even though a few CTAs elsewhere in the app do use that
+// multi-category URL format). Clicking a category name now selects ONLY
+// that one category, matching the familiar Amazon/idealo pattern; the
+// expand arrow is a separate click target so browsing into subcategories
+// doesn't also change the active filter.
+function CategoryNode({ node, depth, expanded, toggleExpand, selectedCategories, selectCategory }) {
   if (node.productCount === 0) return null; // hide empty categories
 
   const isOpen = expanded[node.slug] === true; // default collapsed
-  const isSelected = selectedCategories.includes(node.slug);
+  const isSelected = selectedCategories.length === 1 && selectedCategories[0] === node.slug;
   const visibleChildren = node.children?.filter((c) => c.productCount > 0) ?? [];
   // "Has children" means "has children worth expanding into" — a
   // category whose child rows all currently have 0 products (several
@@ -23,48 +31,42 @@ function CategoryNode({ node, depth, expanded, toggleExpand, selectedCategories,
       <div
         className="d-flex align-items-center px-3 py-2 gap-2 sidebar-cat-row"
         style={{
-          cursor: hasChildren ? "pointer" : "default",
-          userSelect: "none",
           paddingLeft: `${0.75 + depth * 0.75}rem`,
-          background: depth > 0 ? "var(--pg-blue-light)" : undefined,
+          background: isSelected ? "var(--pg-blue)" : depth > 0 ? "var(--pg-blue-light)" : undefined,
         }}
-        onClick={() => hasChildren && toggleExpand(node.slug)}
       >
-        <input
-          className="form-check-input mt-0 flex-shrink-0"
-          type="checkbox"
-          id={`cat-${node.slug}`}
-          checked={isSelected}
-          onChange={() => toggleCategory(node.slug)}
-          onClick={(e) => e.stopPropagation()}
-        />
-        <label
-          className={`form-check-label small flex-grow-1 mb-0${depth === 0 ? " fw-semibold" : ""}`}
-          // For parent rows, the label expands/collapses instead of
-          // selecting — it's the only part of the row with real width, so
-          // it's a far bigger, easier target than the tiny arrow icon. No
-          // htmlFor means no native browser label→checkbox click, and no
-          // onClick means the click bubbles up to the row's own onClick
-          // (toggleExpand) instead of being stopped here. Checkbox stays
-          // the one dedicated way to select a category either way.
-          htmlFor={hasChildren ? undefined : `cat-${node.slug}`}
-          style={{ cursor: "pointer" }}
-          onClick={hasChildren ? undefined : (e) => e.stopPropagation()}
+        <button
+          type="button"
+          aria-pressed={isSelected}
+          className={`btn btn-link p-0 text-start text-decoration-none small flex-grow-1${depth === 0 ? " fw-semibold" : ""}`}
+          style={{ color: isSelected ? "#ffffff" : "inherit" }}
+          onClick={() => selectCategory(node.slug)}
         >
           {node.name}
-          <span className="text-muted fw-normal ms-1">({node.productCount})</span>
-        </label>
+          <span className={isSelected ? "ms-1" : "text-muted fw-normal ms-1"} style={isSelected ? { opacity: 0.85 } : undefined}>
+            ({node.productCount})
+          </span>
+        </button>
         {hasChildren && (
-          <span
-            className="text-muted"
+          <button
+            type="button"
+            aria-expanded={isOpen}
+            aria-label={isOpen ? "Unterkategorien einklappen" : "Unterkategorien anzeigen"}
+            className={`btn btn-link p-2 ${isSelected ? "" : "text-muted"}`}
             style={{
               fontSize: 10,
+              lineHeight: 1,
+              color: isSelected ? "#ffffff" : undefined,
               transition: "transform 0.2s",
               transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
             }}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleExpand(node.slug);
+            }}
           >
             ▼
-          </span>
+          </button>
         )}
       </div>
 
@@ -78,7 +80,7 @@ function CategoryNode({ node, depth, expanded, toggleExpand, selectedCategories,
               expanded={expanded}
               toggleExpand={toggleExpand}
               selectedCategories={selectedCategories}
-              toggleCategory={toggleCategory}
+              selectCategory={selectCategory}
             />
           ))}
         </ul>
@@ -119,10 +121,14 @@ export default function Sidebar({
     setMaxPriceFilter(clamped);
   }
 
-  function toggleCategory(slug) {
-    setSelectedCategories((prev) =>
-      prev.includes(slug) ? prev.filter((c) => c !== slug) : [...prev, slug]
-    );
+  // Single-select: clicking a category replaces the whole selection rather
+  // than toggling it into a combined multi-category filter — checkboxes
+  // implying "combine categories" was confusing most users, even though a
+  // few CTAs elsewhere in the app still build multi-category URLs
+  // directly. Clicking the already-active category again clears it, same
+  // as the explicit "Alle Kategorien" link below.
+  function selectCategory(slug) {
+    setSelectedCategories((prev) => (prev.length === 1 && prev[0] === slug ? [] : [slug]));
   }
 
   function toggleExpand(slug) {
@@ -140,7 +146,18 @@ export default function Sidebar({
 
       {/* ── Categories ── */}
       <div className="card shadow-sm mb-3">
-        <div className="card-header fw-bold">Kategorien</div>
+        <div className="card-header fw-bold d-flex justify-content-between align-items-center">
+          Kategorien
+          {selectedCategories.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-link p-0 small fw-normal text-decoration-underline"
+              onClick={() => setSelectedCategories([])}
+            >
+              Alle Kategorien
+            </button>
+          )}
+        </div>
         <div className="card-body overflow-auto p-0" style={{ maxHeight: "45vh" }}>
           {isTree ? (
             <ul className="list-unstyled mb-0">
@@ -152,27 +169,32 @@ export default function Sidebar({
                   expanded={expanded}
                   toggleExpand={toggleExpand}
                   selectedCategories={selectedCategories}
-                  toggleCategory={toggleCategory}
+                  selectCategory={selectCategory}
                 />
               ))}
             </ul>
           ) : (
             // Fallback: flat list (old format)
             <div className="p-2">
-              {categories.map((cat) => (
-                <div key={cat.slug || cat} className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id={`cat-${cat.slug || cat}`}
-                    checked={selectedCategories.includes(cat.slug || cat)}
-                    onChange={() => toggleCategory(cat.slug || cat)}
-                  />
-                  <label className="form-check-label small" htmlFor={`cat-${cat.slug || cat}`}>
+              {categories.map((cat) => {
+                const slug = cat.slug || cat;
+                const isSelected = selectedCategories.length === 1 && selectedCategories[0] === slug;
+                return (
+                  <button
+                    key={slug}
+                    type="button"
+                    aria-pressed={isSelected}
+                    className="btn btn-link p-0 d-block text-start text-decoration-none small py-1"
+                    style={{
+                      color: isSelected ? "var(--pg-blue)" : undefined,
+                      fontWeight: isSelected ? 600 : undefined,
+                    }}
+                    onClick={() => selectCategory(slug)}
+                  >
                     {cat.name || cat}
-                  </label>
-                </div>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
