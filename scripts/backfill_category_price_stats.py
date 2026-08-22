@@ -6,11 +6,12 @@ slider can be scoped to whatever category is being browsed instead of
 one sitewide value. Computed here, in the same nightly cron as the
 sitewide site_stats values, never queried live from the app.
 
-The "effective" product set per category mirrors the conditional-rollup
-rule already used everywhere else (app/api/products/route.js,
-lib/categoryTree.js): a category with its own directly-assigned active
-products uses those; a purely organizational parent (zero own products)
-rolls up to its children's combined products instead.
+The "effective" product set per category always combines its own
+directly-assigned products with its children's, matching the always-sum
+rollup used everywhere else (app/api/products/route.js,
+lib/categoryTree.js) — not an either/or choice, since a category can
+have a real own-bucket AND much larger child categories at once
+(Elektroinstallation: 637 own vs. ~12,500 across its subcategories).
 """
 import os
 import psycopg2
@@ -32,21 +33,13 @@ def main():
     conn.commit()
 
     cur.execute("""
-        WITH own_counts AS (
-            SELECT category_id, COUNT(*) AS cnt
-            FROM products
-            WHERE is_active = TRUE AND in_stock = TRUE AND price > 0
-            GROUP BY category_id
-        ),
-        cat_effective AS (
+        WITH cat_effective AS (
             SELECT c.id AS category_id, c.id AS effective_id
             FROM categories c
             UNION ALL
             SELECT c.id AS category_id, ch.id AS effective_id
             FROM categories c
             JOIN categories ch ON ch.parent_id = c.id
-            LEFT JOIN own_counts oc ON oc.category_id = c.id
-            WHERE COALESCE(oc.cnt, 0) = 0
         )
         SELECT
             ce.category_id,

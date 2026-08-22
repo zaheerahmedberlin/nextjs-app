@@ -56,26 +56,19 @@ def main():
 
     # Per-category price ceilings — a single sitewide p95 is a bad fit for
     # categories whose real prices sit well above it (E-Scooter: p95 ~€1200
-    # vs. sitewide €500). "Effective" product set per category mirrors the
-    # conditional-rollup rule used everywhere else: a category with its own
-    # directly-assigned products uses those; a purely organizational parent
-    # (zero own products) rolls up to its children's combined products.
+    # vs. sitewide €500). "Effective" product set per category always
+    # combines its own directly-assigned products with its children's
+    # (not either/or — a category can have a real own-bucket AND much
+    # larger child categories at once, e.g. Elektroinstallation: 637 own
+    # vs. ~12,500 across its subcategories).
     cur.execute("""
-        WITH own_counts AS (
-            SELECT category_id, COUNT(*) AS cnt
-            FROM products
-            WHERE is_active = TRUE AND in_stock = TRUE AND price > 0
-            GROUP BY category_id
-        ),
-        cat_effective AS (
+        WITH cat_effective AS (
             SELECT c.id AS category_id, c.id AS effective_id
             FROM categories c
             UNION ALL
             SELECT c.id AS category_id, ch.id AS effective_id
             FROM categories c
             JOIN categories ch ON ch.parent_id = c.id
-            LEFT JOIN own_counts oc ON oc.category_id = c.id
-            WHERE COALESCE(oc.cnt, 0) = 0
         )
         SELECT
             ce.category_id,
