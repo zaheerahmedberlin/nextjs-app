@@ -178,7 +178,6 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   const [absoluteMaxPrice, setAbsoluteMaxPrice]         = useState(initialAbsoluteMaxPrice);
   const [currentPage, setCurrentPage]                   = useState(1);
   const [showOutOfStock, setShowOutOfStock]             = useState(false);
-  const [showInactiveProducts, setShowInactiveProducts] = useState(false);
 
   // Skip the first products fetch — we already have server-rendered initial products
   const isFirstMount = useRef(true);
@@ -294,7 +293,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
     debounceRef.current = setTimeout(loadProducts, 400);
     return () => clearTimeout(debounceRef.current);
   }, [searchQuery, selectedCategories, maxPriceFilter, sortOption, currentPage,
-      showOutOfStock, showInactiveProducts, showAllProducts]);
+      showOutOfStock, showAllProducts]);
 
   // Re-calibrate the price slider to whatever category is selected — a
   // single sitewide default is nearly useless for a category whose real
@@ -341,7 +340,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   // treat a deliberate high constraint as "untouched, no filter."
   const isDefaultView = !searchQuery && selectedCategories.length === 0 &&
     (maxPriceFilter === null || maxPriceFilter === defaultMaxPrice) &&
-    !showOutOfStock && !showInactiveProducts && !showAllProducts;
+    !showOutOfStock && !showAllProducts;
 
   async function loadProducts() {
     const params = new URLSearchParams({
@@ -349,7 +348,6 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       sort:            isDefaultView ? "priceAsc" : sortOption,
       page:            currentPage,
       inStockOnly:     showOutOfStock ? "false" : "true",
-      includeInactive: showInactiveProducts ? "true" : "false",
       ...(isDefaultView && { limit: 12 }),
       // Floor for "Günstigste Angebote heute" — excludes trivially-priced
       // novelty items (greeting cards, vouchers, etc.) that are technically
@@ -518,8 +516,6 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
               formatPrice={formatPrice}
               showOutOfStock={showOutOfStock}
               setShowOutOfStock={(v) => { setShowOutOfStock(v); resetPage(); }}
-              showInactiveProducts={showInactiveProducts}
-              setShowInactiveProducts={(v) => { setShowInactiveProducts(v); resetPage(); }}
             />
           </div>
 
@@ -543,8 +539,6 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                   formatPrice={formatPrice}
                   showOutOfStock={showOutOfStock}
                   setShowOutOfStock={(v) => { setShowOutOfStock(v); resetPage(); }}
-                  showInactiveProducts={showInactiveProducts}
-                  setShowInactiveProducts={(v) => { setShowInactiveProducts(v); resetPage(); }}
                 />
               </div>
             </div>

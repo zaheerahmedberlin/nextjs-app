@@ -100,8 +100,6 @@ export default function Sidebar({
   formatPrice,
   showOutOfStock,
   setShowOutOfStock,
-  showInactiveProducts,
-  setShowInactiveProducts,
 }) {
   const price = maxPriceFilter || 0;
   // Track which parent groups are expanded
@@ -248,20 +246,6 @@ export default function Sidebar({
               Nur verfügbare Artikel
             </label>
           </div>
-
-          <div className="form-check form-switch mb-3">
-            <input
-              className="form-check-input"
-              type="checkbox"
-              id="toggleActive"
-              checked={showInactiveProducts}
-              onChange={(e) => setShowInactiveProducts(e.target.checked)}
-            />
-            <label className="form-check-label small" htmlFor="toggleActive">
-              Inaktive Produkte anzeigen
-            </label>
-          </div>
-
         </div>
       </div>
 

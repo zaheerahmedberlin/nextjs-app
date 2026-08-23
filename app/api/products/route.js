@@ -45,13 +45,12 @@ export async function GET(request) {
   const page            = parseInt(searchParams.get("page") ?? "1");
   const limit           = Math.min(parseInt(searchParams.get("limit") ?? "24"), 100);
   const inStockOnly     = searchParams.get("inStockOnly") !== "false";
-  const includeInactive = searchParams.get("includeInactive") === "true";
   const vendor          = searchParams.get("vendor")?.trim() ?? "";
   const perVendorLimit  = parseInt(searchParams.get("perVendorLimit") ?? "0");
   const premiumOnly     = searchParams.get("premiumOnly") === "true";
   const excludeCategory = searchParams.get("excludeCategory") ?? "";
 
-  const cacheKey = `products:${q}:${category}:${minPrice}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${includeInactive}:${vendor}:${perVendorLimit}:${premiumOnly}:${excludeCategory}`;
+  const cacheKey = `products:${q}:${category}:${minPrice}:${maxPrice}:${sort}:${page}:${limit}:${inStockOnly}:${vendor}:${perVendorLimit}:${premiumOnly}:${excludeCategory}`;
   const cached = await cacheGet(cacheKey);
   if (cached) return NextResponse.json({ ...cached, source: "cache" });
 
@@ -59,7 +58,7 @@ export async function GET(request) {
   // features) — skip it for those queries rather than silently ignoring the filter.
   const esResult = (perVendorLimit > 0 || premiumOnly)
     ? null
-    : await searchProducts({ q, category, minPrice, maxPrice, sort, page, limit, inStockOnly, includeInactive });
+    : await searchProducts({ q, category, minPrice, maxPrice, sort, page, limit, inStockOnly });
   if (esResult) {
     await cacheSet(cacheKey, esResult, 300);
     return NextResponse.json({ ...esResult, source: "elasticsearch" });
@@ -68,9 +67,7 @@ export async function GET(request) {
   try {
     const { limit: pgLimit, offset } = paginate(page, limit);
     const params = [];
-    const conditions = [];
-
-    if (!includeInactive) conditions.push("p.is_active = TRUE");
+    const conditions = ["p.is_active = TRUE"];
 
     // Exclude free/misconfigured listings (e.g. promotional giveaway items
     // bundled in a vendor feed) — a €0 price isn't a real comparable offer
