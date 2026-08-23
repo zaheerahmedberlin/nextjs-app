@@ -4,6 +4,17 @@ import { cacheGet, cacheSet } from "@/lib/redis";
 import { buildCategoryTree } from "@/lib/categoryTree";
 import { NextResponse } from "next/server";
 
+// Without this, Next.js statically caches this route's response at BUILD
+// TIME (no dynamic request data is read here, so it looks eligible for
+// static optimization) — meaning any category change made via direct DB
+// write between deploys (the normal workflow for this project) would never
+// appear on the live site no matter how many times the Redis cache below
+// is flushed, since Redis was never actually the bottleneck. Found
+// 2026-08-23 when a newly created category didn't show up despite a fresh
+// Redis flush and a verified-correct DB row. /api/products/route.js
+// already had this same protection; this route was missing it.
+export const revalidate = 0;
+
 export async function GET() {
   const cacheKey = "categories:tree";
   const cached = await cacheGet(cacheKey);
