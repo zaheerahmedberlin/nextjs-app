@@ -609,29 +609,35 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
               maxPrice={maxPriceFilter !== defaultMaxPrice ? maxPriceFilter : null}
             />
 
-            {isDefaultView && (
-              <div className="mb-3">
-                <h2 className="h6 fw-bold text-muted mb-3">🔥 Günstigste Angebote heute</h2>
-              </div>
-            )}
+            {/* Filtered/search view: results grid goes right up top, same as always.
+                Default view (nobody has searched or filtered yet): the curated
+                category showcases below take this top slot instead — a wall of
+                whatever's structurally cheapest across the whole catalog (mostly
+                batteries, cables, toner right now) isn't a great first thing to
+                show a new visitor. The cheapest-price grid still exists in
+                default view, just demoted to the bottom of the curated stack
+                instead of hidden behind a click — see the block further down. */}
+            {!isDefaultView && (
+              <>
+                {!isLoading && products.length === 0 && fallbackTotal > 0 && (
+                  <div className="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <span>
+                      <strong>0 Ergebnisse</strong> für „{searchQuery}" in{" "}
+                      {selectedCategories.map((s) => slugToName(categories, s) ?? s).join(", ")} —{" "}
+                      {fallbackTotal.toLocaleString("de-DE")} Treffer in anderen Kategorien.
+                    </span>
+                    <button
+                      className="btn btn-sm btn-brand"
+                      onClick={() => { setSelectedCategories([]); resetPage(); }}
+                    >
+                      Alle Kategorien durchsuchen →
+                    </button>
+                  </div>
+                )}
 
-            {!isLoading && products.length === 0 && fallbackTotal > 0 && (
-              <div className="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                <span>
-                  <strong>0 Ergebnisse</strong> für „{searchQuery}" in{" "}
-                  {selectedCategories.map((s) => slugToName(categories, s) ?? s).join(", ")} —{" "}
-                  {fallbackTotal.toLocaleString("de-DE")} Treffer in anderen Kategorien.
-                </span>
-                <button
-                  className="btn btn-sm btn-brand"
-                  onClick={() => { setSelectedCategories([]); resetPage(); }}
-                >
-                  Alle Kategorien durchsuchen →
-                </button>
-              </div>
+                <ProductGrid products={products} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={isLoading} />
+              </>
             )}
-
-            <ProductGrid products={products} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={isLoading} />
 
             {isDefaultView && elektronikProducts.length > 0 && (
               <div className="mt-5">
@@ -699,6 +705,15 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                   </button>
                 </div>
                 <ProductGrid products={modeProducts} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={false} />
+              </div>
+            )}
+
+            {isDefaultView && (
+              <div className="mt-5">
+                <div className="mb-3">
+                  <h2 className="h6 fw-bold text-muted mb-3">🔥 Günstigste Angebote heute</h2>
+                </div>
+                <ProductGrid products={products} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={isLoading} />
               </div>
             )}
 
