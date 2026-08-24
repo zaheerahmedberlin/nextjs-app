@@ -657,12 +657,12 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
             {isDefaultView && moebelProducts.length > 0 && (
               <div className="mt-5">
                 <div className="d-flex align-items-center justify-content-between mb-3">
-                  <h2 className="h6 fw-bold mb-0">🛋️ Möbel & Einrichtung</h2>
+                  <h2 className="h6 fw-bold mb-0">🛋️ Sofas & Sessel</h2>
                   <button
                     className="btn btn-link btn-sm p-0 text-decoration-none"
                     onClick={() => { setSelectedCategories(["sitzen"]); resetPage(); }}
                   >
-                    Alle Möbel →
+                    Alle ansehen →
                   </button>
                 </div>
                 <ProductGrid products={moebelProducts} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={false} />
