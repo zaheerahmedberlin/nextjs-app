@@ -13,7 +13,7 @@ export const metadata = {
     template: "%s | Preisgucken – Preisvergleich",
   },
   description:
-    "Preisvergleich für Elektronik, Möbel und mehr aus deutschen Online-Shops. Günstigste Preise täglich aktualisiert – kostenlos & ohne Anmeldung.",
+    "Preisvergleich für Elektronik, Möbel und mehr aus deutschen Online-Shops – bundesweit, von Berlin bis München. Günstigste Preise täglich aktualisiert – kostenlos & ohne Anmeldung.",
 
   // ── Keywords (German market focused) ──────────────────────
   keywords: [
@@ -48,6 +48,31 @@ export const metadata = {
     "Vorhänge Preisvergleich",
     "Vitamine Preisvergleich",
     "Foto Zubehör Preisvergleich",
+
+    // City-level intent — the site is national, not city-specific, but a
+    // meaningful share of "Preisvergleich <Stadt>" search volume goes to
+    // whichever result mentions the city, even from a nationwide service.
+    // Top 50 German cities by population; deliberately NOT in the visible
+    // <title>/<meta description> since cramming 50 city names in there
+    // would look spammy and hurt click-through — this array is metadata
+    // only, not rendered anywhere on the page.
+    "Preisvergleich Berlin", "Preisvergleich Hamburg", "Preisvergleich München",
+    "Preisvergleich Köln", "Preisvergleich Frankfurt", "Preisvergleich Stuttgart",
+    "Preisvergleich Düsseldorf", "Preisvergleich Leipzig", "Preisvergleich Dortmund",
+    "Preisvergleich Essen", "Preisvergleich Bremen", "Preisvergleich Dresden",
+    "Preisvergleich Hannover", "Preisvergleich Nürnberg", "Preisvergleich Duisburg",
+    "Preisvergleich Bochum", "Preisvergleich Wuppertal", "Preisvergleich Bielefeld",
+    "Preisvergleich Bonn", "Preisvergleich Münster", "Preisvergleich Mannheim",
+    "Preisvergleich Karlsruhe", "Preisvergleich Augsburg", "Preisvergleich Wiesbaden",
+    "Preisvergleich Mönchengladbach", "Preisvergleich Gelsenkirchen", "Preisvergleich Braunschweig",
+    "Preisvergleich Kiel", "Preisvergleich Aachen", "Preisvergleich Chemnitz",
+    "Preisvergleich Halle", "Preisvergleich Magdeburg", "Preisvergleich Freiburg",
+    "Preisvergleich Krefeld", "Preisvergleich Lübeck", "Preisvergleich Mainz",
+    "Preisvergleich Erfurt", "Preisvergleich Oberhausen", "Preisvergleich Rostock",
+    "Preisvergleich Kassel", "Preisvergleich Hagen", "Preisvergleich Potsdam",
+    "Preisvergleich Saarbrücken", "Preisvergleich Hamm", "Preisvergleich Mülheim an der Ruhr",
+    "Preisvergleich Ludwigshafen", "Preisvergleich Leverkusen", "Preisvergleich Oldenburg",
+    "Preisvergleich Osnabrück", "Preisvergleich Solingen",
   ],
 
   // ── Canonical & alternates ─────────────────────────────────
