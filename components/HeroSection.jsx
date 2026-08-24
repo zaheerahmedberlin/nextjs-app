@@ -35,6 +35,14 @@ export default function HeroSection({ searchQuery, setSearchQuery, setCurrentPag
             <i className="bi bi-search" aria-hidden="true"></i> Suchen
           </button>
         </div>
+        {/* Deliberately qualitative, not a live-computed digit — an exact
+            count either needs constant upkeep or (worse) undersells the
+            catalog if scoped to a filtered subset. Several single
+            categories alone already exceed 70,000 products, so "hundreds
+            of thousands" is true regardless of the day-to-day total. */}
+        <p className="text-muted small mt-2 mb-0">
+          Hunderttausende Produkte zum Vergleichen
+        </p>
       </div>
     </section>
   );
