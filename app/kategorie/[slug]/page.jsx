@@ -117,8 +117,23 @@ export default async function KategoriePage({ params, searchParams }) {
     children: [...directChildren, ...linkedRes.rows],
   };
 
-  // Fetch top 24 products server-side (gives Google real content to index)
-  const catIds = [category.id, ...category.children.map((c) => c.id)];
+  // Fetch top 24 products server-side (gives Google real content to index).
+  // Recursive because the tree can go 3+ levels deep (Möbel > Schlafen >
+  // Betten) — direct children alone would miss products filed on the
+  // grandchildren, same bug as the one fixed in app/api/products/route.js
+  // (found 2026-08-24 right after creating the Möbel parent).
+  const descendantsRes = await query(
+    `WITH RECURSIVE descendants AS (
+       SELECT id FROM categories WHERE id = $1
+       UNION ALL
+       SELECT ch.id FROM categories ch JOIN descendants d ON ch.parent_id = d.id
+     )
+     SELECT id FROM descendants`,
+    [category.id]
+  );
+  const catIds = [
+    ...new Set([...descendantsRes.rows.map((r) => r.id), ...category.children.map((c) => c.id)]),
+  ];
 
   // Vendor filter (?vendor=SIRUI+Optical) — narrows the same category view
   // to one vendor's products, e.g. useful when one vendor dominates a

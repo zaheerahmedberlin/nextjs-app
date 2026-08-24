@@ -7,11 +7,15 @@ one sitewide value. Computed here, in the same nightly cron as the
 sitewide site_stats values, never queried live from the app.
 
 The "effective" product set per category always combines its own
-directly-assigned products with its children's, matching the always-sum
-rollup used everywhere else (app/api/products/route.js,
-lib/categoryTree.js) — not an either/or choice, since a category can
-have a real own-bucket AND much larger child categories at once
-(Elektroinstallation: 637 own vs. ~12,500 across its subcategories).
+directly-assigned products with every descendant's at any depth,
+matching the always-sum rollup used everywhere else
+(app/api/products/route.js, lib/categoryTree.js) — not an either/or
+choice, since a category can have a real own-bucket AND much larger
+child categories at once (Elektroinstallation: 637 own vs. ~12,500
+across its subcategories). Recursive rather than one level of children
+because the tree can go 3+ deep (Möbel > Schlafen > Betten) — a plain
+one-level join silently drops grandchild products, found 2026-08-24
+right after creating the Möbel parent.
 """
 import os
 import psycopg2
@@ -33,13 +37,13 @@ def main():
     conn.commit()
 
     cur.execute("""
-        WITH cat_effective AS (
+        WITH RECURSIVE cat_effective AS (
             SELECT c.id AS category_id, c.id AS effective_id
             FROM categories c
             UNION ALL
-            SELECT c.id AS category_id, ch.id AS effective_id
-            FROM categories c
-            JOIN categories ch ON ch.parent_id = c.id
+            SELECT ce.category_id, ch.id AS effective_id
+            FROM cat_effective ce
+            JOIN categories ch ON ch.parent_id = ce.effective_id
         )
         SELECT
             ce.category_id,

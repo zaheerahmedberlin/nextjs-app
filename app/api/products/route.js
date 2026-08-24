@@ -90,30 +90,38 @@ export async function GET(request) {
       // Support comma-separated slugs e.g. "sofas,betten" or single slug
       const slugs = category.split(",").map((s) => s.trim()).filter(Boolean);
       if (slugs.length === 1) {
-        // Match the category itself, plus all of its children, always —
-        // matching the displayed count (lib/categoryTree.js sums own +
-        // every descendant, never either/or). Previously only rolled up
-        // when the parent had zero own products, which undercounted the
-        // click-through for parents with substantial content in both
-        // their own bucket AND their subcategories (Elektroinstallation:
-        // 637 own vs. ~12,500 across Schalter/Sicherungen/Smart-Home —
-        // the displayed total promised 13,123 but clicking only delivered
-        // 637, found 2026-08-22). Subcategories remain a real narrowing
-        // tool — clicking one directly still scopes to just that slug.
+        // Match the category itself, plus every descendant at any depth,
+        // always — matching the displayed count (lib/categoryTree.js sums
+        // own + every descendant, never either/or). Previously only rolled
+        // up one level of children, which undercounted the click-through
+        // for parents with substantial content in both their own bucket
+        // AND their subcategories (Elektroinstallation: 637 own vs.
+        // ~12,500 across Schalter/Sicherungen/Smart-Home — the displayed
+        // total promised 13,123 but clicking only delivered 637, found
+        // 2026-08-22). Recursive because the tree can now go 3+ levels
+        // deep (Möbel > Schlafen > Betten) — a single UNION of direct
+        // children silently dropped the actual grandchild products,
+        // found 2026-08-24 right after creating the Möbel parent.
+        // Subcategories remain a real narrowing tool — clicking one
+        // directly still scopes to just that slug's own subtree.
         params.push(slugs[0]);
         conditions.push(`p.category_id IN (
-          SELECT id FROM categories WHERE slug = $${params.length}
-          UNION
-          SELECT ch.id FROM categories ch
-          WHERE ch.parent_id = (SELECT id FROM categories WHERE slug = $${params.length})
+          WITH RECURSIVE descendants AS (
+            SELECT id FROM categories WHERE slug = $${params.length}
+            UNION ALL
+            SELECT ch.id FROM categories ch JOIN descendants d ON ch.parent_id = d.id
+          )
+          SELECT id FROM descendants
         )`);
       } else {
         params.push(slugs);
         conditions.push(`p.category_id IN (
-          SELECT id FROM categories WHERE slug = ANY($${params.length})
-          UNION
-          SELECT ch.id FROM categories ch
-          WHERE ch.parent_id IN (SELECT id FROM categories WHERE slug = ANY($${params.length}))
+          WITH RECURSIVE descendants AS (
+            SELECT id FROM categories WHERE slug = ANY($${params.length})
+            UNION ALL
+            SELECT ch.id FROM categories ch JOIN descendants d ON ch.parent_id = d.id
+          )
+          SELECT id FROM descendants
         )`);
       }
     }

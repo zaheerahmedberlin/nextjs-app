@@ -57,18 +57,21 @@ def main():
     # Per-category price ceilings — a single sitewide p95 is a bad fit for
     # categories whose real prices sit well above it (E-Scooter: p95 ~€1200
     # vs. sitewide €500). "Effective" product set per category always
-    # combines its own directly-assigned products with its children's
-    # (not either/or — a category can have a real own-bucket AND much
-    # larger child categories at once, e.g. Elektroinstallation: 637 own
-    # vs. ~12,500 across its subcategories).
+    # combines its own directly-assigned products with every descendant's
+    # at any depth (not either/or — a category can have a real own-bucket
+    # AND much larger child categories at once, e.g. Elektroinstallation:
+    # 637 own vs. ~12,500 across its subcategories). Recursive rather than
+    # one level of children because the tree can go 3+ deep (Möbel >
+    # Schlafen > Betten) — a plain one-level join silently drops grandchild
+    # products, found 2026-08-24 right after creating the Möbel parent.
     cur.execute("""
-        WITH cat_effective AS (
+        WITH RECURSIVE cat_effective AS (
             SELECT c.id AS category_id, c.id AS effective_id
             FROM categories c
             UNION ALL
-            SELECT c.id AS category_id, ch.id AS effective_id
-            FROM categories c
-            JOIN categories ch ON ch.parent_id = c.id
+            SELECT ce.category_id, ch.id AS effective_id
+            FROM cat_effective ce
+            JOIN categories ch ON ch.parent_id = ce.effective_id
         )
         SELECT
             ce.category_id,
