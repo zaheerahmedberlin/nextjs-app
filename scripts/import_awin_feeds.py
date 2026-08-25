@@ -515,12 +515,82 @@ def guess_esr_category(category_text, title=None):
         return 200  # Handyhüllen
     return 94  # Handy & Tablet
 
+# Cosmetière — classic AWIN feed, merchant_category is a clean, well-
+# organized German taxonomy (unlike ESR's English Darwin format), but the
+# generic guesser's CATEGORY_KEYWORDS has no cosmetics rules at all, so
+# every row would fall straight to Sonstiges on the next sync without an
+# override — same failure mode as ESR, caught before it happened this time.
+#
+# "Erotik" (66 rows: lubricants, intimate items) is skipped outright, not
+# routed anywhere — same German-advertising-law call as Voghion's Vape/Sex
+# Products exclusion, not appropriate for a general-audience site.
+#
+# "Make-up" and "Kinder & Babys" are single blanket merchant_category
+# buckets covering several genuinely different product types each — split
+# by title keyword (incl. Spanish terms — the feed's product names mix
+# English/German/Spanish). "Kinder & Babys" items with "Case"/"Bag" in the
+# title looked like a backpack-vs-toiletries split at first glance, but
+# they're all cosmetic gift sets *packaged in* a themed bag/case (e.g.
+# "Mustela Baby-Boy Jungle Toiletry Bag Case 5 Pcs"), not standalone
+# luggage — confirmed by full-title review before shipping, not left as
+# an assumption. All of it stays in Baby-Ausstattung.
+COSMETIERE_NAIL_KW = ["nail", "nagel", "esmalte"]
+COSMETIERE_LIP_KW = ["lip", "lippen", "labial", "barra de labios", "lápiz de labios"]
+COSMETIERE_EYE_KW = ["mascara", "eyeliner", "eyeshadow", "lidschatten", "wimperntusche",
+                      "eye brow", "eyebrow", "augenbrauen", "eye ", "eyelash", "false lash",
+                      "wimper", "delineador", "pestañas", "sombra de ojos", "rimel"]
+COSMETIERE_FACE_KW = ["foundation", "concealer", "puder", "powder", "rouge", "blush",
+                       "bronzer", "contour", "primer", "make-up base", "bb cream",
+                       "cc cream", "colorete"]
+
+COSMETIERE_CATEGORY_MAP = {
+    "Haare": 157,            # Haarpflege
+    "Hygiene": 156,          # Körperpflege
+    "Körperkosmetik": 156,   # Körperpflege
+    "Gesundheit": 41,        # Gesundheit & Pflege
+    "Ernährung": 41,
+    "Sporternährung": 41,
+    "Haustiere": 170,        # Tierbedarf
+    "Homecare": 145,         # Reinigung & Wäsche — household paper/cleaning, not cosmetics
+    "Gesichtskosmetik": 155, # Gesichtspflege
+    "Parfums": 201,          # Parfüm (new)
+    "Sonnenpflege": 203,     # Sonnenschutz (new)
+    "Brillen": 204,          # Brillen (new, under Mode & Accessories)
+}
+
+def guess_cosmetiere_category(merchant_category, title=None):
+    if merchant_category in COSMETIERE_CATEGORY_MAP:
+        return COSMETIERE_CATEGORY_MAP[merchant_category]
+    if merchant_category == "Make-up":
+        t = (title or "").lower()
+        if any(k in t for k in COSMETIERE_NAIL_KW):
+            return 202  # Nägel (new)
+        if any(k in t for k in COSMETIERE_LIP_KW):
+            return 154  # Lippen
+        if any(k in t for k in COSMETIERE_EYE_KW):
+            return 153  # Make-up Augen
+        return 152  # Make-up Gesicht (also the default for unmatched Make-up)
+    if merchant_category == "Kinder & Babys":
+        return 168  # Baby-Ausstattung
+    return 9  # Mode/Wines/Sport stray rows (1 each) + anything unexpected
+
 VENDOR_OVERRIDES = {
     "ESR Tech (EU)": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
         "excluded_title_substrings": set(),
         "category_fn": guess_esr_category,
+    },
+    "Cosmetière": {
+        # "Erotik" (66 rows: lubricants, intimate items) — German
+        # advertising law risk for a general-audience site, same call as
+        # Voghion's Vape/Sex Products exclusion. merchant_category has no
+        # "/" hierarchy for this vendor, so the whole value is the "top
+        # level" — an exact-match exclusion here, not a substring one.
+        "excluded_top_level": {"erotik"},
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_cosmetiere_category,
     },
     "Centa-Star DE": {
         "excluded_top_level": set(),
