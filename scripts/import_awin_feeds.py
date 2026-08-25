@@ -680,58 +680,7 @@ def guess_babymarkt_category(merchant_category, title=None):
         return 205 if "fahrrad" in t else 216  # Fahrräder / Kindersitze (new)
     return 9  # unexpected merchant_category — none seen in the real feed
 
-# DentaTec DE — a B2B dental-practice/lab supplier (denta-tec.com), not
-# a consumer oral-care brand; onboarded as-is per explicit user decision
-# 2026-08-25 despite ~all of it being professional equipment/consumables
-# (dental X-ray machines up to six figures, lab materials, instruments).
-# merchant_category's top level maps directly for most rows, but the
-# "Marken" bucket (11,923 rows) only carries a brand name as its second
-# level with zero product-type signal, and "Keine Kategorie" is blank —
-# both fall back to a title-keyword guess, defaulting to
-# Verbrauchsmaterial since most unmatched brand-only rows are genuinely
-# consumables rather than capital equipment.
-DENTATEC_GERAET_KW = ['gerät', 'turbine', 'scaler', 'röntgen', 'autoklav', 'polymerisationslamp',
-                      'handstück', 'winkelstück', 'alginat mixer', 'kapselmisch', 'ozontherapie',
-                      'foliensiegel', 'intraorale kamera', 'kompressor', 'absauganlage',
-                      'air polisher', 'endomotor', 'wurzelkanalmotor', 'apexlokator',
-                      'lichthärtungsgerät', 'sterilisator']
-DENTATEC_LABOR_KW = ['zirkon', 'gips', 'wachs', 'legierung', 'modellier', 'tiefzieh',
-                     'kieferorthopädie', 'ultraschallreiniger', 'löffelherstellung',
-                     'implantatsystem', 'lupenleuchte', 'brennofen', 'sinter', 'fräs', 'keramik',
-                     'dublier', 'einbettmasse', 'küvette']
-DENTATEC_EINRICHTUNG_KW = ['schutzbrille', 'lupenbrille', 'rollwagen', 'dental cart', 'dekoration',
-                          'beleuchtung', 'defibrillator', 'notfallkoffer', 'behandlungseinheit',
-                          'hängeschrank', 'arbeitsstuhl', 'hocker', 'multifunktionswagen',
-                          'leuchtkasten', 'akustikbild']
-
-def guess_dentatec_category(merchant_category, title=None):
-    top = (merchant_category or '').split('>')[0].strip()
-    if top == 'Verbrauchsmaterial':
-        return 218
-    if top == 'Laborbedarf':
-        return 219
-    if top == 'Dentalgeräte':
-        return 220
-    if top == 'Einrichtung':
-        return 221
-    if top == 'Digital Workflow':
-        return 219
-    t = (title or '').lower()
-    if any(k in t for k in DENTATEC_GERAET_KW):
-        return 220  # Dentalgeräte
-    if any(k in t for k in DENTATEC_LABOR_KW):
-        return 219  # Laborbedarf
-    if any(k in t for k in DENTATEC_EINRICHTUNG_KW):
-        return 221  # Praxiseinrichtung
-    return 218  # Verbrauchsmaterial (default)
-
 VENDOR_OVERRIDES = {
-    "DentaTec DE": {
-        "excluded_top_level": set(),
-        "excluded_substrings": set(),
-        "excluded_title_substrings": set(),
-        "category_fn": guess_dentatec_category,
-    },
     "babymarkt DE": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
