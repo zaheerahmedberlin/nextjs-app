@@ -644,7 +644,50 @@ def guess_kohl_category(_merchant_category, title=None):
         return 209
     return 209  # default: the vendor is overwhelmingly motorcycle parts
 
+# babymarkt DE — 2 combined AWIN feeds, classic format with real,
+# discriminating merchant_category values (unlike most vendors this
+# override list handles). The clothing bucket ("Mode") covers the
+# vendor's own stated 0-6-year range with no per-item size data in the
+# feed (description "size-looking" numbers turned out to be fabric
+# composition percentages, not garment sizes) — the vendor's own
+# homepage says they run one unified "Mode"/"Babymode" line rather than
+# splitting baby vs. kids clothing themselves, so per explicit user
+# decision (2026-08-25) the whole non-maternity clothing bucket routes
+# to Baby-Ausstattung(168) rather than the general Kinderbekleidung(165).
+def guess_babymarkt_category(merchant_category, title=None):
+    t = (title or "").lower()
+    mc = merchant_category or ""
+    if mc == "Mode":
+        if "umstand" in t or "maternity" in t:
+            return 75 if "kleid" in t else 211  # Umstandskleider / Umstandsmode (new)
+        return 168  # Baby-Ausstattung
+    if mc == "Kinderzimmer":
+        return 212  # Kinderzimmer (new)
+    if mc == "Spielzeug":
+        # A handful of kindergarten backpacks/toiletry bags get filed by
+        # the vendor under Toys, not clothing/accessories.
+        if "rucksack" in t or "kulturbeutel" in t:
+            return 95  # Taschen & Koffer
+        return 137  # Spielzeug
+    if mc == "Unterwegs":
+        return 213  # Kinderwagen & Unterwegs (new)
+    if mc == "Pflegeprodukte":
+        return 214  # Pflege & Baden (new)
+    if mc == "Ernährung":
+        return 215  # Ernährung (new)
+    if mc == "Kindersitze":
+        # 2 genuine bicycle child seats hide in the car-seat bucket.
+        return 205 if "fahrrad" in t else 216  # Fahrräder / Kindersitze (new)
+    return 9  # unexpected merchant_category — none seen in the real feed
+
 VENDOR_OVERRIDES = {
+    "babymarkt DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        # Gift vouchers aren't a comparable product.
+        "excluded_title_substrings": {"geschenkgutschein"},
+        "category_fn": guess_babymarkt_category,
+    },
     "Kohl DE": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
