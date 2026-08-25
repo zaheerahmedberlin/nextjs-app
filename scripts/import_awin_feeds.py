@@ -574,7 +574,35 @@ def guess_cosmetiere_category(merchant_category, title=None):
         return 168  # Baby-Ausstattung
     return 9  # Mode/Wines/Sport stray rows (1 each) + anything unexpected
 
+# isinwheel.DE — classic AWIN feed, but merchant_category is a single
+# uniform value ("Cycling") on every row with zero discriminating power,
+# so this override is title-only. The feed mixes three genuinely
+# different product lines under that one label: adult street-legal
+# e-scooters, children's electric ride-on toys (ages 3-12), and e-bikes
+# — plus, unrelated to any of those, a small run of home-fitness walking
+# pads. Researched against idealo.de's live category structure before
+# creating new categories, 2026-08-25: idealo files e-bikes under
+# Fahrräder > E-Bikes (a bicycle subtype, not grouped with scooters) and
+# treadmills under Fitness & Krafttraining > Laufbänder (its own
+# vertical, unrelated to e-mobility) — this site's new categories (205-208)
+# mirror that structure.
+def guess_isinwheel_category(_merchant_category, title=None):
+    t = (title or "").lower()
+    if "kinder" in t or "jungen" in t or "minispider" in t or ("s4" in t and "roller" in t) or ("s7" in t and "roller" in t):
+        return 137  # Spielzeug — ages 3-12, not the adult E-Scooter category
+    if "laufband" in t:
+        return 208  # Laufbänder
+    if "e-bike" in t or "e-mountainbike" in t or "e-fatbike" in t or "fatbike" in t:
+        return 206  # E-Bikes
+    return 180  # E-Scooter (incl. the E-Scooter battery spare part)
+
 VENDOR_OVERRIDES = {
+    "isinwheel.DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_isinwheel_category,
+    },
     "ESR Tech (EU)": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
