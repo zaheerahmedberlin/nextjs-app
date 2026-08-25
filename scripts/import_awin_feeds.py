@@ -596,7 +596,61 @@ def guess_isinwheel_category(_merchant_category, title=None):
         return 206  # E-Bikes
     return 180  # E-Scooter (incl. the E-Scooter battery spare part)
 
+# Kohl DE — 5 combined AWIN data feeds (Harley-Davidson, BMW Motorrad,
+# a multi-brand touring feed, AC Schnitzer, and Wunderlich) under one
+# vendor, all sharing a blank merchant_category, so this override is
+# title-only. The BMW feed mixes genuine motorcycle parts and genuine
+# BMW/MINI car-tuning parts together; AC Schnitzer likewise sells both
+# BMW car tuning AND BMW motorcycle parts (verified via real model names
+# like R nineT/K1600/S1000RR appearing inside its car-tuning-branded
+# feed), so a per-feed split would have been wrong — this classifies
+# every row by title content instead. Several early keyword attempts
+# false-positived badly before this version: a bare "gs" matched inside
+# "LeiSTUNGSteigerung" (292 AC Schnitzer items), "bremsbelä" and
+# "auspuffblende" are generic terms Harley uses too, "mini " matched
+# "BatWing Mini Ape Hanger" (a small handlebar, not the MINI car brand),
+# bare "1er"-"7er" matched pack-quantity notation ("Ölwechsel Kit 4er")
+# and model years ("1962er"), and a bare "m performance" substring
+# matched inside "Cam Performance" / "Goldstorm Performance" (Harley
+# items). Caught and fixed before import, 2026-08-25, via full
+# cross-tabulation by data_feed_id against the real 18,323-row feed.
+KOHL_MOTO_MODEL_KW = ['rninet', 'r ninet', 'r nine', 'k1600', 'k 1600', 'k1200', 'k1300', 'k70', 'k72',
+                      's1000xr', 's1000rr', 's 1000', 'r1200', 'r1250', 'f800', 'f850', 'f750', 'f700', 'f650']
+KOHL_MOTO_GENERIC_KW = ['motorrad', 'topcase', 'koffersystem', 'windschutzscheibe', 'sturzbügel', 'fußrasten',
+                        'fussraste', 'satteltasche', 'hecktasche', 'kettenschutz', 'kardanantrieb',
+                        'schutzblech', 'enduro', 'systemkoffer', 'kofferhalter', 'sena', 'zega', 'touratech',
+                        'akrapovic', 'spiegelglas', 'windabweiser', 'sportschalldämpfer', 'schalldämpfer',
+                        'hp carbon', 'airbox', 'höckerabdeckung', 'seitentasche', 'sozius', 'kupplungshebel',
+                        'bremshebel', 'tankrucksack', 'sitzbank', 'ventildeckelschutz', 'rückenpolster',
+                        'montageständer', 'motorschutzbügel', 'handschutz', 'handprotektor', 'innentasche',
+                        'für koffer', 'für tourenkoffer', 'rahmenschutz', 'gabelfedern', 'federbein',
+                        'tieferlegung', 'radabdeckung vorne', 'rallye-sitzbank', 'schließzylinder',
+                        'gepäckplatte', 'harley', ' hd ', 'wunderlich', 'ape hanger', 'lenker',
+                        'gepäckträger', 'ölwechsel kit']
+KOHL_CAR_CHASSIS_RE = re.compile(r'\b(e46|e60|e8[1278]|e9[0123]|f2[0123]|f2[56]|f3[0136]|f8[0235-7]|f90|g3[01])\b', re.I)
+KOHL_M_PERFORMANCE_RE = re.compile(r'\bm performance\b', re.I)
+KOHL_CAR_BRAND_KW = ['ac schnitzer', 'frontziergitter', 'ladeluftkühler', 'seitenschweller', 'heckdiffusor',
+                     'heckspoiler', 'schaltknauf', 'wählhebel', 'fahrradhalter', 'schlüsseletui',
+                     'alu-pedale', 'scheibenwischer', 'wischerblatt']
+
+def guess_kohl_category(_merchant_category, title=None):
+    t = (title or "").lower()
+    if any(k in t for k in KOHL_MOTO_MODEL_KW):
+        return 209  # Motorradzubehör
+    if (KOHL_CAR_CHASSIS_RE.search(t) or KOHL_M_PERFORMANCE_RE.search(t) or any(k in t for k in KOHL_CAR_BRAND_KW)
+            or t.strip().startswith('mini ') or t.startswith('i3 ')):
+        return 210  # Tuning
+    if any(k in t for k in KOHL_MOTO_GENERIC_KW):
+        return 209
+    return 209  # default: the vendor is overwhelmingly motorcycle parts
+
 VENDOR_OVERRIDES = {
+    "Kohl DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_kohl_category,
+    },
     "isinwheel.DE": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
