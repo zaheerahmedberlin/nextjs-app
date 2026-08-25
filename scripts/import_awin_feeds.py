@@ -232,8 +232,34 @@ def guess_dowinx_category(_category_text, title=None):
         return 9  # Sonstiges
     return 17  # Sessel
 
-def guess_voghion_category(product_type, _title=None):
+def guess_voghion_category(product_type, title=None):
     pt = product_type.lower()
+    t = (title or "").lower()
+
+    # Voghion's "cellphones & telecommunications" product_type is a single
+    # blanket bucket covering phone cases, watch bands, chargers, AND (for
+    # this marketplace-style feed) actual counterfeit/generic phone and
+    # tablet listings all at once — title-level detail the product_type
+    # field doesn't carry. Checked before the coarse product_type rule
+    # below. Found 2026-08-25 while sorting Handy & Tablet sitewide: 1,878
+    # of 3,003 non-ESR products in that category were plain cases/covers,
+    # not accessories in the electronics sense (user: a case isn't
+    # electronics). Reuses the same PHONE_CASE_KEYWORDS list — same product
+    # type, same rule.
+    if "band für apple watch" in t or re.search(r"apple watch \d+ \w+ m[gb] (s/m|m/l|m\b)", t):
+        return 98  # Smartwatch-Armbänder
+    if any(k in t for k in PHONE_CASE_KEYWORDS):
+        return 200  # Handyhüllen
+    # A handful of genuine complete-device listings (not accessories) hide
+    # in this bucket too — deliberately exact-substring, not a broad
+    # "smartphone"/"tablet" keyword, since those words appear constantly in
+    # real accessory titles ("Halterung für Smartphones") and a loose
+    # keyword match swallowed almost the entire category on the first pass.
+    if "android-gaming-tablet" in t or "tablet-pc" in t or ("tablet computer" in t and "android" in t):
+        return 32  # Tablets & Zubehör
+    if re.search(r"\bsmartphone\b.*(neues modell|hd-display|dual-sim)", t) or "ultra 7,3-zoll-smartphone" in t:
+        return 28  # Smartphones
+
     leaf = pt.rsplit("/", 1)[-1].strip()
     for keyword, cat_id in VOGHION_CATEGORY_RULES:
         if keyword in VOGHION_LEAF_ONLY_KEYWORDS:
@@ -461,7 +487,41 @@ def guess_centastar_category(category_text, title=None):
     # already-correct products on the next sync.
     return guess_category(category_text, title)
 
+# ESR Tech (EU) — Darwin/Google Shopping feed, sells almost nothing but
+# mobile/tablet accessories, but the generic guesser has no rule for that
+# at all: English product_type text like "Electronics > Communications >
+# Telephony > Mobile Phone Accessories > Mobile Phone Cases" never matches
+# any German keyword in CATEGORY_KEYWORDS, so most rows fell through to
+# Sonstiges (9), and the "Computer Accessories"-labeled rows (keyboards,
+# PDA cases, mice) matched "computer" and landed on the bare Elektronik
+# parent (27) instead of a real leaf category. Found 2026-08-25, one
+# nightly sync after onboarding — it had already silently overwritten the
+# hand-done categorization from the import.
+#
+# Cases/covers/wallets are routed to the standalone Handyhüllen category
+# (200) rather than Handy & Tablet (94) — a protective case isn't
+# electronics, per explicit user decision 2026-08-25. Genuine electronics
+# accessories (screen/keyboard protectors, chargers, power banks, stylus
+# pens, camera lens attachments) stay in Handy & Tablet.
+PHONE_CASE_KEYWORDS = ["case", "wallet", "cover", "sleeve", "hülle"]
+
+def guess_esr_category(category_text, title=None):
+    text = ((category_text or "") + " " + (title or "")).lower()
+    if "watch band" in text:
+        return 98  # Smartwatch-Armbänder
+    if "vehicle" in text:
+        return 144  # Auto & Fahrzeugzubehör
+    if any(kw in text for kw in PHONE_CASE_KEYWORDS):
+        return 200  # Handyhüllen
+    return 94  # Handy & Tablet
+
 VENDOR_OVERRIDES = {
+    "ESR Tech (EU)": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_esr_category,
+    },
     "Centa-Star DE": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
