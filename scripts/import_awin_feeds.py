@@ -589,7 +589,11 @@ VENDOR_OVERRIDES = {
         # level" — an exact-match exclusion here, not a substring one.
         "excluded_top_level": {"erotik"},
         "excluded_substrings": set(),
-        "excluded_title_substrings": set(),
+        # Condoms (9 rows) are filed under "Gesundheit", not "Erotik" —
+        # the merchant_category exclusion above doesn't catch them.
+        # User explicitly asked to apply the same conservative standard
+        # here as Erotik, 2026-08-25.
+        "excluded_title_substrings": {"condom"},
         "category_fn": guess_cosmetiere_category,
     },
     "Centa-Star DE": {
