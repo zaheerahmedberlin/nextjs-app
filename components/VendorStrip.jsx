@@ -7,6 +7,9 @@ const VENDORS = [
   { name: "Dowinx",            logo: "/vendors/dowinx.png",         filter: "Dowinx" },
   { name: "BlazeVideo",        logo: "/vendors/blazevideo.png",     filter: "BlazeVideo DE" },
   { name: "GERMENS",           logo: "/vendors/germens.png",        filter: "GERMENS DE" },
+  { name: "Acer",              logo: "/vendors/acer.png",           filter: "Acer DE" },
+  { name: "babymarkt",         logo: "/vendors/babymarkt.svg",      filter: "babymarkt DE" },
+  { name: "Kohl",              logo: "/vendors/kohl.svg",           filter: "Kohl DE" },
 ];
 
 export default function VendorStrip() {
