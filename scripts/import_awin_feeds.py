@@ -726,7 +726,73 @@ def guess_0815_category(merchant_category, title=None):
         return 215  # Ernährung
     return guess_category(merchant_category, title)
 
+# Acer DE — 3 combined AWIN feeds. merchant_category is unusable: one
+# feed has real "Elektroartikel > ..." paths, the other two are
+# promotional/bundle campaign names ("Accessories", "Gaming",
+# "10% OFF PROMO", "AI PC Bundle", ...) that mix every product type
+# together, or blank entirely — so this is title-only, matching
+# existing category types (not brand-line names like Predator/Swift/
+# Aspire, which each span multiple product types). No refurbished/
+# renewed line exists in this feed or on Acer's live DE storefront as
+# of 2026-08-26 — checked before onboarding, per explicit user request
+# to eventually give one its own top-level menu once it actually exists.
+def guess_acer_category(_merchant_category, title=None):
+    t = (title or "").lower()
+    if "schreibtisch" in t:
+        return 4    # Tische
+    if "gaming-stuhl" in t or "gaming chair" in t:
+        return 17   # Sessel
+    if "grafikkarte" in t:
+        return 127  # PC-Komponenten
+    if "usb-stick" in t or "cd/dvd writer" in t or "portable cd" in t:
+        return 126  # Speicher & Laufwerke
+    if "gaming-controller" in t or "gaming controller" in t:
+        return 190  # Gaming-Controller
+    if "headset" in t:
+        return 34   # Kopfhörer
+    if "webcam" in t or "3d camera" in t:
+        return 194  # Webcams & Videokonferenz
+    if "koffer" in t or "gepäck" in t:
+        return 95   # Taschen & Koffer
+    if ("hotspot" in t or "mobiles wifi" in t or "mobiler wifi" in t
+            or "mobiler wi-fi" in t or "router" in t):
+        return 128  # Netzwerktechnik
+    if "vesa-halterung" in t:
+        return 177  # Monitore & Beamer Zubehör
+    if "ladegerät" in t or "dongle" in t:
+        return 121  # Kabel & Adapter
+    if "mousepad" in t or "mauspad" in t or "aethon" in t:
+        return 125  # Tastatur & Maus — "Aethon" is Acer's gaming-keyboard line
+    if any(k in t for k in ["notebook", "laptop", "ultrabook", "chromebook", "convertible"]):
+        return 29   # Laptops & Notebooks
+    if ("mini pc" in t or "all-in-one" in t or "desktop pc" in t or "veriton" in t
+            or re.search(r"\bdesktop\b", t)):
+        return 33   # PCs
+    if ("projector" in t or "projektor" in t or "beamer" in t or "heimkino" in t
+            or re.search(r"\d+\s*lm\b", t) or "lumen" in t):
+        return 179  # Beamer
+    if "monitor" in t or "curved" in t:
+        return 178  # Monitore
+    if "tablet" in t:
+        return 32   # Tablets & Zubehör
+    if "maus" in t or "tastatur" in t:
+        return 125  # Tastatur & Maus
+    if any(k in t for k in ["dockingstation", "stylus", "stift", "tasche", "schutzhülle",
+                             "rucksack", "sleeve"]):
+        return 122  # Notebook & Desktop Zubehör
+    if "ssd" in t:
+        return 126  # Speicher & Laufwerke
+    return 130      # Sonstiges IT-Zubehör (fallback)
+
 VENDOR_OVERRIDES = {
+    "Acer DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        # Extended-warranty/repair-service add-ons aren't a comparable
+        # physical product.
+        "excluded_title_substrings": {"einsende", "rücksendeservice"},
+        "category_fn": guess_acer_category,
+    },
     "0815 DE": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
