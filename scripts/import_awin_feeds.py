@@ -20,6 +20,14 @@ BATCH_SIZE = 500
 DATABASE_URL = os.environ.get("RAILWAY_DATABASE_URL") or os.environ.get("DATABASE_URL")
 
 CATEGORY_KEYWORDS = {
+    # Checked before 4 ("tisch") — "Tischanschlussfeld" (a desk-mounted
+    # cable/connectivity hub, an IT accessory) legitimately starts with the
+    # word "Tisch", so the word-boundary check on the generic "tisch"
+    # keyword still matches it and wrongly filed it as a table. Found
+    # 2026-08-26 sitting in Laptops & Notebooks — a separate bug (below)
+    # unrelated to this one, but both surfaced auditing the same homepage
+    # section.
+    122: ["notebookkühler", "notebook kühler", "dockingmodul", "tischanschlussfeld"],
     # Checked before 7 ("bad") — some vendors nest baby scales under their
     # own "Badezimmer"/"Badzubehör" merchandising path (e.g. DeubaXXL:
     # "Möbel & Wohnen > Badezimmer > Badzubehör > Baby- & Personenwaagen"),
@@ -768,8 +776,8 @@ def guess_acer_category(_merchant_category, title=None):
     # ... Tablets", so the device word inside the accessory's own title was
     # matching the device rule first. Found 2026-08-26: 9 laptop bags/sleeves
     # landed in Laptops & Notebooks instead of accessories.
-    if any(k in t for k in ["dockingstation", "stylus", "stift", "tasche", "schutzhülle",
-                             "rucksack", "sleeve"]):
+    if any(k in t for k in ["dockingstation", "docking station", "notebook-ständer",
+                             "stylus", "stift", "tasche", "schutzhülle", "rucksack", "sleeve"]):
         return 122  # Notebook & Desktop Zubehör
     if any(k in t for k in ["notebook", "laptop", "ultrabook", "chromebook", "convertible"]):
         return 29   # Laptops & Notebooks

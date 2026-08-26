@@ -198,7 +198,13 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   // ── Init: fetch offers + featured category sections once ──────────
   useEffect(() => {
     // Featured category sections for homepage
-    fetch("/api/products?category=elektronik&sort=priceAsc&limit=6&inStockOnly=true&minPrice=15&perVendorLimit=2")
+    // Scoped to Laptops & Notebooks + PCs specifically, not the whole
+    // Elektronik tree — that pulled in cheap cables/batteries ahead of the
+    // laptops and gaming PCs this section is meant to showcase. minPrice
+    // raised to 300 (from the sitewide-default 15) since real laptops/PCs
+    // start around there — a lower floor just surfaces the cheapest
+    // accessory that slipped into these categories, cheapest-first.
+    fetch("/api/products?category=laptops,pcs&sort=priceAsc&limit=6&inStockOnly=true&minPrice=300&perVendorLimit=2")
       .then((r) => r.json())
       .then((data) => setElektronikProducts(data.products || []))
       .catch(() => {});
