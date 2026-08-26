@@ -160,6 +160,7 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   const [moebelProducts, setMoebelProducts]             = useState([]);
   const [premiumProducts, setPremiumProducts]           = useState([]);
   const [modeProducts, setModeProducts]                 = useState([]);
+  const [escooterProducts, setEscooterProducts]         = useState([]);
   const [selectedProduct, setSelectedProduct]           = useState(null);
   const [isLoading, setIsLoading]                       = useState(false);
 
@@ -207,6 +208,14 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
     fetch("/api/products?category=laptops,pcs&sort=priceAsc&limit=6&inStockOnly=true&minPrice=300&perVendorLimit=2")
       .then((r) => r.json())
       .then((data) => setElektronikProducts(data.products || []))
+      .catch(() => {});
+
+    // minPrice raised to 200 (from the sitewide-default 15) — the two
+    // cheapest items in this category are a handlebar bag and an
+    // anti-theft lock, not scooters; a real scooter starts around 220.
+    fetch("/api/products?category=e-scooter&sort=priceAsc&limit=6&inStockOnly=true&minPrice=200&perVendorLimit=2")
+      .then((r) => r.json())
+      .then((data) => setEscooterProducts(data.products || []))
       .catch(() => {});
 
     fetch("/api/products?category=gesundheit&sort=priceAsc&limit=6&inStockOnly=true&perVendorLimit=2")
@@ -657,6 +666,21 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
                   </button>
                 </div>
                 <ProductGrid products={elektronikProducts} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={false} />
+              </div>
+            )}
+
+            {isDefaultView && escooterProducts.length > 0 && (
+              <div className="mt-5">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h2 className="h6 fw-bold mb-0">🛴 Top E-Scooter Deals</h2>
+                  <button
+                    className="btn btn-link btn-sm p-0 text-decoration-none"
+                    onClick={() => { setSelectedCategories(["e-scooter"]); resetPage(); }}
+                  >
+                    Alle E-Scooter →
+                  </button>
+                </div>
+                <ProductGrid products={escooterProducts} onOpenProduct={openProduct} onBuy={handleBuy} formatPrice={formatPrice} isLoading={false} />
               </div>
             )}
 
