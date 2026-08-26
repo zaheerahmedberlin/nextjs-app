@@ -24,8 +24,10 @@ CATEGORY_KEYWORDS = {
     # own "Badezimmer"/"Badzubehör" merchandising path (e.g. DeubaXXL:
     # "Möbel & Wohnen > Badezimmer > Badzubehör > Baby- & Personenwaagen"),
     # and naive substring matching on "bad" would otherwise catch it before
-    # this more specific rule gets a chance.
-    52: ["babywaage"],
+    # this more specific rule gets a chance. Pointed at 52 (Baby World, the
+    # *parent*) until 2026-08-26 — a parent category should never carry
+    # direct product assignments; moved to the Pflege & Baden child.
+    214: ["babywaage"],
     # Checked before 87 ("herren"/"hemd") — GERMENS titles like "Hemd Bluse
     # Damen ..." contain both "damen" and "hemd", so the more specific
     # gender needs first crack. GERMENS's merchant_category is blank for
@@ -259,6 +261,12 @@ def guess_voghion_category(product_type, title=None):
         return 32  # Tablets & Zubehör
     if re.search(r"\bsmartphone\b.*(neues modell|hd-display|dual-sim)", t) or "ultra 7,3-zoll-smartphone" in t:
         return 28  # Smartphones
+    # Explicitly says "for older children" despite living in the Mother &
+    # Kids taxonomy that would otherwise fall through to the blanket
+    # ("mother & kids", 52) rule below — found 2026-08-26 sitting as a
+    # direct product on the Baby World *parent*.
+    if "für ältere kinder" in t or "ältere kinder" in t:
+        return 165  # Kinderbekleidung
 
     leaf = pt.rsplit("/", 1)[-1].strip()
     for keyword, cat_id in VOGHION_CATEGORY_RULES:
@@ -360,8 +368,8 @@ DEUBAXXL_CATEGORY_RULES = [
            "ausgießer"]),  # Gartenmöbel
     (38,  ["ampelschirm", "schirmständer"]),  # Sonnenschirme
     (137, ["adventskalender", "sandkasten", "schaukeltier", "kindersitzgruppe", "schwibbogen",
-           "weihnachtskugeln", "stuntscooter"]),  # Spielzeug
-    (52,  ["kinderdreirad", "lernturm"]),  # Baby World
+           "weihnachtskugeln", "stuntscooter", "kinderdreirad"]),  # Spielzeug — ride-on toy, not baby gear
+    (168, ["lernturm"]),  # Baby-Ausstattung — nursery/kitchen furniture aid
     (41,  ["digitale personenwaage", "elektrischer fußwärmer", "heimtrainer fahrrad",
            "erste hilfe-medizinschrank", "medizinschrank", "arzneischrank"]),  # Gesundheit
     (118, ["knieschoner"]),  # Arbeitskleidung & Arbeitsschutz
@@ -399,7 +407,7 @@ DEUBAXXL_CATEGORY_RULES = [
     (137, ["puzzlematte 86-tlg", "tipi spielzelt", "multifunktionales kinderdreirad",
            "spielküche", "aufblasbare weihnachtsdeko", "aufblasbarer weihnachtsmann",
            "plüschtier", "kuscheltier"]),
-    (168, ["babyfußsack", "bollerwagen"]),
+    (213, ["babyfußsack", "bollerwagen"]),  # Kinderwagen & Unterwegs
     (31,  ["mobile klimaanlage"]),  # Elektronik > Klima > Kühlen & Gefrieren
     (173, ["luftentfeuchter"]),     # Elektronik > Klima
     # Elektronik > Klima > Heizung — new category created 2026-08-16.
@@ -418,8 +426,17 @@ DEUBAXXL_CATEGORY_RULES = [
     # specific Regale(22) subcategory.
     (22,  ["schwerlastregal", "schwerlasteckregal", "schwerlast- und eckregal"]),
     # Baseline, ported from fix_deubaxxx_categories.py (scraper repo) —
-    # keep in sync there if the category taxonomy changes.
-    (52,  ["baby", "kinderwagen", "buggy", "kinderbet", "babywiege", "kinderfahrrad", "laufrad"]),
+    # keep in sync there if the category taxonomy changes. Was one blanket
+    # rule dumping everything (including "babywaage", caught by the bare
+    # "baby" substring) straight onto the Baby World *parent* (52) — a
+    # parent category should never carry direct product assignments.
+    # Split by real content type across the subcategories created
+    # 2026-08-25/26, 2026-08-26 cleanup.
+    (214, ["babywaage"]),                        # Pflege & Baden — checked before bare "baby" below
+    (213, ["kinderwagen", "buggy"]),              # Kinderwagen & Unterwegs
+    (212, ["kinderbet", "babywiege"]),            # Kinderzimmer
+    (137, ["kinderfahrrad", "laufrad"]),          # Spielzeug — ride-on toys
+    (168, ["baby"]),                              # Baby-Ausstattung — generic catch-all
     (41,  ["puzzlematte", "bodenschutz", "basketballkorb", "hantelbank", "hanteln", "fitness",
            "massag", "blutdruck", "heizkissen", "rollator", "gehhilfe", "orthopäd"]),
     (36,  ["gartenmöbel", "gartenmoebel", "garten-lounge", "gartenset", "loungeset", "garten-set",
@@ -680,7 +697,42 @@ def guess_babymarkt_category(merchant_category, title=None):
         return 205 if "fahrrad" in t else 216  # Fahrräder / Kindersitze (new)
     return 9  # unexpected merchant_category — none seen in the real feed
 
+# 0815 DE has no override at all — relies entirely on the generic
+# guess_category() keyword map, which returns Sonstiges(9) for a specific
+# cluster of baby product lines (teethers/rattles/mobiles, ABUS's "JC"
+# child-safety series, NUK feeding items) since none of their titles hit
+# any existing generic keyword. Found 2026-08-26: these products were
+# nonetheless sitting correctly-ish in the DB from a past one-off import,
+# meaning the next nightly sync would have silently reset all of them to
+# Sonstiges. This override targets just that cluster and falls through to
+# the generic guesser for 0815 DE's other ~179,000 products, which are
+# already handled correctly there.
+def guess_0815_category(merchant_category, title=None):
+    t = (title or "").lower()
+    if "sonnenschutz für kinderwagen" in t or "sicher unterwegs" in t:
+        return 213  # Kinderwagen & Unterwegs
+    if "led nachtlicht" in t or "baby organizer" in t or "philips scd" in t:
+        return 212  # Kinderzimmer (nightlight, nursery storage, baby monitor)
+    if any(k in t for k in ["badewannenaufkleber", "badethermometer", "duschthermometer",
+                             "baden & dusch"]):
+        return 214  # Pflege & Baden
+    if "abus jc" in t or "sicher zuhause" in t:
+        return 223  # Kindersicherung (new) — ABUS's home-childproofing line
+    if any(k in t for k in ["beißring", "greifling", "rassel", "musik-mobile",
+                             "traumbärchen mobile"]):
+        return 222  # Babyspielzeug (new)
+    if any(k in t for k in ["babykostwärmer", "trinklernset", "trinkbecher",
+                             "flaschenwärmer", "thermotasche", "philips scf"]):
+        return 215  # Ernährung
+    return guess_category(merchant_category, title)
+
 VENDOR_OVERRIDES = {
+    "0815 DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_0815_category,
+    },
     "babymarkt DE": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
