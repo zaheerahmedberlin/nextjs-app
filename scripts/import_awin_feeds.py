@@ -763,6 +763,14 @@ def guess_acer_category(_merchant_category, title=None):
         return 121  # Kabel & Adapter
     if "mousepad" in t or "mauspad" in t or "aethon" in t:
         return 125  # Tastatur & Maus — "Aethon" is Acer's gaming-keyboard line
+    # Checked before the "notebook"/"tablet" device-type rules below — bag/
+    # case/stylus titles read "Tasche für ... Notebooks" or "Schutzhülle für
+    # ... Tablets", so the device word inside the accessory's own title was
+    # matching the device rule first. Found 2026-08-26: 9 laptop bags/sleeves
+    # landed in Laptops & Notebooks instead of accessories.
+    if any(k in t for k in ["dockingstation", "stylus", "stift", "tasche", "schutzhülle",
+                             "rucksack", "sleeve"]):
+        return 122  # Notebook & Desktop Zubehör
     if any(k in t for k in ["notebook", "laptop", "ultrabook", "chromebook", "convertible"]):
         return 29   # Laptops & Notebooks
     if ("mini pc" in t or "all-in-one" in t or "desktop pc" in t or "veriton" in t
@@ -777,9 +785,6 @@ def guess_acer_category(_merchant_category, title=None):
         return 32   # Tablets & Zubehör
     if "maus" in t or "tastatur" in t:
         return 125  # Tastatur & Maus
-    if any(k in t for k in ["dockingstation", "stylus", "stift", "tasche", "schutzhülle",
-                             "rucksack", "sleeve"]):
-        return 122  # Notebook & Desktop Zubehör
     if "ssd" in t:
         return 126  # Speicher & Laufwerke
     return 130      # Sonstiges IT-Zubehör (fallback)
