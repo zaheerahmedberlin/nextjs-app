@@ -205,7 +205,10 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
     // raised to 300 (from the sitewide-default 15) since real laptops/PCs
     // start around there — a lower floor just surfaces the cheapest
     // accessory that slipped into these categories, cheapest-first.
-    fetch("/api/products?category=laptops,pcs&sort=priceAsc&limit=6&inStockOnly=true&minPrice=300&perVendorLimit=2")
+    // perVendorLimit=3 (not the usual 2) — only Acer DE and 0815 DE
+    // currently sell in this category, so 2-per-vendor left the row at 4
+    // items instead of 6, breaking the grid layout next to fuller sections.
+    fetch("/api/products?category=laptops,pcs&sort=priceAsc&limit=6&inStockOnly=true&minPrice=300&perVendorLimit=3")
       .then((r) => r.json())
       .then((data) => setElektronikProducts(data.products || []))
       .catch(() => {});
@@ -213,7 +216,9 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
     // minPrice raised to 200 (from the sitewide-default 15) — the two
     // cheapest items in this category are a handlebar bag and an
     // anti-theft lock, not scooters; a real scooter starts around 220.
-    fetch("/api/products?category=e-scooter&sort=priceAsc&limit=6&inStockOnly=true&minPrice=200&perVendorLimit=2")
+    // perVendorLimit=3 — same reasoning as the Laptops+PCs section above,
+    // only 2 vendors currently sell e-scooters.
+    fetch("/api/products?category=e-scooter&sort=priceAsc&limit=6&inStockOnly=true&minPrice=200&perVendorLimit=3")
       .then((r) => r.json())
       .then((data) => setEscooterProducts(data.products || []))
       .catch(() => {});
@@ -228,7 +233,10 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       .then((data) => setMoebelProducts(data.products || []))
       .catch(() => {});
 
-    fetch("/api/products?premiumOnly=true&sort=priceDesc&limit=6&inStockOnly=true&perVendorLimit=2")
+    // perVendorLimit=3 — only 2 vendors are in premium_vendors right now
+    // (Tsarbomba, SIRUI Optical), same 4-vs-6 row-layout issue as the
+    // other sparse sections, found 2026-08-26.
+    fetch("/api/products?premiumOnly=true&sort=priceDesc&limit=6&inStockOnly=true&perVendorLimit=3")
       .then((r) => r.json())
       .then((data) => setPremiumProducts(data.products || []))
       .catch(() => {});
@@ -237,11 +245,11 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
     // Accessories tree) — standard €15 floor is fine here since Blazer/
     // Damenhosen/Blusen don't include the jewelry/watch-parts/underwear
     // that made the broader category need a higher floor. Only 2 vendors
-    // (Peter Hahn, LIKA) currently stock this exact combination, so with
-    // the standard perVendorLimit=2 diversity cap this naturally returns
-    // 4 items, not 6 — same graceful "however many exist" handling as
-    // every other featured section already has.
-    fetch("/api/products?category=blazer,damenhosen,blusen&sort=priceAsc&limit=6&inStockOnly=true&minPrice=15&perVendorLimit=2")
+    // (Peter Hahn, LIKA) currently stock this exact combination —
+    // perVendorLimit=3 (not the usual 2) to still fill a full 6-item row;
+    // a 4-item row broke the desktop grid next to sections showing 6,
+    // found 2026-08-26.
+    fetch("/api/products?category=blazer,damenhosen,blusen&sort=priceAsc&limit=6&inStockOnly=true&minPrice=15&perVendorLimit=3")
       .then((r) => r.json())
       .then((data) => setModeProducts(data.products || []))
       .catch(() => {});

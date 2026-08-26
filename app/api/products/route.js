@@ -177,8 +177,25 @@ export async function GET(request) {
       params.push(pgLimit);
       const limitIdx = params.length;
 
+      // Collapse same-title duplicates within a vendor before ranking —
+      // multi-feed vendors (e.g. Acer DE's 3 combined AWIN feeds) list the
+      // identical real-world product more than once with only the tracking
+      // link differing, which otherwise filled a vendor's diversity slots
+      // with visual duplicates of one product instead of N distinct ones.
+      // Found 2026-08-26 auditing the Top Elektronik-Deals homepage row.
       const dataQuery = `
-        WITH ranked AS (
+        WITH deduped AS (
+          SELECT DISTINCT ON (p.vendor_id, p.title)
+            p.id, p.title, p.description, p.image, p.url,
+            p.price, p.old_price, p.currency,
+            p.category, p.ean, p.vendor_id, p.category_id,
+            p.in_stock, p.is_active,
+            p.active_from, p.active_until, p.updated_at, p.created_at
+          FROM products p
+          ${where}
+          ORDER BY p.vendor_id, p.title, ${orderBy}
+        ),
+        ranked AS (
           SELECT
             p.id, p.title, p.description, p.image, p.url,
             p.price, p.old_price, p.currency,
@@ -188,10 +205,9 @@ export async function GET(request) {
             p.in_stock, p.is_active,
             p.active_from, p.active_until, p.updated_at, p.created_at,
             ROW_NUMBER() OVER (PARTITION BY p.vendor_id ORDER BY ${orderBy}) AS vendor_rank
-          FROM products p
+          FROM deduped p
           LEFT JOIN vendors v ON v.id = p.vendor_id
           LEFT JOIN categories c ON c.id = p.category_id
-          ${where}
         )
         SELECT * FROM ranked
         WHERE vendor_rank <= $${perVendorIdx}
