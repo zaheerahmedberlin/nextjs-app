@@ -798,6 +798,19 @@ def guess_acer_category(_merchant_category, title=None):
     return 130      # Sonstiges IT-Zubehör (fallback)
 
 VENDOR_OVERRIDES = {
+    # EarFun — single-brand audio vendor (earbuds, speakers, a USB-DAC,
+    # 3 headphone case covers). merchant_category splits into
+    # HEADPHONES/SPEAKERS/ACCESSORIES, but the site's real active category
+    # for this vertical is the combined Kopfhörer & Lautsprecher(141) —
+    # the standalone Kopfhörer(34)/Lautsprecher(35) categories are barely
+    # used (60/53 products vs. 1,877), so everything routes to 141 rather
+    # than fragmenting this small 34-product vendor across three buckets.
+    "Earfun, Inc": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": lambda _category_text, _title=None: 141,
+    },
     "Acer DE": {
         "excluded_top_level": set(),
         "excluded_substrings": set(),
