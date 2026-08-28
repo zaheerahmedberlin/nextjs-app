@@ -64,6 +64,10 @@ export default function Footer() {
               <li><a href="/so-funktioniert-es" className="text-decoration-none text-muted small">So funktioniert's</a></li>
               <li><a href="/affiliate-programm" className="text-decoration-none text-muted small">Affiliate-Programm</a></li>
               <li><a href="/kontakt" className="text-decoration-none text-muted small">Kontakt</a></li>
+              {/* Cross-links to the SEO blog (preisgucken.com) — previously
+                  nothing on this site linked there at all, leaving it with
+                  zero internal link equity from the main property. */}
+              <li><a href="https://www.preisgucken.com" className="text-decoration-none text-muted small">Kaufratgeber</a></li>
             </ul>
           </div>
         </div>
