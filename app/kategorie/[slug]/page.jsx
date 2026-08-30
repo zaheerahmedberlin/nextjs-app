@@ -357,16 +357,37 @@ export default async function KategoriePage({ params, searchParams }) {
           </p>
         )}
 
-        {/* SEO text block — keyword content for thin categories */}
+        {/* SEO text block — was identical boilerplate (just {category.name}
+            swapped in) across all ~200 category pages, which reads as
+            near-duplicate thin content to Google at that scale. Now uses
+            real per-category data this page already fetches (vendorCounts,
+            products sorted ASC by price) so every page states genuine,
+            differentiated facts instead — no new query, same data already
+            proven correct by the rest of the page. */}
         <section className="mt-5 pt-4 border-top">
           <div className="row">
             <div className="col-12 col-md-8">
               <h2 className="h5 fw-bold">{category.name} günstig kaufen – Preisvergleich</h2>
-              <p className="text-muted small">
-                Auf Preisgucken.de vergleichen Sie die Preise für <strong>{category.name}</strong> aus
-                hunderten deutschen Online-Shops. Unsere Preissuchmaschine zeigt Ihnen tagesaktuelle
-                Preise, damit Sie immer das günstigste Angebot finden – kostenlos und ohne Anmeldung.
-              </p>
+              {products.length > 0 ? (
+                <p className="text-muted small">
+                  Auf Preisgucken.de vergleichen Sie aktuell <strong>{category.name}</strong>-Angebote von{" "}
+                  {vendorCounts.length > 0 ? (
+                    <>{vendorCounts.length} {vendorCounts.length === 1 ? "Händler" : "verschiedenen Händlern"}</>
+                  ) : (
+                    "mehreren deutschen Online-Shops"
+                  )}
+                  {" "}– bereits ab{" "}
+                  <strong>{new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(products[0].price)}</strong>.
+                  Unsere Preissuchmaschine zeigt Ihnen tagesaktuelle Preise, damit Sie immer das
+                  günstigste Angebot finden – kostenlos und ohne Anmeldung.
+                </p>
+              ) : (
+                <p className="text-muted small">
+                  Auf Preisgucken.de vergleichen Sie die Preise für <strong>{category.name}</strong> aus
+                  hunderten deutschen Online-Shops. Unsere Preissuchmaschine zeigt Ihnen tagesaktuelle
+                  Preise, damit Sie immer das günstigste Angebot finden – kostenlos und ohne Anmeldung.
+                </p>
+              )}
               <p className="text-muted small">
                 Alle Preise verstehen sich inkl. MwSt. Preise können sich seit der letzten
                 Aktualisierung geändert haben. Bitte prüfen Sie den aktuellen Preis beim
