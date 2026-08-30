@@ -4,6 +4,7 @@ out/
 .env
 .env.local
 .env.production
+.env.staging
 .env*.local
 .DS_Store
 npm-debug.log*
