@@ -183,12 +183,20 @@ export default function RootLayout({ children }) {
         {/* Preload LCP image (logo) */}
         <link rel="preload" as="image" href="/preis-gucken-logo.png" />
 
-        {/* Umami Analytics (DSGVO-konform, cookieless) */}
-        <script
-          defer
-          src="https://cloud.umami.is/script.js"
-          data-website-id="e80ba141-242e-449b-b91b-59253aa91c96"
-        />
+        {/* Umami Analytics (DSGVO-konform, cookieless) — production only.
+            Previously fired unconditionally, so local dev-server testing
+            (any developer, any localhost session) sent real pings into the
+            same dashboard as actual production visitors, with no way to
+            separate the two after the fact. NODE_ENV is 'production' for
+            any `next build`/`next start`, and 'development' for `next dev` —
+            no extra config needed, this is set automatically either way. */}
+        {process.env.NODE_ENV === "production" && (
+          <script
+            defer
+            src="https://cloud.umami.is/script.js"
+            data-website-id="e80ba141-242e-449b-b91b-59253aa91c96"
+          />
+        )}
       </head>
       <body>
         {children}
