@@ -52,6 +52,7 @@ export default function AdminUploads() {
           <a href="/admin/billing"  className="btn btn-sm btn-outline-secondary">Billing</a>
           <a href="/admin/vendors"  className="btn btn-sm btn-outline-secondary">Vendors</a>
           <a href="/admin/uploads"  className="btn btn-sm btn-primary">Uploads</a>
+          <a href="/admin/coupons"  className="btn btn-sm btn-outline-secondary">Gutscheine</a>
         </div>
       </nav>
 

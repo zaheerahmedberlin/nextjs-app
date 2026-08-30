@@ -55,6 +55,7 @@ export default function BillingDashboard() {
         <div className="ms-3 d-flex gap-3">
           <a href="/admin/billing" className="btn btn-sm btn-primary">Billing</a>
           <a href="/admin/vendors" className="btn btn-sm btn-outline-secondary">Vendors</a>
+          <a href="/admin/coupons" className="btn btn-sm btn-outline-secondary">Gutscheine</a>
         </div>
         <div className="ms-auto d-flex align-items-center gap-3">
           {admin && <span className="small text-muted">{admin.email}</span>}

@@ -168,6 +168,7 @@ export default function VendorsAdmin() {
           <a href="/admin/billing" className="btn btn-sm btn-outline-secondary">Billing</a>
           <a href="/admin/vendors" className="btn btn-sm btn-primary">Vendors</a>
           <a href="/admin/uploads" className="btn btn-sm btn-outline-secondary">Uploads</a>
+          <a href="/admin/coupons" className="btn btn-sm btn-outline-secondary">Gutscheine</a>
         </div>
         <div className="ms-auto d-flex gap-2">
           <button className="btn btn-sm btn-outline-secondary" onClick={() => { setCpModal(true); setCpError(""); setCpSuccess(""); }}>🔐 Passwort</button>
