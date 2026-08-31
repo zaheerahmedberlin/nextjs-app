@@ -2,6 +2,12 @@
 import { query } from "@/lib/db";
 import { NextResponse } from "next/server";
 
+// No dynamic API usage here (no cookies/headers/request), so Next.js would
+// otherwise treat this as static and cache the response from the first
+// build/request forever — silently hiding every coupon added or expired
+// after that, since the active-window filter depends on NOW() at request time.
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const result = await query(`

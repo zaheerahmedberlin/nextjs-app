@@ -6,6 +6,12 @@ import Footer from "@/components/Footer";
 
 const BASE_URL = "https://www.preisgucken.de";
 
+// No dynamic API usage in this server component, so Next.js would otherwise
+// statically render it once at build time and cache that snapshot forever —
+// hiding every coupon added or expired after the last deploy, since the
+// active-window filter depends on NOW() at request time.
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Gutscheine & Rabattcodes",
   description: "Aktuelle Gutscheincodes und Rabattaktionen unserer Partner-Shops – täglich aktualisiert, kostenlos und ohne Anmeldung.",
