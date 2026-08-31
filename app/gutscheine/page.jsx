@@ -29,7 +29,12 @@ function formatDate(d) {
   // Includes time, not just the date — AWIN promo codes commonly specify
   // an exact cutoff time (e.g. "31/08/2026 10:59"), and showing only the
   // date would make a code look valid for hours after it's actually expired.
-  return d ? new Date(d).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : null;
+  //
+  // Explicit timeZone is required here: this runs server-side (Railway's
+  // container clock is UTC), so without it the raw UTC hour gets labeled
+  // as if it were already German local time — showing every coupon as
+  // expiring ~2 hours earlier than it actually does.
+  return d ? new Date(d).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Berlin" }) : null;
 }
 
 export default async function GutscheinePage() {
