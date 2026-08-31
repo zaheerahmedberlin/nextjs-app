@@ -14,7 +14,7 @@ export async function GET(request) {
 
   try {
     const result = await query(`
-      SELECT c.id, c.code, c.vendor_id, v.name AS vendor_name, c.is_active,
+      SELECT c.id, c.code, c.vendor_id, v.name AS vendor_name, v.is_active AS vendor_is_active, c.is_active,
              c.valid_from, c.valid_until, c.created_at,
              NOW() AS now,
              (c.valid_from IS NULL OR c.valid_from <= NOW()) AS from_ok,
