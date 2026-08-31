@@ -20,7 +20,10 @@ function formatDiscount(c) {
 }
 
 function formatDate(d) {
-  return d ? new Date(d).toLocaleDateString("de-DE") : null;
+  // Includes time, not just the date — AWIN promo codes commonly specify
+  // an exact cutoff time (e.g. "31/08/2026 10:59"), and showing only the
+  // date would make a code look valid for hours after it's actually expired.
+  return d ? new Date(d).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : null;
 }
 
 export default async function GutscheinePage() {

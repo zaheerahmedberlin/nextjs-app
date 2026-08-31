@@ -2,8 +2,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("de-DE") : "—");
-const toInputDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+// AWIN promo emails specify exact date+time cutoffs (e.g. "31/08/2026
+// 10:59"), not just a date — a coupon shown as expired 11 hours early (or
+// valid 11 hours too long) because only the date was captured is a real
+// correctness bug, so these need full datetime, not date-only.
+const fmtDateTime = (d) => (d ? new Date(d).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : "—");
+const toInputDateTime = (d) => (d ? new Date(d).toISOString().slice(0, 16) : ""); // datetime-local needs YYYY-MM-DDTHH:mm
 
 const EMPTY = {
   vendor_id: "", code: "", title: "", description: "",
@@ -52,8 +56,8 @@ export default function CouponsAdmin() {
       description:    c.description || "",
       discount_type:  c.discount_type,
       discount_value: c.discount_value ?? "",
-      valid_from:     toInputDate(c.valid_from),
-      valid_until:    toInputDate(c.valid_until),
+      valid_from:     toInputDateTime(c.valid_from),
+      valid_until:    toInputDateTime(c.valid_until),
       tracking_url:   c.tracking_url,
       is_active:      c.is_active,
     });
@@ -139,7 +143,7 @@ export default function CouponsAdmin() {
                     <th>Code</th>
                     <th>Titel</th>
                     <th>Rabatt</th>
-                    <th>Gültig bis</th>
+                    <th>Gültig bis (Zeit)</th>
                     <th>Status</th>
                     <th></th>
                   </tr>
@@ -151,7 +155,7 @@ export default function CouponsAdmin() {
                       <td><code>{c.code}</code></td>
                       <td>{c.title}</td>
                       <td>{c.discount_value ? `${c.discount_value}${c.discount_type === "fixed" ? " €" : "%"}` : "—"}</td>
-                      <td>{fmtDate(c.valid_until)}</td>
+                      <td>{fmtDateTime(c.valid_until)}</td>
                       <td>
                         <span className={`badge ${c.is_active ? "bg-success" : "bg-secondary"}`}>
                           {c.is_active ? "Aktiv" : "Inaktiv"}
@@ -232,12 +236,14 @@ export default function CouponsAdmin() {
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label small fw-semibold">Gültig ab</label>
-                    <input type="date" className="form-control" value={form.valid_from} onChange={(e) => setForm((f) => ({ ...f, valid_from: e.target.value }))} />
+                    <label className="form-label small fw-semibold">Gültig ab (Datum + Uhrzeit)</label>
+                    <input type="datetime-local" className="form-control" value={form.valid_from} onChange={(e) => setForm((f) => ({ ...f, valid_from: e.target.value }))} />
+                    <p className="small text-muted mb-0 mt-1">Zeit in deiner lokalen Zeitzone (passend zu AWIN's "Central Time Zone"-Angaben).</p>
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label small fw-semibold">Gültig bis</label>
-                    <input type="date" className="form-control" value={form.valid_until} onChange={(e) => setForm((f) => ({ ...f, valid_until: e.target.value }))} />
+                    <label className="form-label small fw-semibold">Gültig bis (Datum + Uhrzeit)</label>
+                    <input type="datetime-local" className="form-control" value={form.valid_until} onChange={(e) => setForm((f) => ({ ...f, valid_until: e.target.value }))} />
+                    <p className="small text-muted mb-0 mt-1">Zeit in deiner lokalen Zeitzone (passend zu AWIN's "Central Time Zone"-Angaben).</p>
                   </div>
                   <div className="col-12">
                     <label className="form-label small fw-semibold">Tracking-Link (AWIN cread.php oder direkter Link)</label>
