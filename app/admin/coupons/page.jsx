@@ -147,11 +147,22 @@ export default function CouponsAdmin() {
     setAwinOffers(data.offers);
   }
 
+  // (vendor_id, code) pairs already in the coupons table — recomputed from
+  // the currently-loaded list, which loadAll() refreshes after every import
+  // batch, so this stays in sync across repeated modal opens in one session.
+  const importedKeys = new Set(coupons.map((c) => `${c.vendor_id}:${c.code}`));
+
+  function alreadyImported(o) {
+    return o.localVendorId && importedKeys.has(`${o.localVendorId}:${o.voucherCode}`);
+  }
+
   function isImportable(o) {
     // Our coupons table needs a real code — plain "promotion" entries with
     // no voucher code don't fit the schema, so they're shown for visibility
-    // but can't be selected.
-    return o.type === "voucher" && !!o.voucherCode && !!o.localVendorId;
+    // but can't be selected. A (vendor_id, code) pair already imported is
+    // now also enforced server-side (unique constraint, 409 on retry), but
+    // graying it out here avoids the round-trip and explains why upfront.
+    return o.type === "voucher" && !!o.voucherCode && !!o.localVendorId && !alreadyImported(o);
   }
 
   function toggleAwinSelected(promotionId) {
@@ -374,8 +385,9 @@ export default function CouponsAdmin() {
                   <>
                     <p className="small text-muted">
                       Nur Gutscheincodes mit passendem lokalem Vendor sind auswählbar. Reine
-                      "Promotion"-Einträge ohne Code (kein voucherCode) und Angebote von nicht
-                      onboardeten Vendoren werden zur Übersicht angezeigt, sind aber nicht importierbar.
+                      "Promotion"-Einträge ohne Code (kein voucherCode), Angebote von nicht
+                      onboardeten Vendoren und bereits importierte Codes werden zur Übersicht
+                      angezeigt, sind aber nicht (erneut) importierbar.
                     </p>
                     <div className="table-responsive" style={{ maxHeight: "50vh", overflowY: "auto" }}>
                       <table className="table table-sm table-hover mb-0 align-middle">
@@ -405,7 +417,10 @@ export default function CouponsAdmin() {
                                 </td>
                                 <td className="small">{o.advertiserName}</td>
                                 <td className="small">{o.localVendorName || <em>kein lokaler Vendor</em>}</td>
-                                <td className="small">{o.type}</td>
+                                <td className="small">
+                                  {o.type}
+                                  {alreadyImported(o) && <span className="badge bg-secondary ms-1">bereits importiert</span>}
+                                </td>
                                 <td className="small"><code>{o.voucherCode || "—"}</code></td>
                                 <td className="small">{o.title}</td>
                                 <td className="small">{o.endDate ? new Date(o.endDate).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : "—"}</td>

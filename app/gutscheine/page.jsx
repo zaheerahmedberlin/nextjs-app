@@ -25,6 +25,18 @@ function formatDiscount(c) {
     : `${Number(c.discount_value).toLocaleString("de-DE")}% Rabatt`;
 }
 
+function truncate(text, maxLen = 180) {
+  // AWIN's raw terms text is often a full legal paragraph (brand
+  // exclusions, payout restrictions, etc.) — fine to keep in full in the
+  // DB for reference, but unreadable as a card summary on the public
+  // page. Cut at the last whole word within the limit rather than
+  // mid-word.
+  if (!text || text.length <= maxLen) return text;
+  const cut = text.slice(0, maxLen);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${cut.slice(0, lastSpace > 0 ? lastSpace : maxLen)}…`;
+}
+
 function formatDate(d) {
   // Includes time, not just the date — AWIN promo codes commonly specify
   // an exact cutoff time (e.g. "31/08/2026 10:59"), and showing only the
@@ -88,7 +100,7 @@ export default async function GutscheinePage() {
                         {formatDiscount(c)}
                       </p>
                     )}
-                    {c.description && <p className="small text-muted mb-3">{c.description}</p>}
+                    {c.description && <p className="small text-muted mb-3">{truncate(c.description)}</p>}
                     <div className="mt-auto">
                       <div
                         className="d-flex align-items-center justify-content-between border rounded px-3 py-2 mb-2"
