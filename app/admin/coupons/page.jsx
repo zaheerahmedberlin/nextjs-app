@@ -25,6 +25,18 @@ export default function CouponsAdmin() {
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState("");
 
+  // AWIN import review flow — fetch is read-only (nothing written until the
+  // admin explicitly picks offers and clicks Import), reuses the existing
+  // POST /api/admin/coupons for the actual insert rather than duplicating
+  // that logic here.
+  const [awinModal, setAwinModal]     = useState(false);
+  const [awinLoading, setAwinLoading] = useState(false);
+  const [awinError, setAwinError]     = useState("");
+  const [awinOffers, setAwinOffers]   = useState([]);
+  const [awinSelected, setAwinSelected] = useState(new Set());
+  const [awinImporting, setAwinImporting] = useState(false);
+  const [awinResult, setAwinResult]   = useState("");
+
   useEffect(() => {
     fetch("/api/auth/me").then((r) => { if (!r.ok) router.push("/admin/login"); });
     loadAll();
@@ -105,6 +117,65 @@ export default function CouponsAdmin() {
     loadAll();
   }
 
+  async function openAwinImport() {
+    setAwinModal(true);
+    setAwinLoading(true);
+    setAwinError("");
+    setAwinResult("");
+    setAwinSelected(new Set());
+    const res = await fetch("/api/admin/coupons/awin-import");
+    const data = await res.json();
+    setAwinLoading(false);
+    if (!res.ok) { setAwinError(data.error || "Fehler beim Laden der AWIN-Angebote."); return; }
+    setAwinOffers(data.offers);
+  }
+
+  function isImportable(o) {
+    // Our coupons table needs a real code — plain "promotion" entries with
+    // no voucher code don't fit the schema, so they're shown for visibility
+    // but can't be selected.
+    return o.type === "voucher" && !!o.voucherCode && !!o.localVendorId;
+  }
+
+  function toggleAwinSelected(promotionId) {
+    setAwinSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(promotionId)) next.delete(promotionId); else next.add(promotionId);
+      return next;
+    });
+  }
+
+  async function importSelectedAwinOffers() {
+    setAwinImporting(true);
+    setAwinResult("");
+    const toImport = awinOffers.filter((o) => awinSelected.has(o.promotionId));
+    let ok = 0, failed = 0;
+    for (const o of toImport) {
+      const payload = {
+        vendor_id: o.localVendorId,
+        code: o.voucherCode,
+        title: o.title,
+        description: o.terms || o.description || null,
+        discount_type: "percent", // AWIN's discount amount is embedded in free text (title/description), not a clean number — admin can refine via "Bearbeiten" after import
+        discount_value: null,
+        valid_from: o.startDate ? new Date(o.startDate).toISOString().slice(0, 16) : null,
+        valid_until: o.endDate ? new Date(o.endDate).toISOString().slice(0, 16) : null,
+        tracking_url: o.trackingUrl,
+        is_active: true,
+      };
+      const res = await fetch("/api/admin/coupons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) ok++; else failed++;
+    }
+    setAwinImporting(false);
+    setAwinResult(`${ok} importiert${failed ? `, ${failed} fehlgeschlagen` : ""}.`);
+    setAwinSelected(new Set());
+    loadAll();
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/admin/login");
@@ -128,7 +199,10 @@ export default function CouponsAdmin() {
       <div className="container py-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h5 className="fw-bold mb-0" style={{ color: "var(--pg-blue)" }}>Gutschein-Verwaltung</h5>
-          <button className="btn btn-primary" onClick={openAdd}>+ Gutschein hinzufügen</button>
+          <div className="d-flex gap-2">
+            <button className="btn btn-outline-primary" onClick={openAwinImport}>🔄 AWIN Angebote abrufen</button>
+            <button className="btn btn-primary" onClick={openAdd}>+ Gutschein hinzufügen</button>
+          </div>
         </div>
 
         {loading ? (
@@ -255,6 +329,84 @@ export default function CouponsAdmin() {
                 <button className="btn btn-outline-secondary" onClick={() => setModal(null)}>Abbrechen</button>
                 <button className="btn btn-primary" onClick={saveCoupon} disabled={saving}>
                   {saving ? "Speichert…" : "Speichern"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {awinModal && (
+        <div className="modal d-block" style={{ background: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
+          <div className="modal-dialog modal-xl">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">AWIN Angebote — zur Auswahl</h5>
+                <button className="btn-close" onClick={() => setAwinModal(false)} />
+              </div>
+              <div className="modal-body">
+                {awinLoading && <div className="text-center py-4 text-muted">Lade Angebote von AWIN…</div>}
+                {awinError && <div className="alert alert-danger py-2 small">{awinError}</div>}
+                {awinResult && <div className="alert alert-success py-2 small">{awinResult}</div>}
+                {!awinLoading && !awinError && (
+                  <>
+                    <p className="small text-muted">
+                      Nur Gutscheincodes mit passendem lokalem Vendor sind auswählbar. Reine
+                      "Promotion"-Einträge ohne Code (kein voucherCode) und Angebote von nicht
+                      onboardeten Vendoren werden zur Übersicht angezeigt, sind aber nicht importierbar.
+                    </p>
+                    <div className="table-responsive" style={{ maxHeight: "50vh", overflowY: "auto" }}>
+                      <table className="table table-sm table-hover mb-0 align-middle">
+                        <thead className="table-light" style={{ position: "sticky", top: 0 }}>
+                          <tr>
+                            <th></th>
+                            <th>Vendor (AWIN)</th>
+                            <th>Lokaler Vendor</th>
+                            <th>Typ</th>
+                            <th>Code</th>
+                            <th>Titel</th>
+                            <th>Gültig bis</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {awinOffers.map((o) => {
+                            const importable = isImportable(o);
+                            return (
+                              <tr key={o.promotionId} style={{ opacity: importable ? 1 : 0.5 }}>
+                                <td>
+                                  <input
+                                    type="checkbox"
+                                    disabled={!importable}
+                                    checked={awinSelected.has(o.promotionId)}
+                                    onChange={() => toggleAwinSelected(o.promotionId)}
+                                  />
+                                </td>
+                                <td className="small">{o.advertiserName}</td>
+                                <td className="small">{o.localVendorName || <em>kein lokaler Vendor</em>}</td>
+                                <td className="small">{o.type}</td>
+                                <td className="small"><code>{o.voucherCode || "—"}</code></td>
+                                <td className="small">{o.title}</td>
+                                <td className="small">{o.endDate ? new Date(o.endDate).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : "—"}</td>
+                              </tr>
+                            );
+                          })}
+                          {awinOffers.length === 0 && (
+                            <tr><td colSpan={7} className="text-center text-muted py-4">Keine aktiven AWIN-Angebote gefunden.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-outline-secondary" onClick={() => setAwinModal(false)}>Schließen</button>
+                <button
+                  className="btn btn-primary"
+                  onClick={importSelectedAwinOffers}
+                  disabled={awinImporting || awinSelected.size === 0}
+                >
+                  {awinImporting ? "Importiert…" : `${awinSelected.size} Gutschein${awinSelected.size === 1 ? "" : "e"} importieren`}
                 </button>
               </div>
             </div>
