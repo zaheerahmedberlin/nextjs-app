@@ -1,0 +1,25 @@
+name: Deactivate Expired Coupons
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # every hour, on the hour
+  workflow_dispatch:        # allow manual trigger from GitHub UI
+
+jobs:
+  deactivate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deactivate expired coupons
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X GET "${{ secrets.APP_BASE_URL }}/api/cron/deactivate-expired-coupons" \
+            -H "x-cron-token: ${{ secrets.CRON_SECRET }}")
+          echo "HTTP status: $response"
+          if [ "$response" != "200" ]; then
+            echo "Deactivate-expired-coupons cron failed with status $response"
+            exit 1
+          fi
+
+      - name: Log result
+        if: always()
+        run: echo "Deactivate-expired-coupons job finished at $(date)"
