@@ -22,24 +22,52 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }) {
   const { slug } = params;
   try {
-    const res = await query(
-      `SELECT c.name, COUNT(p.id) AS cnt
-       FROM categories c
-       LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE AND p.in_stock = TRUE
-       WHERE c.slug = $1 AND c.is_active = TRUE
-       GROUP BY c.name`,
+    const catRes = await query(
+      `SELECT id, name FROM categories WHERE slug = $1 AND is_active = TRUE`,
       [slug]
     );
-    if (!res.rows.length) return {};
-    const { name, cnt } = res.rows[0];
-    const count = parseInt(cnt) || 0;
+    if (!catRes.rows.length) return {};
+    const { id, name } = catRes.rows[0];
+
+    // Same recursive-descendant + linked-category aggregation the page body
+    // below uses for its own product query — a plain `p.category_id = c.id`
+    // match only counts products filed directly on this category, missing
+    // everything under its subcategories. For a parent category that undercounts
+    // massively: confirmed live, "Baby World" (39,951 products across its
+    // subtree) was showing "1 Angebote für Baby World" in the actual Google/Bing
+    // snippet, reading as an empty page and killing click-through regardless of
+    // ranking. Same root cause noted in the body query's comment below (found
+    // 2026-08-24), just missed here since this is a separate query.
+    const descendantsRes = await query(
+      `WITH RECURSIVE descendants AS (
+         SELECT id FROM categories WHERE id = $1
+         UNION ALL
+         SELECT ch.id FROM categories ch JOIN descendants d ON ch.parent_id = d.id
+       )
+       SELECT id FROM descendants`,
+      [id]
+    );
+    const linkedRes = await query(
+      `SELECT lc.id FROM category_links cl
+       JOIN categories lc ON lc.id = cl.linked_category_id AND lc.is_active = TRUE
+       WHERE cl.category_id = $1`,
+      [id]
+    );
+    const catIds = [...new Set([...descendantsRes.rows.map((r) => r.id), ...linkedRes.rows.map((r) => r.id)])];
+
+    const countRes = await query(
+      `SELECT COUNT(*) AS cnt FROM products WHERE category_id = ANY($1) AND is_active = TRUE AND in_stock = TRUE`,
+      [catIds]
+    );
+    const count = parseInt(countRes.rows[0].cnt) || 0;
+
     // Shorter than the old "{name} Preisvergleich – Günstige {name} kaufen" (which
     // repeated the category name twice and pushed the title tag past 100 chars
     // once the root layout's " | Preisgucken – Preisvergleich" suffix was added,
     // getting truncated in search results). Also switched to de-DE thousands
     // separators and more natural phrasing than the old "{count} {name} im..."
     // construction, which read awkwardly for plural/compound category names.
-    const countText = count > 0 ? `${count.toLocaleString("de-DE")} Angebote` : "Aktuelle Angebote";
+    const countText = count === 1 ? "1 Angebot" : count > 1 ? `${count.toLocaleString("de-DE")} Angebote` : "Aktuelle Angebote";
     const socialTitle = `${name} günstig kaufen – Preisvergleich`;
     const socialDescription = `${countText} für ${name} im direkten Preisvergleich auf Preisgucken.de.`;
     return {
