@@ -7,7 +7,24 @@ import { useRouter } from "next/navigation";
 // valid 11 hours too long) because only the date was captured is a real
 // correctness bug, so these need full datetime, not date-only.
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : "—");
-const toInputDateTime = (d) => (d ? new Date(d).toISOString().slice(0, 16) : ""); // datetime-local needs YYYY-MM-DDTHH:mm
+
+// datetime-local needs "YYYY-MM-DDTHH:mm" representing the browser's LOCAL
+// wall-clock time — must use local getters (getFullYear/getHours/...), not
+// toISOString(), which would show the UTC instant mislabeled as local time
+// and throw the displayed value off by the local UTC offset.
+const toInputDateTime = (d) => {
+  if (!d) return "";
+  const dt = new Date(d);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+};
+
+// Inverse: a naive "YYYY-MM-DDTHH:mm" string from a datetime-local input is
+// parsed by `new Date()` as local time, so converting to ISO here bakes in
+// an explicit UTC offset before it hits the TIMESTAMPTZ column — sending the
+// naive string straight to the API left Postgres to guess the timezone from
+// its own session setting, silently shifting valid_from/valid_until.
+const toISOFromLocalInput = (s) => (s ? new Date(s).toISOString() : null);
 
 const EMPTY = {
   vendor_id: "", code: "", title: "", description: "",
@@ -88,8 +105,8 @@ export default function CouponsAdmin() {
       ...form,
       vendor_id: parseInt(form.vendor_id),
       discount_value: form.discount_value === "" ? null : parseFloat(form.discount_value),
-      valid_from: form.valid_from || null,
-      valid_until: form.valid_until || null,
+      valid_from: toISOFromLocalInput(form.valid_from),
+      valid_until: toISOFromLocalInput(form.valid_until),
     };
     const isEdit = modal !== "add";
     const url    = isEdit ? `/api/admin/coupons/${modal.id}` : "/api/admin/coupons";
@@ -158,8 +175,13 @@ export default function CouponsAdmin() {
         description: o.terms || o.description || null,
         discount_type: "percent", // AWIN's discount amount is embedded in free text (title/description), not a clean number — admin can refine via "Bearbeiten" after import
         discount_value: null,
-        valid_from: o.startDate ? new Date(o.startDate).toISOString().slice(0, 16) : null,
-        valid_until: o.endDate ? new Date(o.endDate).toISOString().slice(0, 16) : null,
+        // Keep the full ISO string with its "Z" offset — AWIN's startDate/endDate
+        // already carry an explicit UTC offset, so this is unambiguous as-is;
+        // slicing it down to "YYYY-MM-DDTHH:mm" (as the manual form's naive
+        // input needs) would strip that offset and let Postgres reinterpret
+        // it in the session's default timezone instead of UTC.
+        valid_from: o.startDate ? new Date(o.startDate).toISOString() : null,
+        valid_until: o.endDate ? new Date(o.endDate).toISOString() : null,
         tracking_url: o.trackingUrl,
         is_active: true,
       };
