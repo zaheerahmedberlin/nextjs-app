@@ -62,6 +62,7 @@ export default function Footer() {
             <ul className="list-unstyled">
               <li><a href="/ueber-uns" className="text-decoration-none text-muted small">Über uns</a></li>
               <li><a href="/so-funktioniert-es" className="text-decoration-none text-muted small">So funktioniert's</a></li>
+              <li><a href="/gutscheine" className="text-decoration-none text-muted small">Gutscheine</a></li>
               <li><a href="/affiliate-programm" className="text-decoration-none text-muted small">Affiliate-Programm</a></li>
               <li><a href="/kontakt" className="text-decoration-none text-muted small">Kontakt</a></li>
               {/* Cross-links to the SEO blog (preisgucken.com) — previously
