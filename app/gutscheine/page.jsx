@@ -3,6 +3,7 @@
 import { query } from "@/lib/db";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import CouponCodeButton from "@/components/CouponCodeButton";
 
 const BASE_URL = "https://www.preisgucken.de";
 
@@ -75,9 +76,14 @@ export default async function GutscheinePage() {
       <header className="bg-light border-bottom py-4">
         <div className="container">
           <h1 className="mb-1 fw-bold">Gutscheine &amp; Rabattcodes</h1>
-          <p className="text-muted mb-0">
+          <p className="text-muted mb-3">
             Aktuelle Gutscheincodes unserer Partner-Shops – täglich geprüft, kostenlos.
           </p>
+          <div className="d-flex flex-wrap gap-3 gap-md-4 small text-muted">
+            <span>① Code antippen zum Kopieren</span>
+            <span>② Zum Shop wechseln</span>
+            <span>③ Code beim Bezahlen einfügen</span>
+          </div>
         </div>
       </header>
 
@@ -102,12 +108,7 @@ export default async function GutscheinePage() {
                     )}
                     {c.description && <p className="small text-muted mb-3">{truncate(c.description)}</p>}
                     <div className="mt-auto">
-                      <div
-                        className="d-flex align-items-center justify-content-between border rounded px-3 py-2 mb-2"
-                        style={{ background: "#f8f9fa", borderStyle: "dashed" }}
-                      >
-                        <code className="fw-bold">{c.code}</code>
-                      </div>
+                      <CouponCodeButton code={c.code} />
                       {formatDate(c.valid_until) && (
                         <p className="small text-muted mb-2">Gültig bis {formatDate(c.valid_until)}</p>
                       )}
