@@ -11,7 +11,7 @@ export default function SoFunktioniertEsPage() {
     <>
       <Navbar />
       <main className="container py-5" style={{ maxWidth: 760 }}>
-        <h1 className="fw-bold mb-2">So funktioniert Preisgucken</h1>
+        <h1 className="brand-heading fw-bold mb-2">So funktioniert Preisgucken</h1>
         <p className="text-muted mb-5">Kostenlos · Ohne Anmeldung · Täglich aktualisiert</p>
 
         {/* Steps */}

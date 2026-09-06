@@ -75,7 +75,7 @@ export default async function GutscheinePage() {
 
       <header className="bg-light border-bottom py-4">
         <div className="container">
-          <h1 className="mb-1 fw-bold">Gutscheine &amp; Rabattcodes</h1>
+          <h1 className="brand-heading mb-1 fw-bold">Gutscheine &amp; Rabattcodes</h1>
           <p className="text-muted mb-3">
             Aktuelle Gutscheincodes unserer Partner-Shops – täglich geprüft, kostenlos.
           </p>

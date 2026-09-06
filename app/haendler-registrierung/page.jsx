@@ -16,7 +16,7 @@ export default function HaendlerRegistrierungPage() {
           <a href="/" style={{ display: "inline-block", marginBottom: "1.5rem" }}>
             <img src="/preis-gucken-logo.png" alt="Preisgucken" height={48} />
           </a>
-          <h1 className="fw-bold mb-2" style={{ fontSize: "2rem" }}>
+          <h1 className="brand-heading fw-bold mb-2" style={{ fontSize: "2rem" }}>
             Händler-Registrierung
           </h1>
           <p className="mb-0" style={{ opacity: 0.85, maxWidth: 560, margin: "0 auto" }}>

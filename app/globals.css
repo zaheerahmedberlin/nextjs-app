@@ -18,6 +18,14 @@
   --pg-blue-light:  #e8eef8;   /* backgrounds / tints */
   --pg-orange:      #F5A623;   /* € symbol accent */
   --pg-orange-dark: #d4891a;   /* hover */
+  --pg-font-display: 'Unbounded', 'Arial Black', sans-serif;
+}
+
+/* Display typeface for headlines only, per docs/brand-guidelines.html —
+   never for body text or buttons, that stays the default sans stack. */
+.brand-heading {
+  font-family: var(--pg-font-display);
+  color: var(--pg-blue);
 }
 
 .nav-center {

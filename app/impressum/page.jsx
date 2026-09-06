@@ -12,7 +12,7 @@ export default function ImpressumPage() {
     <>
       <Navbar />
       <main className="container py-5" style={{ maxWidth: 760 }}>
-        <h1 className="fw-bold mb-4">Impressum</h1>
+        <h1 className="brand-heading fw-bold mb-4">Impressum</h1>
 
         <section className="mb-4">
           <h2 className="h5 fw-bold">Angaben gemäß § 5 TMG</h2>

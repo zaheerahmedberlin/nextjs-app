@@ -11,7 +11,7 @@ export default function AffiliateProgrammPage() {
     <>
       <Navbar />
       <main className="container py-5" style={{ maxWidth: 760 }}>
-        <h1 className="fw-bold mb-2">Partner werden</h1>
+        <h1 className="brand-heading fw-bold mb-2">Partner werden</h1>
         <p className="text-muted mb-5">
           Präsentieren Sie Ihre Produkte auf Preisgucken.de und erreichen Sie täglich tausende kaufbereite Verbraucher in Deutschland.
         </p>

@@ -6,7 +6,7 @@ export default function HeroSection({ searchQuery, setSearchQuery, setCurrentPag
     <section className="hero-section text-center py-5" aria-label="Preisvergleich Suche">
       <div className="container">
         {/* H1 visible to users – primary keyword for German market */}
-        <h1 className="display-5 fw-bold mb-2 text-dark">
+        <h1 className="brand-heading display-5 fw-bold mb-2">
           Preisvergleich Deutschland
         </h1>
         <p className="text-muted mb-1 fs-5">

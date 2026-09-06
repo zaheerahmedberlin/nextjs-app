@@ -237,7 +237,7 @@ export default function B2BForm() {
         <div className="pg-no-print">
           <div className="text-center py-4">
             <div style={{ fontSize: "3.5rem" }}>✅</div>
-            <h2 className="fw-bold mt-2" style={{ color: "var(--pg-blue)" }}>
+            <h2 className="brand-heading fw-bold mt-2" style={{ color: "var(--pg-blue)" }}>
               Registrierung eingegangen!
             </h2>
             <p className="text-muted mb-3" style={{ maxWidth: 520, margin: "0 auto" }}>

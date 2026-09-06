@@ -11,7 +11,7 @@ export default function UeberUnsPage() {
     <>
       <Navbar />
       <main className="container py-5" style={{ maxWidth: 760 }}>
-        <h1 className="fw-bold mb-4">Über uns</h1>
+        <h1 className="brand-heading fw-bold mb-4">Über uns</h1>
 
         <section className="mb-5">
           <h2 className="h5 fw-bold">Was ist Preisgucken?</h2>

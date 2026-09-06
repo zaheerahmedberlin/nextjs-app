@@ -47,7 +47,7 @@ export default function CookieEinstellungenPage() {
     <>
       <Navbar />
       <main className="container py-5" style={{ maxWidth: 680 }}>
-        <h1 className="fw-bold mb-2">Cookie-Einstellungen</h1>
+        <h1 className="brand-heading fw-bold mb-2">Cookie-Einstellungen</h1>
         <p className="text-muted mb-5">
           Hier können Sie Ihre Cookie-Präferenzen jederzeit anpassen. Notwendige Cookies sind
           für den Betrieb der Website erforderlich und können nicht deaktiviert werden.

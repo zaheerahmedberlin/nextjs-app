@@ -11,7 +11,7 @@ export default function KontaktPage() {
     <>
       <Navbar />
       <main className="container py-5" style={{ maxWidth: 600 }}>
-        <h1 className="fw-bold mb-2">Kontakt</h1>
+        <h1 className="brand-heading fw-bold mb-2">Kontakt</h1>
         <p className="text-muted mb-5">
           Fragen, Fehler, Kooperationsanfragen oder Händler-Partnerschaft?
           Schreiben Sie uns – wir antworten in der Regel innerhalb von 1–2 Werktagen.

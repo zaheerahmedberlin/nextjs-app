@@ -12,7 +12,7 @@ export default function AgbPage() {
     <>
       <Navbar />
       <main className="container py-5" style={{ maxWidth: 760 }}>
-        <h1 className="fw-bold mb-2">Allgemeine Geschäftsbedingungen (AGB)</h1>
+        <h1 className="brand-heading fw-bold mb-2">Allgemeine Geschäftsbedingungen (AGB)</h1>
         <p className="text-muted small mb-5">Stand: Juli 2025</p>
 
         <section className="mb-4">
