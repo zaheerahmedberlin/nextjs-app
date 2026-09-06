@@ -15,6 +15,11 @@ concurrency:
   group: sync-awin-feeds
   cancel-in-progress: false
 
+# 2026-09: runs via SSH against the netcup box's own scripts/run_cron.sh
+# dispatcher instead of connecting to Postgres/Redis directly from GitHub's
+# runners — the DB isn't exposed to the public internet (firewall only
+# allows 22/80/443), so this avoids opening it up just for these jobs.
+# The SSH key is restricted (forced command) to exactly these job names.
 jobs:
   # Voghion's feed (~92,000 raw rows, individual SELECT+INSERT/UPDATE per
   # row) has repeatedly run past 60 minutes on GitHub's runners and gotten
@@ -26,23 +31,13 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: pip install psycopg2-binary unidecode requests
-
-      - name: Run Voghion import
+      - name: Run Voghion import on server
         env:
-          RAILWAY_DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
-          VENDOR_FILTER: "Voghion Global"
-        run: python scripts/import_awin_feeds.py
+          SSH_KEY: ${{ secrets.NETCUP_SSH_KEY }}
+          HOST: ${{ secrets.NETCUP_HOST }}
+        run: |
+          echo "$SSH_KEY" > key.pem && chmod 600 key.pem
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "awin-voghion"
 
   # Everyone else with a feed_url (Centa-Star, DeubaXXL, GERMENS, BlazeVideo,
   # Dowinx, Smartwatcharmbaender — all comfortably fast). Excludes Voghion by
@@ -53,23 +48,13 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: pip install psycopg2-binary unidecode requests
-
-      - name: Run AWIN feed importer (all vendors except Voghion)
+      - name: Run AWIN feed importer (all vendors except Voghion) on server
         env:
-          RAILWAY_DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
-          VENDOR_EXCLUDE: "Voghion Global"
-        run: python scripts/import_awin_feeds.py
+          SSH_KEY: ${{ secrets.NETCUP_SSH_KEY }}
+          HOST: ${{ secrets.NETCUP_HOST }}
+        run: |
+          echo "$SSH_KEY" > key.pem && chmod 600 key.pem
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "awin-fast"
 
   # Tsarbomba and Sparkle GmbH use Shopify's /products.json, not an AWIN
   # feed — independent of both jobs above.
@@ -78,45 +63,28 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: pip install psycopg2-binary unidecode requests
-
-      - name: Refresh Shopify-API vendors
+      - name: Refresh Shopify-API vendors on server
         env:
-          RAILWAY_DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
-        run: python scripts/refresh_shopify_vendors.py
+          SSH_KEY: ${{ secrets.NETCUP_SSH_KEY }}
+          HOST: ${{ secrets.NETCUP_HOST }}
+        run: |
+          echo "$SSH_KEY" > key.pem && chmod 600 key.pem
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "awin-shopify"
 
   weekly-dead-link-check:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: pip install psycopg2-binary unidecode requests
-
-      - name: Weekly dead-link check (Sundays only)
+      - name: Weekly dead-link check (Sundays only) on server
         env:
-          RAILWAY_DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+          SSH_KEY: ${{ secrets.NETCUP_SSH_KEY }}
+          HOST: ${{ secrets.NETCUP_HOST }}
         run: |
           if [ "$(date +%u)" = "7" ]; then
             echo "Sunday — running full dead-link check"
-            python scripts/check_dead_links.py
+            echo "$SSH_KEY" > key.pem && chmod 600 key.pem
+            ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "dead-links"
           else
             echo "Not Sunday — skipping weekly dead-link check"
           fi
