@@ -173,7 +173,7 @@ export default function RootLayout({ children }) {
         {/* Brand display typeface (headings only, per docs/brand-guidelines.html) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
 
         {/* Favicon & PWA */}
         <link rel="icon" href="/favicon.png" type="image/png" />

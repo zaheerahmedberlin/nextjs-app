@@ -9,7 +9,7 @@ export default function HeroSection({ searchQuery, setSearchQuery, setCurrentPag
         <h1 className="brand-heading display-5 fw-bold mb-2">
           Preisvergleich Deutschland
         </h1>
-        <p className="text-muted mb-1 fs-5">
+        <p className="brand-body text-muted mb-1 fs-5">
           Günstige Preise finden – einfach, schnell, kostenlos
         </p>
         <div className="d-flex justify-content-center" style={{ maxWidth: 600, margin: "0 auto" }}>
