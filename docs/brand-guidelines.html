@@ -1,0 +1,766 @@
+<title>Preisgucken Markenwelt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --navy: #1A3A6B;
+    --navy-dark: #122b52;
+    --navy-light: #E8EEF8;
+    --orange: #F5A623;
+    --orange-dark: #D4891A;
+    --success: #198754;
+
+    --bg: #ffffff;
+    --bg-alt: #F8F9FA;
+    --surface: #ffffff;
+    --border: #DEE2E6;
+    --ink: #212529;
+    --muted: #6C757D;
+    --muted-2: #ADB5BD;
+    --accent-link: var(--navy);
+
+    --shadow: 0 1px 2px rgba(23,32,46,0.04), 0 8px 24px -12px rgba(23,32,46,0.12);
+    --radius: 14px;
+
+    --font-display: 'Unbounded', 'Arial Black', sans-serif;
+    --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D1320;
+      --bg-alt: #121A2B;
+      --surface: #161F32;
+      --border: #26314A;
+      --ink: #ECEFF5;
+      --muted: #9AA5BE;
+      --muted-2: #6B7896;
+      --navy-light: #1B2740;
+      --accent-link: #7FA0E0;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D1320;
+    --bg-alt: #121A2B;
+    --surface: #161F32;
+    --border: #26314A;
+    --ink: #ECEFF5;
+    --muted: #9AA5BE;
+    --muted-2: #6B7896;
+    --navy-light: #1B2740;
+    --accent-link: #7FA0E0;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--orange); color: var(--navy-dark); }
+
+  a { color: var(--accent-link); }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
+
+  /* ---------- Nav ---------- */
+  .topnav {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topnav-inner {
+    max-width: 1120px; margin: 0 auto; padding: 14px 32px;
+    display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  }
+  .topnav-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.02em; }
+  .topnav-links { display: flex; gap: 22px; flex-wrap: wrap; }
+  .topnav-links a {
+    font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .topnav-links a:hover { color: var(--navy); }
+  @media (prefers-color-scheme: dark) { .topnav-links a:hover { color: var(--orange); } }
+
+  /* ---------- Cover ---------- */
+  .cover {
+    padding: 96px 32px 80px;
+    background:
+      radial-gradient(1100px 420px at 15% -10%, color-mix(in srgb, var(--navy) 14%, transparent), transparent 60%),
+      var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .cover-inner { max-width: 1120px; margin: 0 auto; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--orange-dark); font-weight: 600; margin: 0 0 20px;
+  }
+  @media (prefers-color-scheme: dark) { .eyebrow { color: var(--orange); } }
+  .cover h1 {
+    font-family: var(--font-display); font-weight: 900; letter-spacing: -0.01em;
+    font-size: clamp(40px, 6vw, 76px); line-height: 1.02; margin: 0 0 22px; color: var(--navy);
+    text-wrap: balance;
+  }
+  @media (prefers-color-scheme: dark) { .cover h1 { color: #fff; } }
+  .cover .lede { font-size: 19px; color: var(--muted); max-width: 640px; margin: 0 0 40px; }
+  .cover .lede strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Sections ---------- */
+  section.block { padding: 88px 32px; border-bottom: 1px solid var(--border); }
+  section.block.alt { background: var(--bg-alt); }
+  .block-inner { max-width: 1120px; margin: 0 auto; }
+  .section-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 48px; flex-wrap: wrap; }
+  .section-num {
+    font-family: var(--font-mono); font-size: 13px; color: var(--muted-2); font-weight: 600;
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px;
+  }
+  h2.section-title {
+    font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 3.2vw, 36px);
+    margin: 0; color: var(--ink); letter-spacing: -0.005em;
+  }
+  .section-sub { color: var(--muted); font-size: 16px; max-width: 620px; margin: 14px 0 0; }
+
+  /* ---------- Logo Lockup ---------- */
+  .logo-showcase {
+    display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 64px; align-items: center;
+  }
+  @media (max-width: 860px) { .logo-showcase { grid-template-columns: 1fr; } }
+  .lockup-stage {
+    background: var(--navy); border-radius: 20px; padding: 72px 48px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow);
+  }
+  .lockup-stage.light { background: var(--bg); border: 1px solid var(--border); }
+  .mark-row { display: flex; align-items: center; gap: 18px; }
+  .mark-word {
+    font-family: var(--font-display); font-weight: 900; font-size: 44px; letter-spacing: -0.01em; color: #fff;
+    display: flex; flex-direction: column; line-height: 0.92;
+  }
+  .mark-word .thin { font-weight: 500; font-size: 15px; letter-spacing: 0.32em; text-transform: uppercase; opacity: 0.55; margin-bottom: 6px; }
+  .lockup-stage.light .mark-word { color: var(--navy); }
+  .lockup-stage.light .mark-word .thin { color: var(--muted); opacity: 1; }
+
+  .rationale-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 22px; }
+  .rationale-list li { display: flex; gap: 14px; }
+  .rationale-num { font-family: var(--font-mono); color: var(--orange-dark); font-weight: 700; flex-shrink: 0; }
+  @media (prefers-color-scheme: dark) { .rationale-num { color: var(--orange); } }
+  .rationale-list h4 { margin: 0 0 4px; font-size: 15.5px; font-weight: 700; }
+  .rationale-list p { margin: 0; color: var(--muted); font-size: 14.5px; }
+
+  /* clearspace + min size row */
+  .logo-rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 40px; }
+  @media (max-width: 760px) { .logo-rules { grid-template-columns: 1fr; } }
+  .rule-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; background: var(--surface); }
+  .rule-card .stage-mini { height: 92px; display: flex; align-items: center; justify-content: center; background: var(--bg-alt); border-radius: 10px; margin-bottom: 16px; position: relative; }
+  .rule-card h5 { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
+  .rule-card p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .clearspace-box { border: 1.5px dashed var(--orange-dark); padding: 14px 20px; border-radius: 6px; }
+  @media (prefers-color-scheme: dark) { .clearspace-box { border-color: var(--orange); } }
+
+  /* dont examples */
+  .donts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 20px; }
+  @media (max-width: 900px) { .donts { grid-template-columns: repeat(2, 1fr); } }
+  .dont-card { border: 1px solid var(--border); border-radius: 12px; padding: 20px; background: var(--surface); text-align: center; }
+  .dont-card .mini-logo { font-family: var(--font-display); font-weight: 900; color: var(--navy); font-size: 20px; margin-bottom: 14px; height: 40px; display:flex; align-items:center; justify-content:center; }
+  .dont-card .label { font-size: 12.5px; color: var(--muted); }
+  .dont-badge { display: inline-block; background: #FBE7E9; color: #B3261E; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; margin-top: 8px; }
+  @media (prefers-color-scheme: dark) { .dont-badge { background: #3A1E20; color: #F4A5A5; } }
+
+  /* ---------- Colors ---------- */
+  .swatch-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  @media (max-width: 900px) { .swatch-grid { grid-template-columns: repeat(2, 1fr); } }
+  .swatch { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  .swatch-color { height: 108px; }
+  .swatch-meta { padding: 14px 16px; }
+  .swatch-meta .name { font-weight: 700; font-size: 14.5px; margin-bottom: 2px; }
+  .swatch-meta .role { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+  .swatch-meta code { font-family: var(--font-mono); font-size: 12px; color: var(--muted-2); display: block; }
+
+  .neutral-strip { display: flex; border-radius: var(--radius); overflow: hidden; margin-top: 20px; border: 1px solid var(--border); }
+  .neutral-cell { flex: 1; height: 64px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; }
+  .neutral-cell span { font-family: var(--font-mono); font-size: 10.5px; }
+
+  /* ---------- Typography ---------- */
+  .type-specimen { border-top: 1px solid var(--border); padding: 32px 0; display: grid; grid-template-columns: 160px 1fr; gap: 28px; align-items: baseline; }
+  .type-specimen:first-of-type { border-top: none; }
+  @media (max-width: 700px) { .type-specimen { grid-template-columns: 1fr; gap: 8px; } }
+  .type-label { font-family: var(--font-mono); font-size: 12px; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.06em; }
+  .type-label .px { display: block; color: var(--muted); margin-top: 4px; font-size: 11.5px; }
+  .type-sample.display { font-family: var(--font-display); font-weight: 900; }
+  .type-sample.body-demo { font-family: var(--font-body); }
+  .type-sample.mono-demo { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  .pairing-note { display: flex; gap: 40px; margin-top: 48px; flex-wrap: wrap; }
+  .pairing-note div { flex: 1; min-width: 220px; }
+  .pairing-note h5 { margin: 0 0 6px; font-size: 14px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-2); }
+  .pairing-note p { margin: 0; font-size: 14.5px; color: var(--muted); }
+
+  /* ---------- Voice ---------- */
+  .voice-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  @media (max-width: 900px) { .voice-grid { grid-template-columns: repeat(2, 1fr); } }
+  .voice-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; background: var(--surface); }
+  .voice-card .word { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--navy); margin-bottom: 10px; }
+  @media (prefers-color-scheme: dark) { .voice-card .word { color: #fff; } }
+  .voice-card p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .voice-example { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 760px) { .voice-example { grid-template-columns: 1fr; } }
+  .ve-card { border-radius: var(--radius); padding: 22px 24px; }
+  .ve-card.no { background: #FBE7E9; }
+  .ve-card.yes { background: #E4F4EC; }
+  @media (prefers-color-scheme: dark) { .ve-card.no { background: #2A1A1C; } .ve-card.yes { background: #17301F; } }
+  .ve-label { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .ve-card.no .ve-label { color: #B3261E; }
+  .ve-card.yes .ve-label { color: var(--success); }
+  .ve-card p { margin: 0; font-size: 15px; font-style: italic; color: var(--ink); }
+
+  /* ---------- Motif ---------- */
+  .motif-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .motif-row { grid-template-columns: 1fr; } }
+  .motif-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 30px; text-align: center; }
+  .motif-card svg { margin-bottom: 18px; }
+  .motif-card h5 { margin: 0 0 6px; font-size: 14.5px; font-weight: 700; }
+  .motif-card p { margin: 0; font-size: 13px; color: var(--muted); }
+
+  /* ---------- Applications ---------- */
+  .app-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 28px; }
+  @media (max-width: 900px) { .app-grid { grid-template-columns: 1fr; } }
+
+  .biz-card {
+    aspect-ratio: 1.75/1; border-radius: 16px; background: var(--navy); position: relative; overflow: hidden;
+    box-shadow: var(--shadow); padding: 28px; display: flex; flex-direction: column; justify-content: space-between;
+    color: #fff;
+  }
+  .biz-card::after {
+    content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%;
+    background: color-mix(in srgb, var(--orange) 22%, transparent);
+  }
+  .biz-card .bc-name { font-family: var(--font-display); font-weight: 700; font-size: 20px; }
+  .biz-card .bc-role { font-family: var(--font-mono); font-size: 11.5px; opacity: 0.65; margin-top: 4px; letter-spacing: 0.04em; }
+  .biz-card .bc-contact { font-family: var(--font-mono); font-size: 11.5px; line-height: 1.9; opacity: 0.85; z-index:1; }
+  .biz-card .bc-mark { font-family: var(--font-display); font-weight: 900; font-size: 15px; z-index: 1; }
+
+  .social-post {
+    aspect-ratio: 1/1; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow);
+    background: linear-gradient(160deg, var(--navy) 0%, var(--navy-dark) 100%);
+    display: flex; flex-direction: column; justify-content: space-between; padding: 26px; color: #fff; position: relative;
+  }
+  .social-post .sp-top { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.6; z-index:1; }
+  .social-post .sp-price { font-family: var(--font-mono); font-weight: 600; font-size: 46px; color: var(--orange); z-index:1; }
+  .social-post .sp-old { font-family: var(--font-mono); font-size: 16px; text-decoration: line-through; opacity: 0.5; margin-bottom: -6px; z-index:1; }
+  .social-post .sp-title { font-family: var(--font-display); font-weight: 700; font-size: 18px; z-index:1; }
+  .social-post .sp-badge {
+    position: absolute; top: 26px; right: 26px; background: #E63946; color: #fff; font-family: var(--font-mono);
+    font-weight: 700; font-size: 12px; padding: 6px 12px; border-radius: 999px;
+  }
+
+  .app-side { display: flex; flex-direction: column; gap: 28px; }
+  .fav-row { display: flex; gap: 14px; align-items: center; }
+  .fav-chip {
+    width: 42px; height: 42px; border-radius: 10px; background: var(--navy); display: flex; align-items: center;
+    justify-content: center; box-shadow: var(--shadow); flex-shrink: 0;
+  }
+  .browser-mock { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; flex: 1; }
+  .browser-bar { background: var(--bg-alt); padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+  .browser-tab { background: var(--surface); border: 1px solid var(--border); border-radius: 6px 6px 0 0; padding: 5px 10px; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .pg-btn { font-family: var(--font-body); font-weight: 600; font-size: 13.5px; padding: 10px 18px; border-radius: 8px; border: none; cursor: default; }
+  .pg-btn.primary { background: var(--navy); color: #fff; }
+  .pg-btn.outline { background: transparent; color: var(--navy); border: 1.5px solid var(--navy); }
+  @media (prefers-color-scheme: dark) { .pg-btn.outline { color: #fff; border-color: #fff; } }
+  .pg-badge { display: inline-flex; align-items: center; gap: 6px; background: #E4F4EC; color: var(--success); font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px; }
+  @media (prefers-color-scheme: dark) { .pg-badge { background: #17301F; } }
+
+  /* ---------- Dos/Donts final ---------- */
+  .final-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { .final-grid { grid-template-columns: 1fr; } }
+  .final-card { border-radius: var(--radius); padding: 28px; }
+  .final-card.do { background: #E4F4EC; }
+  .final-card.dont { background: #FBE7E9; }
+  @media (prefers-color-scheme: dark) { .final-card.do { background: #17301F; } .final-card.dont { background: #2A1A1C; } }
+  .final-card h4 { margin: 0 0 16px; font-family: var(--font-display); font-size: 16px; }
+  .final-card.do h4 { color: var(--success); }
+  .final-card.dont h4 { color: #B3261E; }
+  .final-card ul { margin: 0; padding-left: 18px; }
+  .final-card li { font-size: 13.5px; margin-bottom: 8px; color: var(--ink); }
+
+  footer.brand-footer { padding: 56px 32px; text-align: center; }
+  footer.brand-footer p { color: var(--muted-2); font-size: 12.5px; font-family: var(--font-mono); }
+
+  ::-webkit-scrollbar { height: 8px; width: 8px; }
+</style>
+
+<nav class="topnav">
+  <div class="topnav-inner">
+    <div class="topnav-brand">🔍 Preisgucken</div>
+    <div class="topnav-links">
+      <a href="#logo">Logo</a>
+      <a href="#farben">Farben</a>
+      <a href="#typo">Typografie</a>
+      <a href="#stimme">Stimme</a>
+      <a href="#motiv">Bildsprache</a>
+      <a href="#anwendung">Anwendung</a>
+    </div>
+  </div>
+</nav>
+
+<header class="cover">
+  <div class="cover-inner">
+    <p class="eyebrow">Markenrichtlinie · Version 1.0 · 2026</p>
+    <h1>Der Preis-Vergleich, dem<br>man vertraut.</h1>
+    <p class="lede">Diese Richtlinie definiert, wie Preisgucken aussieht, klingt und sich anfühlt — <strong>über Website, Social Media und Print hinweg.</strong> Gebaut auf der bestehenden Marke: Navy, Orange und die Lupe, die den besten Preis findet.</p>
+  </div>
+</header>
+
+<section class="block" id="logo">
+  <div class="block-inner">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <div>
+        <h2 class="section-title">Das Logo</h2>
+        <p class="section-sub">Die Wortmarke trägt die Marke — kein Icon nötig, um Preisgucken erkennbar zu machen.</p>
+      </div>
+    </div>
+
+    <div class="logo-showcase">
+      <div class="lockup-stage light" style="padding:56px">
+        <svg width="330" height="178" viewBox="0 0 185 100" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="8" width="173" height="84" rx="10" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+          <rect x="16" y="18" width="54" height="54" rx="7" fill="var(--surface)" stroke="#1A3A6B" stroke-width="2.5"/>
+          <text x="43" y="60" text-anchor="middle" font-family="'Arial Black',Arial,sans-serif" font-size="32" font-weight="900" fill="#1A3A6B">P</text>
+          <circle cx="60" cy="25" r="10" fill="#E8872A"/>
+          <text x="60" y="29" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="9" font-weight="900" fill="#fff">G</text>
+          <text x="80" y="42" font-family="Arial,sans-serif" font-size="11" font-weight="300" fill="#aaa" letter-spacing="3">preis</text>
+          <text x="78" y="64" font-family="'Arial Black',Arial,sans-serif" font-size="24" font-weight="900" fill="#1A3A6B">gucken</text>
+          <line x1="16" y1="76" x2="173" y2="76" stroke="var(--border)" stroke-width="1"/>
+          <text x="16" y="87" font-family="Arial,sans-serif" font-size="8.5" fill="#999" letter-spacing="0.3">PREISVERGLEICH · DEUTSCHLAND</text>
+        </svg>
+      </div>
+      <ul class="rationale-list">
+        <li>
+          <span class="rationale-num">01</span>
+          <div><h4>Das PG-Monogramm</h4><p>Ein „P" in navy-umrandetem Quadrat, mit einem kleinen orangenen „G"-Kreis, der oben rechts hineinragt — die zwei Buchstaben von Preisgucken, kompakt genug fürs Favicon.</p></div>
+        </li>
+        <li>
+          <span class="rationale-num">02</span>
+          <div><h4>Zwei Gewichte in der Wortmarke</h4><p>„preis" dünn, grau, gesperrt — „gucken" schwer und navy. Der Kontrast macht den Markennamen auch bei kleiner Größe sofort lesbar.</p></div>
+        </li>
+        <li>
+          <span class="rationale-num">03</span>
+          <div><h4>Karte mit Tagline</h4><p>Die dünne graue Rahmenkarte und die Zeile „PREISVERGLEICH · DEUTSCHLAND" gehören zur Vollversion des Logos — sie verankern die Marke geografisch und funktional.</p></div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="rule-card" style="margin-top:32px; max-width:640px;">
+      <h5>Wo diese Datei liegt</h5>
+      <p style="margin-bottom:0"><code style="font-family:var(--font-mono)">public/preisgucken_logo.svg</code> im nextjs-app-Repo (identisch auch in preisgucken_com verwendet). Dies ist die tatsächlich im Betrieb genutzte Logodatei — alles unten baut auf diesem echten Mark auf, nicht auf einer Neuinterpretation.</p>
+    </div>
+
+    <div class="logo-rules">
+      <div class="rule-card">
+        <div class="stage-mini">
+          <div class="clearspace-box">
+            <svg width="120" height="65" viewBox="0 0 185 100"><rect x="16" y="18" width="54" height="54" rx="7" fill="none" stroke="#1A3A6B" stroke-width="2.5"/><text x="43" y="60" text-anchor="middle" font-family="'Arial Black',Arial,sans-serif" font-size="32" font-weight="900" fill="#1A3A6B">P</text><circle cx="60" cy="25" r="10" fill="#E8872A"/><text x="60" y="29" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="9" font-weight="900" fill="#fff">G</text><text x="80" y="42" font-family="Arial,sans-serif" font-size="11" font-weight="300" fill="#aaa" letter-spacing="3">preis</text><text x="78" y="64" font-family="'Arial Black',Arial,sans-serif" font-size="24" font-weight="900" fill="#1A3A6B">gucken</text></svg>
+          </div>
+        </div>
+        <h5>Schutzraum</h5>
+        <p>Mindestabstand rundum = Breite des PG-Monogramm-Quadrats. Nichts darf diesen Raum durchdringen — auch keine Fotos oder Hintergrundmuster.</p>
+      </div>
+      <div class="rule-card">
+        <div class="stage-mini">
+          <svg width="90" height="49" viewBox="0 0 185 100"><rect x="16" y="18" width="54" height="54" rx="7" fill="none" stroke="#1A3A6B" stroke-width="2.5"/><text x="43" y="60" text-anchor="middle" font-family="'Arial Black',Arial,sans-serif" font-size="32" font-weight="900" fill="#1A3A6B">P</text><circle cx="60" cy="25" r="10" fill="#E8872A"/><text x="60" y="29" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="9" font-weight="900" fill="#fff">G</text><text x="80" y="42" font-family="Arial,sans-serif" font-size="11" font-weight="300" fill="#aaa" letter-spacing="3">preis</text><text x="78" y="64" font-family="'Arial Black',Arial,sans-serif" font-size="24" font-weight="900" fill="#1A3A6B">gucken</text></svg>
+        </div>
+        <h5>Mindestgröße</h5>
+        <p>Digital: 88px Breite (volles Logo mit Karte), 24px für das PG-Monogramm allein. Darunter verschwimmt der Rahmen und das „G" wird unleserlich.</p>
+      </div>
+      <div class="rule-card">
+        <div class="stage-mini" style="background:var(--navy)">
+          <svg width="130" height="70" viewBox="0 0 185 100"><rect x="6" y="8" width="173" height="84" rx="10" fill="none" stroke="#3D4D70" stroke-width="1"/><rect x="16" y="18" width="54" height="54" rx="7" fill="none" stroke="#fff" stroke-width="2.5"/><text x="43" y="60" text-anchor="middle" font-family="'Arial Black',Arial,sans-serif" font-size="32" font-weight="900" fill="#fff">P</text><circle cx="60" cy="25" r="10" fill="#E8872A"/><text x="60" y="29" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="9" font-weight="900" fill="#fff">G</text><text x="80" y="42" font-family="Arial,sans-serif" font-size="11" font-weight="300" fill="#B9C6E0" letter-spacing="3">preis</text><text x="78" y="64" font-family="'Arial Black',Arial,sans-serif" font-size="24" font-weight="900" fill="#fff">gucken</text></svg>
+        </div>
+        <h5>Auf Navy</h5>
+        <p>Rahmen, Monogramm und Wortmarke wechseln zu Weiß, der Kartenrahmen hellt aufs blaugraue <code style="font-family:var(--font-mono);font-size:11px">#3D4D70</code> auf. Orange bleibt unverändert. Echte Datei: <code style="font-family:var(--font-mono);font-size:12px">public/preisgucken_logo_reversed.svg</code>.</p>
+      </div>
+    </div>
+
+    <h4 style="font-family:var(--font-display);font-size:16px;margin:44px 0 18px;">Transparente Dateien — beide echt, direkt aus <code style="font-family:var(--font-mono);font-size:13px">public/</code> eingebettet</h4>
+    <div class="logo-rules" style="grid-template-columns:1fr 1fr;">
+      <div class="rule-card">
+        <div class="stage-mini" style="background:repeating-conic-gradient(#e8e8e8 0% 25%, #f8f9fa 0% 50%) 0 0/16px 16px; height:120px;">
+          <svg width="200" height="108" viewBox="0 0 185 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="8" width="173" height="84" rx="10" fill="none" stroke="#e8e8e8" stroke-width="1"/>
+            <rect x="16" y="18" width="54" height="54" rx="7" fill="none" stroke="#1A3A6B" stroke-width="2.5"/>
+            <text x="43" y="60" text-anchor="middle" font-family="'Arial Black',Arial,sans-serif" font-size="32" font-weight="900" fill="#1A3A6B">P</text>
+            <circle cx="60" cy="25" r="10" fill="#E8872A"/>
+            <text x="60" y="29" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="9" font-weight="900" fill="#fff">G</text>
+            <text x="80" y="42" font-family="Arial,sans-serif" font-size="11" font-weight="300" fill="#aaa" letter-spacing="3">preis</text>
+            <text x="78" y="64" font-family="'Arial Black',Arial,sans-serif" font-size="24" font-weight="900" fill="#1A3A6B">gucken</text>
+            <line x1="16" y1="76" x2="173" y2="76" stroke="#eee" stroke-width="1"/>
+            <text x="16" y="87" font-family="Arial,sans-serif" font-size="8.5" fill="#999" letter-spacing="0.3">PREISVERGLEICH · DEUTSCHLAND</text>
+          </svg>
+        </div>
+        <h5>preisgucken_logo_transparent.svg</h5>
+        <p>Karospiel-Hintergrund = kein Weiß, es ist Transparenz. Originalfarben, Rahmen in hellem Grau erhalten — für jede helle Fläche, die nicht reines Weiß ist.</p>
+      </div>
+      <div class="rule-card">
+        <div class="stage-mini" style="background:var(--navy); height:120px;">
+          <svg width="200" height="108" viewBox="0 0 185 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="8" width="173" height="84" rx="10" fill="none" stroke="#3D4D70" stroke-width="1"/>
+            <rect x="16" y="18" width="54" height="54" rx="7" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+            <text x="43" y="60" text-anchor="middle" font-family="'Arial Black',Arial,sans-serif" font-size="32" font-weight="900" fill="#ffffff">P</text>
+            <circle cx="60" cy="25" r="10" fill="#E8872A"/>
+            <text x="60" y="29" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="9" font-weight="900" fill="#ffffff">G</text>
+            <text x="80" y="42" font-family="Arial,sans-serif" font-size="11" font-weight="300" fill="#B9C6E0" letter-spacing="3">preis</text>
+            <text x="78" y="64" font-family="'Arial Black',Arial,sans-serif" font-size="24" font-weight="900" fill="#ffffff">gucken</text>
+            <line x1="16" y1="76" x2="173" y2="76" stroke="#3D4D70" stroke-width="1"/>
+            <text x="16" y="87" font-family="Arial,sans-serif" font-size="8.5" fill="#8493B5" letter-spacing="0.3">PREISVERGLEICH · DEUTSCHLAND</text>
+          </svg>
+        </div>
+        <h5>preisgucken_logo_reversed.svg</h5>
+        <p>Auf Navy gerendert — Monogramm, Wortmarke und Rahmen in Weiß/Hellblau, Orange unverändert. Pixelgeprüft: kein Verschwinden mehr.</p>
+      </div>
+    </div>
+
+    <div class="donts">
+      <div class="dont-card">
+        <div class="mini-logo" style="font-style:italic;">gucken<span style="color:var(--orange)">.</span></div>
+        <div class="label">Nicht kursiv setzen</div>
+        <span class="dont-badge">Falsch</span>
+      </div>
+      <div class="dont-card">
+        <div class="mini-logo" style="color:#E8872A">P</div>
+        <div class="label">Monogramm nicht umfärben</div>
+        <span class="dont-badge">Falsch</span>
+      </div>
+      <div class="dont-card">
+        <div class="mini-logo" style="letter-spacing:2px; font-size:16px;">PREISGUCKEN</div>
+        <div class="label">Wortmarke nicht ersetzen</div>
+        <span class="dont-badge">Falsch</span>
+      </div>
+      <div class="dont-card">
+        <div class="mini-logo" style="transform:scaleX(1.4)">gucken</div>
+        <div class="label">Nicht verzerren</div>
+        <span class="dont-badge">Falsch</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block alt" id="farben">
+  <div class="block-inner">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <div>
+        <h2 class="section-title">Farbsystem</h2>
+        <p class="section-sub">Navy trägt Vertrauen. Orange trägt den Fund. Beide bereits live im Produkt — hier präzise definiert.</p>
+      </div>
+    </div>
+
+    <div class="swatch-grid">
+      <div class="swatch">
+        <div class="swatch-color" style="background:#1A3A6B"></div>
+        <div class="swatch-meta">
+          <div class="name">Preisgucken Navy</div>
+          <div class="role">Primär · Text, Logo, Buttons</div>
+          <code>#1A3A6B</code>
+          <code>rgb(26, 58, 107)</code>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#122b52"></div>
+        <div class="swatch-meta">
+          <div class="name">Navy Dunkel</div>
+          <div class="role">Hover- / Aktiv-Zustände</div>
+          <code>#122B52</code>
+          <code>rgb(18, 43, 82)</code>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#F5A623"></div>
+        <div class="swatch-meta">
+          <div class="name">Fund-Orange</div>
+          <div class="role">Akzent · Der eine Fund, das eine CTA</div>
+          <code>#F5A623</code>
+          <code>rgb(245, 166, 35)</code>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#D4891A"></div>
+        <div class="swatch-meta">
+          <div class="name">Orange Dunkel</div>
+          <div class="role">Hover auf Orange-Elementen</div>
+          <code>#D4891A</code>
+          <code>rgb(212, 137, 26)</code>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#E8EEF8"></div>
+        <div class="swatch-meta">
+          <div class="name">Navy-Tinte</div>
+          <div class="role">Flächen, Karten-Hintergründe</div>
+          <code>#E8EEF8</code>
+          <code>rgb(232, 238, 248)</code>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#198754"></div>
+        <div class="swatch-meta">
+          <div class="name">Ersparnis-Grün</div>
+          <div class="role">Nur für Preissenkungen, „gespart"</div>
+          <code>#198754</code>
+          <code>rgb(25, 135, 84)</code>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#E63946"></div>
+        <div class="swatch-meta">
+          <div class="name">Rabatt-Rot</div>
+          <div class="role">Nur für Prozent-Badges, sparsam</div>
+          <code>#E63946</code>
+          <code>rgb(230, 57, 70)</code>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#212529"></div>
+        <div class="swatch-meta">
+          <div class="name">Tinte</div>
+          <div class="role">Fließtext (kein reines Schwarz)</div>
+          <code>#212529</code>
+          <code>rgb(33, 37, 41)</code>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:13px;color:var(--muted);margin-top:28px;font-family:var(--font-mono)">Neutralskala — mit leichtem Navy-Unterton, nie reines Grau:</p>
+    <div class="neutral-strip">
+      <div class="neutral-cell" style="background:#F8F9FA"><span style="color:#6C757D">F8F9FA</span></div>
+      <div class="neutral-cell" style="background:#E9ECEF"><span style="color:#6C757D">E9ECEF</span></div>
+      <div class="neutral-cell" style="background:#DEE2E6"><span style="color:#212529">DEE2E6</span></div>
+      <div class="neutral-cell" style="background:#ADB5BD"><span style="color:#fff">ADB5BD</span></div>
+      <div class="neutral-cell" style="background:#6C757D"><span style="color:#fff">6C757D</span></div>
+      <div class="neutral-cell" style="background:#495057"><span style="color:#fff">495057</span></div>
+      <div class="neutral-cell" style="background:#212529"><span style="color:#fff">212529</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="typo">
+  <div class="block-inner">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <div>
+        <h2 class="section-title">Typografie</h2>
+        <p class="section-sub">Zwei Schriften, eine klare Aufgabenteilung: eine für Haltung, eine für Zahlen und Lesbarkeit.</p>
+      </div>
+    </div>
+
+    <div class="type-specimen">
+      <div class="type-label">Display<span class="px">Unbounded · 900</span></div>
+      <div class="type-sample display" style="font-size:52px;color:var(--navy)">Finde den<br>besten Preis.</div>
+    </div>
+    <div class="type-specimen">
+      <div class="type-label">Überschrift<span class="px">Unbounded · 700 · 28px</span></div>
+      <div class="type-sample display" style="font-size:28px;font-weight:700">Über 400.000 Produkte im Vergleich</div>
+    </div>
+    <div class="type-specimen">
+      <div class="type-label">Fließtext<span class="px">IBM Plex Sans · 400 · 16px</span></div>
+      <div class="type-sample body-demo" style="font-size:16px;max-width:560px;color:var(--muted)">Preisgucken vergleicht Angebote hunderter Händler in Echtzeit — damit Sie in Sekunden sehen, wo ein Produkt heute wirklich am günstigsten ist.</div>
+    </div>
+    <div class="type-specimen">
+      <div class="type-label">Preise / Daten<span class="px">IBM Plex Mono · 600</span></div>
+      <div class="type-sample mono-demo" style="font-size:34px;color:var(--orange-dark)">129,99&nbsp;€ <span style="font-size:18px;color:var(--muted-2);text-decoration:line-through;font-weight:500">179,99&nbsp;€</span></div>
+    </div>
+
+    <div class="pairing-note">
+      <div>
+        <h5>Warum Unbounded</h5>
+        <p>Geometrisch, selbstbewusst, mit leicht ungewöhnlichen Proportionen — es sieht nach einem Produkt aus, das genau hinsieht, nicht nach einer generischen Tech-Marke.</p>
+      </div>
+      <div>
+        <h5>Warum IBM Plex</h5>
+        <p>Für Preisvergleich zählt jede Ziffer. Plex Sans und Plex Mono wurden für technische Präzision entworfen — deutsche Umlaute und tabellarische Zahlen sitzen makellos.</p>
+      </div>
+      <div>
+        <h5>Regel</h5>
+        <p>Unbounded nur für Überschriften &amp; Logo. Nie für Fließtext oder Buttons — dort immer Plex Sans, für Ruhe im Gesamtbild.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block alt" id="stimme">
+  <div class="block-inner">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <div>
+        <h2 class="section-title">Stimme &amp; Ton</h2>
+        <p class="section-sub">Beratend, sachlich, nutzerorientiert. Nie Werbesprache — Preisgucken verkauft nicht, es informiert.</p>
+      </div>
+    </div>
+
+    <div class="voice-grid">
+      <div class="voice-card"><div class="word">Beratend</div><p>Wie ein informierter Freund, der zufällig alle Preise kennt — nicht wie ein Verkäufer.</p></div>
+      <div class="voice-card"><div class="word">Sachlich</div><p>Zahlen und Fakten vorne, Superlative hinten. Der Preis spricht für sich selbst.</p></div>
+      <div class="voice-card"><div class="word">Direkt</div><p>Kurze Sätze. Kein Marketing-Geschwurbel, keine drei Adjektive wo eins reicht.</p></div>
+      <div class="voice-card"><div class="word">Ehrlich</div><p>Auch wenn ein Deal nur „ganz okay" ist, wird das so gesagt — Vertrauen schlägt Hype.</p></div>
+    </div>
+
+    <div class="voice-example">
+      <div class="ve-card no">
+        <div class="ve-label">Vermeiden</div>
+        <p>„🔥 UNGLAUBLICHER MEGA-DEAL!! Nur JETZT sichern, bevor es zu spät ist! 😱💥"</p>
+      </div>
+      <div class="ve-card yes">
+        <div class="ve-label">Preisgucken-Ton</div>
+        <p>„Dieser Monitor-Arm ist gerade 50% günstiger als vor zwei Wochen — einer der besseren Preise, die wir seit dem Sommer gesehen haben."</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="motiv">
+  <div class="block-inner">
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <div>
+        <h2 class="section-title">Bildsprache</h2>
+        <p class="section-sub">Ein wiederkehrendes Set an grafischen Elementen statt Stock-Fotos.</p>
+      </div>
+    </div>
+
+    <div class="motif-row">
+      <div class="motif-card">
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+          <circle cx="30" cy="30" r="20" stroke="#1A3A6B" stroke-width="5"/>
+          <line x1="44" y1="44" x2="60" y2="60" stroke="#1A3A6B" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="30" cy="30" r="7" fill="#F5A623"/>
+        </svg>
+        <h5>Die Lupe</h5>
+        <p>Immer mit einem orangenen Punkt im Zentrum — der gefundene Preis. Nie leer.</p>
+      </div>
+      <div class="motif-card">
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+          <ellipse cx="36" cy="36" rx="34" ry="18" fill="#E63946"/>
+          <text x="36" y="41" text-anchor="middle" font-family="IBM Plex Mono" font-size="16" font-weight="700" fill="white">-50%</text>
+        </svg>
+        <h5>Der Rabatt-Stempel</h5>
+        <p>Elliptisch, nie rechteckig. Rot ausschließlich hier — nirgendwo sonst im System.</p>
+      </div>
+      <div class="motif-card">
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+          <rect x="8" y="8" width="56" height="56" rx="12" fill="#E8EEF8"/>
+          <path d="M22 44 L32 30 L42 38 L54 22" stroke="#1A3A6B" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="54" cy="22" r="5" fill="#F5A623"/>
+        </svg>
+        <h5>Die Preiskurve</h5>
+        <p>Immer fallend von links nach rechts, endend in einem orangenen Punkt.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block alt" id="anwendung">
+  <div class="block-inner">
+    <div class="section-head">
+      <span class="section-num">06</span>
+      <div>
+        <h2 class="section-title">Anwendung</h2>
+        <p class="section-sub">Wie das System in der Praxis aussieht — von der Visitenkarte bis zum Social-Media-Post.</p>
+      </div>
+    </div>
+
+    <div class="app-grid">
+      <div class="biz-card">
+        <div class="bc-mark" style="display:flex;align-items:center;gap:10px;z-index:1;">
+          <svg width="32" height="32" viewBox="0 0 54 54"><rect x="2" y="2" width="50" height="50" rx="7" fill="none" stroke="#fff" stroke-width="2.5"/><text x="27" y="38" text-anchor="middle" font-family="'Arial Black',Arial,sans-serif" font-size="28" font-weight="900" fill="#fff">P</text><circle cx="44" cy="9" r="9" fill="#E8872A"/><text x="44" y="13" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="8" font-weight="900" fill="#fff">G</text></svg>
+          <span>preisgucken</span>
+        </div>
+        <div class="bc-contact">
+          Zaheer Ahmed<br>
+          Gründer<br>
+          info@preisgucken.de<br>
+          preisgucken.de
+        </div>
+      </div>
+
+      <div class="social-post">
+        <span class="sp-badge">-50%</span>
+        <div class="sp-top">Heute gefunden</div>
+        <div>
+          <div class="sp-title">Dual-Monitor-Arm</div>
+          <div class="sp-old">47,99&nbsp;€</div>
+          <div class="sp-price">23,98&nbsp;€</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-grid" style="margin-top:28px">
+      <div class="app-side" style="grid-column: span 1;">
+        <div class="fav-row">
+          <div class="fav-chip" style="background:#2C8AFD; border-radius:9px;">
+            <img src="data:image/png;base64,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" width="34" height="34" style="display:block;">
+          </div>
+          <div class="browser-mock">
+            <div class="browser-bar">
+              <div class="browser-tab">
+                <img src="data:image/png;base64,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" width="14" height="14" style="display:block;border-radius:2px;">
+                preisgucken.de
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="rule-card" style="border-color:#E8872A;">
+          <h5 style="color:#B3261E">⚠ Gefundene Inkonsistenz</h5>
+          <p style="margin-bottom:0">Das echte Favicon (<code style="font-family:var(--font-mono);font-size:12px">public/favicon.png</code>, oben eingebettet) ist keine Variante des P-G-Monogramms — es zeigt eine Lupe mit Preisschild auf einem hellen Blau (<code style="font-family:var(--font-mono);font-size:12px">#2C8AFD</code>), das vom Navy der Wortmarke (<code style="font-family:var(--font-mono);font-size:12px">#1A3A6B</code>) abweicht. Zwei echte, aber nicht abgestimmte Marken-Elemente. Empfehlung: entweder das Favicon aufs PG-Monogramm umstellen, oder <code style="font-family:var(--font-mono);font-size:12px">#2C8AFD</code> bewusst als vierte Markenfarbe aufnehmen — beides ist besser als der aktuelle unbeabsichtigte Bruch.</p>
+        </div>
+        <div class="btn-row">
+          <button class="pg-btn primary">Preise vergleichen</button>
+          <button class="pg-btn outline">Mehr erfahren</button>
+          <span class="pg-badge">✓ Bestpreis</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="block-inner">
+    <div class="section-head">
+      <span class="section-num">07</span>
+      <div><h2 class="section-title">Kurz gefasst</h2></div>
+    </div>
+    <div class="final-grid">
+      <div class="final-card do">
+        <h4>Immer</h4>
+        <ul>
+          <li>Navy + Orange als einziges Farbpaar für Markenmomente</li>
+          <li>Preise in IBM Plex Mono, tabellarisch ausgerichtet</li>
+          <li>Kleinschreibung im Logo, Punkt in Orange</li>
+          <li>Ehrliche, ruhige Sprache — auch bei guten Deals</li>
+        </ul>
+      </div>
+      <div class="final-card dont">
+        <h4>Niemals</h4>
+        <ul>
+          <li>Rot außerhalb von Rabatt-Stempeln verwenden</li>
+          <li>Ausrufezeichen häufen oder Emojis im Fließtext</li>
+          <li>Das Logo verzerren, sperren oder umfärben</li>
+          <li>Unbounded für Fließtext oder Buttons einsetzen</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="brand-footer">
+  <p>PREISGUCKEN MARKENRICHTLINIE — V1.0 — INTERN</p>
+</footer>

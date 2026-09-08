@@ -177,7 +177,7 @@ export default function ProductGrid({ products, onOpenProduct, onBuy, formatPric
                   </p>
                 )}
 
-                <div className="d-flex gap-1 mt-1">
+                <div className="d-flex flex-wrap gap-1 mt-1">
                   {product.in_stock && product.is_active ? (
                     <a
                       href={buildAffiliateUrl(product.url, product.vendor)}

@@ -4,9 +4,15 @@
 # or run arbitrary commands, regardless of what the client requests.
 set -euo pipefail
 cd /var/www/preisgucken-de
+# Secrets live in /etc/preisgucken-de.env (root:root, chmod 600) since the
+# 2026-09 migration off a project-directory .env.production — the deploy
+# user can't read it directly, so go through sudo into a private tmpfile.
+ENV_TMP="$(mktemp)"
+sudo cat /etc/preisgucken-de.env > "$ENV_TMP"
 set -a
-source .env.production
+source "$ENV_TMP"
 set +a
+rm -f "$ENV_TMP"
 
 case "${SSH_ORIGINAL_COMMAND:-}" in
   awin-voghion)

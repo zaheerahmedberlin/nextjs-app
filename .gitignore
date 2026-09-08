@@ -1,4 +1,5 @@
 node_modules/
+scripts/__pycache__/
 .next/
 out/
 .env
