@@ -1,0 +1,31 @@
+name: Deploy preisgucken.de
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:       # allow a manual re-run from the GitHub UI
+
+# A second push landing mid-deploy used to be able to race the first —
+# queue instead of running concurrently, same pattern as sync_awin.yml.
+concurrency:
+  group: deploy-de
+  cancel-in-progress: false
+
+# Runs via SSH against the netcup box's own scripts/deploy.sh dispatcher,
+# same forced-command pattern as the AWIN cron jobs — the SSH key can only
+# ever run "deploy-de" or "deploy-com", nothing else. The dispatcher does
+# git fetch + reset --hard + npm ci + build + restart on the server itself,
+# and aborts before touching the running service if any step fails.
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Deploy to netcup
+        env:
+          SSH_KEY: ${{ secrets.NETCUP_DEPLOY_SSH_KEY }}
+          HOST: ${{ secrets.NETCUP_HOST }}
+        run: |
+          echo "$SSH_KEY" > key.pem && chmod 600 key.pem
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "deploy-de"
