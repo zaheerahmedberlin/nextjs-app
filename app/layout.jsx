@@ -12,8 +12,12 @@ export const metadata = {
     default: "Preisgucken – Preisvergleich Deutschland | Beste Preise finden",
     template: "%s | Preisgucken – Preisvergleich",
   },
+  // Was 179 chars — past Google's practical ~155-160 char cutoff, so this
+  // (the homepage's own description, the single highest-value snippet on
+  // the whole site) was getting truncated mid-sentence in search results.
+  // Tightened to 159 chars, keeping the Berlin–München geo-targeting intent.
   description:
-    "Preisvergleich für Elektronik, Möbel und mehr aus deutschen Online-Shops – bundesweit, von Berlin bis München. Günstigste Preise täglich aktualisiert – kostenlos & ohne Anmeldung.",
+    "Preisvergleich für Elektronik, Möbel und mehr aus deutschen Online-Shops – bundesweit von Berlin bis München, täglich aktualisiert, kostenlos & ohne Anmeldung.",
 
   // ── Keywords (German market focused) ──────────────────────
   keywords: [
@@ -92,7 +96,7 @@ export const metadata = {
       "Vergleiche Preise von Millionen Produkten. Spare Geld beim Online-Shopping in Deutschland.",
     images: [
       {
-        url: "/og-image.png",
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
         alt: "Preisgucken – Preisvergleich Deutschland",
@@ -105,7 +109,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "Preisgucken – Preisvergleich Deutschland",
     description: "Finde die besten Preise für Millionen Produkte in Deutschland.",
-    images: ["/og-image.png"],
+    images: ["/opengraph-image"],
   },
 
   // ── Robots ────────────────────────────────────────────────
@@ -185,8 +189,12 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-title" content="Preisgucken" />
         <link rel="manifest" href="/manifest.json" />
 
-        {/* Preload LCP image (logo) */}
-        <link rel="preload" as="image" href="/preis-gucken-logo.png" />
+        {/* Preload LCP image (navbar logo). This used to preload
+            /preis-gucken-logo.png, which isn't the navbar logo at all —
+            Navbar.jsx actually renders /preisgucken_logo.svg. The PNG is
+            only used on admin/vendor pages, so every storefront page load
+            was force-fetching an image it never displays. */}
+        <link rel="preload" as="image" href="/preisgucken_logo.svg" />
 
         {/* Umami Analytics (DSGVO-konform, cookieless) — production only.
             Previously fired unconditionally, so local dev-server testing

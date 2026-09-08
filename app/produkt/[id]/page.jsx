@@ -20,7 +20,10 @@ export async function generateMetadata({ params }) {
     const p = result.rows[0];
     const price = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(p.price);
     return {
-      title: `${p.title} – ${price} | Preisgucken`,
+      // Root layout's title template already appends " | Preisgucken –
+      // Preisvergleich" — don't repeat the brand name here too (was
+      // producing "... | Preisgucken | Preisgucken – Preisvergleich").
+      title: `${p.title} – ${price}`,
       description: `${p.title} jetzt für ${price} bei ${p.vendor || "Online-Shop"} kaufen. Preisverlauf und Preisalarm auf Preisgucken.de.`,
       alternates: { canonical: `https://www.preisgucken.de/produkt/${id}` },
       openGraph: { images: p.image ? [p.image] : [] },
@@ -43,6 +46,7 @@ async function getProduct(id) {
             p.category, p.ean, p.in_stock, p.is_active,
             p.active_from, p.active_until, p.updated_at,
             v.name AS vendor, v.logo_url AS vendor_logo,
+            c.slug AS category_slug, c.name AS category_name,
             (SELECT MIN(ph.price) FROM price_history ph
              WHERE ph.product_id = p.id
                AND ph.recorded_at >= CURRENT_DATE - INTERVAL '30 days'
@@ -53,6 +57,7 @@ async function getProduct(id) {
             ) AS price_30d_min
      FROM products p
      LEFT JOIN vendors v ON v.id = p.vendor_id
+     LEFT JOIN categories c ON c.id = p.category_id
      WHERE p.id = $1 AND p.is_active = TRUE`,
     [id]
   );
@@ -81,6 +86,13 @@ export default async function ProductDetailPage({ params }) {
     image: product.image || "https://www.preisgucken.de/placeholder.png",
     description: product.description || product.title,
     brand: product.vendor ? { "@type": "Brand", name: product.vendor } : undefined,
+    // gtin is schema.org's generic GTIN property (accepts any length —
+    // EAN-8/12/13/14 — unlike the length-specific gtin8/gtin12/gtin13
+    // variants), and a real product identifier here is what Google's
+    // Merchant Center / Product rich-result guidelines actually want for
+    // eligibility. Already stored and shown to users (see the EAN line
+    // further down this page) — just wasn't wired into the schema.
+    gtin: product.ean || undefined,
     offers: {
       "@type": "Offer",
       price: product.price,
@@ -97,14 +109,36 @@ export default async function ProductDetailPage({ params }) {
     },
   };
 
+  // Middle breadcrumb step used to duplicate the homepage URL (same as
+  // position 1) for every single product — not a real intermediate page,
+  // so it told Google two consecutive steps go to the identical URL. Use
+  // the product's actual category page when known; only products with no
+  // category_id (leftover top-level "Sonstiges"-style routing) fall back
+  // to the old homepage-as-placeholder behavior.
+  const breadcrumbItems = [
+    { "@type": "ListItem", position: 1, name: "Startseite", item: "https://www.preisgucken.de" },
+  ];
+  if (product.category_slug) {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      position: 2,
+      name: product.category_name,
+      item: `https://www.preisgucken.de/kategorie/${product.category_slug}`,
+    });
+  } else {
+    breadcrumbItems.push({ "@type": "ListItem", position: 2, name: "Preisvergleich", item: "https://www.preisgucken.de" });
+  }
+  breadcrumbItems.push({
+    "@type": "ListItem",
+    position: breadcrumbItems.length + 1,
+    name: product.title,
+    item: `https://www.preisgucken.de/produkt/${product.id}`,
+  });
+
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Startseite", item: "https://www.preisgucken.de" },
-      { "@type": "ListItem", position: 2, name: "Preisvergleich", item: "https://www.preisgucken.de" },
-      { "@type": "ListItem", position: 3, name: product.title, item: `https://www.preisgucken.de/produkt/${product.id}` },
-    ],
+    itemListElement: breadcrumbItems,
   };
 
   return (

@@ -85,7 +85,7 @@ export async function generateMetadata({ params }) {
         url: `${BASE_URL}/kategorie/${slug}`,
         title: socialTitle,
         description: socialDescription,
-        images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: `${name} – Preisvergleich` }],
+        images: [{ url: `${BASE_URL}/opengraph-image`, width: 1200, height: 630, alt: `${name} – Preisvergleich` }],
       },
       // Defining any twitter object here means the page's own values are
       // used verbatim, not merged with the root layout's — card has to be
