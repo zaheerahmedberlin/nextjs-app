@@ -7,6 +7,21 @@
 # so a broken build never takes down the live site.
 set -euo pipefail
 
+# Poll instead of a fixed sleep — a cold `next start` right after a fresh
+# build doesn't always bind its port within a flat 2s, which showed up as
+# a false-failure ("curl: (7) Failed to connect") on the very first real
+# deploy even though the service came up fine a few seconds later.
+wait_for_port() {
+  local port="$1"
+  for _ in $(seq 1 15); do
+    if curl -sf "http://localhost:${port}/" > /dev/null; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 deploy_de() {
   cd /var/www/preisgucken-de
   git fetch origin
@@ -26,8 +41,7 @@ deploy_de() {
 
   npm run build
   sudo systemctl restart preisgucken-de.service
-  sleep 2
-  curl -sf http://localhost:3000/ > /dev/null
+  wait_for_port 3000
   echo "deploy-de: OK ($(git rev-parse --short HEAD))"
 }
 
@@ -41,8 +55,7 @@ deploy_com() {
   # with no env sourced.
   npm run build
   sudo systemctl restart preisgucken-com.service
-  sleep 2
-  curl -sf http://localhost:3001/ > /dev/null
+  wait_for_port 3001
   echo "deploy-com: OK ($(git rev-parse --short HEAD))"
 }
 
