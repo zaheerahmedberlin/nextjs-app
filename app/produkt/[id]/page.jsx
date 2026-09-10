@@ -6,6 +6,33 @@ import PriceHistoryChart from "@/components/PriceHistoryChart";
 import PriceAlarmFormClient from "@/components/PriceAlarmFormClient";
 import { buildAffiliateUrl } from "@/lib/affiliate";
 
+// ISR instead of fully dynamic per-request rendering — with ~454k product
+// pages and no generateStaticParams (pre-rendering all of them at build
+// time isn't practical), every request was doing a live, uncached SSR DB
+// round-trip with Cache-Control: private, no-store. That's part of why
+// Google throttled crawling almost to zero across the whole site (see the
+// matching fix + rationale in app/kategorie/[slug]/page.jsx). Prices only
+// actually change once a day via the nightly AWIN sync/snapshot cron, so an
+// hour of staleness here costs nothing real.
+export const revalidate = 3600;
+
+// Pre-render a small real sample at build time (454k total products, so
+// pre-rendering all of them isn't practical) — confirmed empirically that
+// returning an empty array here does NOT enable on-demand ISR caching for
+// the rest (Next still served every id as fully dynamic, no cache file ever
+// written); a non-empty seed list is what actually activates on-demand
+// static generation + caching for every other id via dynamicParams.
+export async function generateStaticParams() {
+  try {
+    const res = await query(
+      "SELECT id FROM products WHERE is_active = TRUE ORDER BY updated_at DESC LIMIT 500"
+    );
+    return res.rows.map((r) => ({ id: String(r.id) }));
+  } catch {
+    return [];
+  }
+}
+
 export async function generateMetadata({ params }) {
   const id = parseInt(params.id);
   if (!id) return {};

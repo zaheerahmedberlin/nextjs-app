@@ -1,4 +1,5 @@
 // app/page.jsx — Server Component: pre-fetches initial data for LCP improvement
+import { Suspense } from "react";
 import { unstable_cache } from "next/cache";
 import { query } from "@/lib/db";
 import { buildCategoryTree } from "@/lib/categoryTree";
@@ -90,7 +91,12 @@ const getInitialData = unstable_cache(
   { revalidate: 300 } // refresh every 5 minutes
 );
 
-export const dynamic = "force-dynamic";
+// Was force-dynamic, which throws away HTTP-level caching on every request
+// even though the data fetch above is already unstable_cache'd — every hit
+// (including Googlebot's) still paid for a full React render with
+// Cache-Control: private, no-store. Matching revalidate here lets Next
+// actually cache the rendered response too, not just the underlying query.
+export const revalidate = 300;
 
 export default async function Page() {
   let data = { initialProducts: [], initialMaxPrice: 10000, initialAbsoluteMaxPrice: 10000, initialCategories: [], initialTotalProducts: 0 };
@@ -101,12 +107,18 @@ export default async function Page() {
   }
 
   return (
-    <HomeClient
-      initialProducts={data.initialProducts}
-      initialMaxPrice={data.initialMaxPrice}
-      initialAbsoluteMaxPrice={data.initialAbsoluteMaxPrice}
-      initialCategories={data.initialCategories}
-      initialTotalProducts={data.initialTotalProducts}
-    />
+    // Required by Next for static rendering: HomeClient reads useSearchParams()
+    // (to pick up the ?category= links used elsewhere on the site), which
+    // Next.js only allows during static generation inside a Suspense boundary
+    // — this only surfaced once the page stopped being force-dynamic.
+    <Suspense fallback={null}>
+      <HomeClient
+        initialProducts={data.initialProducts}
+        initialMaxPrice={data.initialMaxPrice}
+        initialAbsoluteMaxPrice={data.initialAbsoluteMaxPrice}
+        initialCategories={data.initialCategories}
+        initialTotalProducts={data.initialTotalProducts}
+      />
+    </Suspense>
   );
 }

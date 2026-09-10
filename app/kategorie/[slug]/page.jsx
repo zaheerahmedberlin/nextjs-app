@@ -4,14 +4,27 @@ import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import ProductImage from "@/components/ProductImage";
+import CategoryProductGrid from "@/components/CategoryProductGrid";
 
 const BASE_URL = "https://www.preisgucken.de";
 
-// Tell Next.js which slugs to pre-render at build time
+// Revalidate hourly (ISR) instead of rendering fresh on every request —
+// underlying data only actually changes once a day (2am AWIN sync, 4am
+// price snapshot), so this costs no real freshness. Without this, every
+// request (including Googlebot's) hit a live DB query with zero HTTP
+// caching, which is what caused Google to throttle crawling of this site
+// almost entirely (~460k pages stuck "Discovered - currently not indexed").
+export const revalidate = 3600;
+
+// Tell Next.js which slugs to pre-render at build time. Previously filtered
+// to `parent_id IS NULL` (only the ~30 top-level categories) — every one of
+// the ~186 subcategories (e.g. "Uhren", a child of Mode & Accessories) was
+// missing from this list and fell through to fully dynamic per-request
+// rendering. Fixed to cover every active category so ISR caching actually
+// applies site-wide, not just to the top level.
 export async function generateStaticParams() {
   try {
-    const res = await query("SELECT slug FROM categories WHERE is_active = TRUE AND parent_id IS NULL");
+    const res = await query("SELECT slug FROM categories WHERE is_active = TRUE");
     return res.rows.map((r) => ({ slug: r.slug }));
   } catch {
     return [];
@@ -103,9 +116,8 @@ export async function generateMetadata({ params }) {
   }
 }
 
-export default async function KategoriePage({ params, searchParams }) {
+export default async function KategoriePage({ params }) {
   const { slug } = params;
-  const vendorFilter = typeof searchParams?.vendor === "string" ? searchParams.vendor : null;
 
   // Fetch category + children from DB (server-side, crawlable)
   const catRes = await query(
@@ -163,25 +175,21 @@ export default async function KategoriePage({ params, searchParams }) {
     ...new Set([...descendantsRes.rows.map((r) => r.id), ...category.children.map((c) => c.id)]),
   ];
 
-  // Vendor filter (?vendor=SIRUI+Optical) — narrows the same category view
-  // to one vendor's products, e.g. useful when one vendor dominates a
-  // category. Plain query param + server re-render, no client JS.
-  const queryParams = [catIds];
-  let vendorCondition = "";
-  if (vendorFilter) {
-    queryParams.push(vendorFilter);
-    vendorCondition = "AND v.name = $2";
-  }
+  // Vendor filtering (e.g. useful when one vendor dominates a category) is
+  // handled client-side by CategoryProductGrid via /api/products — this
+  // page always fetches the default unfiltered view, which is what keeps it
+  // eligible for ISR caching (reading searchParams here would force every
+  // request back into fully-dynamic, uncached rendering).
   const prodRes = await query(
     `SELECT p.id, p.title, p.price, p.old_price, p.image, p.url, p.in_stock,
             v.name AS vendor, v.logo_url AS vendor_logo
      FROM products p
      LEFT JOIN vendors v ON v.id = p.vendor_id
-     WHERE p.category_id = ANY($1) ${vendorCondition}
+     WHERE p.category_id = ANY($1)
        AND p.is_active = TRUE AND p.in_stock = TRUE
      ORDER BY p.price ASC
      LIMIT 24`,
-    queryParams
+    [catIds]
   );
 
   const products = prodRes.rows;
@@ -307,84 +315,19 @@ export default async function KategoriePage({ params, searchParams }) {
         </div>
       )}
 
-      {/* Vendor filter pills — same category, narrowed to one vendor via
-          a plain query param. Server rendered, crawlable links. */}
-      {vendorCounts.length > 1 && (
-        <div className="container pt-3 pb-1">
-          <p className="small text-muted mb-2 fw-semibold">Marken:</p>
-          <div className="d-flex flex-wrap gap-2">
-            <a
-              href={`/kategorie/${slug}`}
-              className={`btn btn-sm ${vendorFilter ? "btn-outline-secondary" : "btn-secondary"}`}
-            >
-              Alle
-            </a>
-            {vendorCounts.map((v) => (
-              <a
-                key={v.name}
-                href={`/kategorie/${slug}?vendor=${encodeURIComponent(v.name)}`}
-                className={`btn btn-sm ${vendorFilter === v.name ? "btn-secondary" : "btn-outline-secondary"}`}
-              >
-                {v.name}
-                <span className={vendorFilter === v.name ? "ms-1" : "ms-1 text-muted"}>({v.cnt})</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Vendor filter + product grid — client component so this page never
+          reads searchParams (see CategoryProductGrid.jsx for why). Initial
+          products/vendorCounts below still come from this server render, so
+          Googlebot and no-JS clients see the full default product grid
+          without needing the client component to run at all. */}
+      <CategoryProductGrid
+        slug={slug}
+        categoryName={category.name}
+        initialProducts={products}
+        vendorCounts={vendorCounts}
+      />
 
-      {/* SSR product list — visible to Googlebot without JS */}
-      <main className="container py-3">
-        {products.length > 0 ? (
-          <>
-            <div className="row g-3 mb-4">
-              {products.map((p, i) => (
-                <article key={p.id} className="col-6 col-sm-4 col-md-3 col-lg-2">
-                  <div className="card h-100 shadow-sm">
-                    <ProductImage
-                      src={p.image}
-                      alt={`${p.title} – günstig kaufen`}
-                      height={150}
-                      priority={i < 3}
-                    />
-                    <div className="card-body p-2">
-                      <h3 className="h6 text-truncate mb-1" title={p.title}>{p.title}</h3>
-                      {p.vendor && <p className="small text-muted mb-1">{p.vendor}</p>}
-                      <p className="fw-bold mb-1" style={{ color: "var(--pg-blue)" }}>
-                        {new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(p.price)}
-                      </p>
-                      <a
-                        href={`/produkt/${p.id}`}
-                        className="btn btn-sm btn-outline-secondary w-100"
-                      >
-                        Zum Angebot →
-                      </a>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-            <p className="text-muted text-center small">
-              Zeige die günstigsten {products.length} {category.name}-Angebote.{" "}
-              <a href={`/?category=${category.slug}`}>Alle {category.name}-Angebote durchsuchen →</a>
-            </p>
-          </>
-        ) : (
-          <p className="text-muted py-5 text-center">
-            {vendorFilter ? (
-              <>
-                Keine {category.name}-Produkte von {vendorFilter} verfügbar.{" "}
-                <a href={`/kategorie/${slug}`}>Filter zurücksetzen</a>
-              </>
-            ) : (
-              <>
-                Aktuell keine Produkte in dieser Kategorie verfügbar.{" "}
-                <a href="/">Zum Preisvergleich</a>
-              </>
-            )}
-          </p>
-        )}
-
+      <div className="container">
         {/* SEO text block — was identical boilerplate (just {category.name}
             swapped in) across all ~200 category pages, which reads as
             near-duplicate thin content to Google at that scale. Now uses
@@ -424,7 +367,7 @@ export default async function KategoriePage({ params, searchParams }) {
             </div>
           </div>
         </section>
-      </main>
+      </div>
 
       <Footer />
     </>
