@@ -16,6 +16,7 @@ import DealAlertBanner from "@/components/DealAlertBanner";
 import Footer from "@/components/Footer";
 import VendorStrip from "@/components/VendorStrip";
 import ProductModal from "@/components/ProductModal";
+import { safeJsonLd } from "@/lib/jsonLd";
 
 // Resolve a category slug to its display name from the tree
 function slugToName(tree, slug) {
@@ -443,9 +444,9 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }} />
 
       {/* Newsletter confirmation toast */}
       {newsletterToast && (

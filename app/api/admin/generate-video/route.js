@@ -4,6 +4,7 @@ import sharp from "sharp";
 import { writeFile, mkdir, readFile, unlink, rmdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
+import { requireAdmin } from "@/lib/auth";
 
 // This service's build driver has flipped between Nixpacks and Railpack
 // across deployments (Railway-side, not a repo config change) — those
@@ -126,7 +127,27 @@ async function frame4CTA() {
   `);
 }
 
+// Was completely unauthenticated despite living under /api/admin/ — any
+// anonymous request could trigger a real ffmpeg render on the production
+// server (unbounded resource/cost abuse). Accepts either a real admin
+// session (browser use, matching every other /api/admin/* route) or a
+// shared internal key (server-to-server use — preisgucken.com's own
+// /api/generate-video proxies here, and as a different origin it can't
+// present a preisgucken.de admin cookie).
+async function isAuthorized(request) {
+  const internalKey = request.headers.get("x-internal-api-key");
+  if (internalKey && process.env.INTERNAL_API_KEY && internalKey === process.env.INTERNAL_API_KEY) {
+    return true;
+  }
+  const { error } = await requireAdmin();
+  return !error;
+}
+
 export async function POST(request) {
+  if (!(await isAuthorized(request))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { title, price, old_price, image } = await request.json();
   if (!title || !price) {
     return NextResponse.json({ error: "title and price required" }, { status: 400 });

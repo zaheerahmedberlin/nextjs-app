@@ -2,8 +2,18 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { query } from "@/lib/db";
 import { signVendorToken, setVendorCookie, clearVendorCookie } from "@/lib/auth";
+import { isRateLimited, getClientIp } from "@/lib/rateLimit";
+
+// Same rationale as app/api/auth/login/route.js's DUMMY_HASH — keeps
+// bcrypt.compare() timing consistent whether or not the vendor exists.
+const DUMMY_HASH = "$2a$10$CwTycUXWue0Thq9StjUM0uJ8G8Y4kA9qEePWXsZ8dc3AxvOvBAQxK";
 
 export async function POST(request) {
+  const ip = getClientIp(request);
+  if (await isRateLimited(`login-attempts:vendor:${ip}`)) {
+    return NextResponse.json({ error: "Zu viele Versuche, bitte später erneut versuchen" }, { status: 429 });
+  }
+
   const { email, password } = await request.json();
 
   if (!email || !password) {
@@ -16,12 +26,9 @@ export async function POST(request) {
   );
 
   const vendor = rows[0];
-  if (!vendor || !vendor.password_hash) {
-    return NextResponse.json({ error: "Ungültige Anmeldedaten" }, { status: 401 });
-  }
+  const valid = await bcrypt.compare(password, vendor?.password_hash || DUMMY_HASH);
 
-  const valid = await bcrypt.compare(password, vendor.password_hash);
-  if (!valid) {
+  if (!vendor || !vendor.password_hash || !valid) {
     return NextResponse.json({ error: "Ungültige Anmeldedaten" }, { status: 401 });
   }
 

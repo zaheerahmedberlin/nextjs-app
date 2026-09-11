@@ -4,6 +4,7 @@ import Link from "next/link";
 import PriceDisplay from "@/components/PriceDisplay";
 import ProductImage from "@/components/ProductImage";
 import { buildAffiliateUrl } from "@/lib/affiliate";
+import { safeJsonLd } from "@/lib/jsonLd";
 
 function ProductSchema({ product }) {
   const schema = {
@@ -29,7 +30,7 @@ function ProductSchema({ product }) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
     />
   );
 }

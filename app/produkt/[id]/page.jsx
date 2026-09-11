@@ -5,6 +5,7 @@ import PriceDisplay from "@/components/PriceDisplay";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
 import PriceAlarmFormClient from "@/components/PriceAlarmFormClient";
 import { buildAffiliateUrl } from "@/lib/affiliate";
+import { safeJsonLd } from "@/lib/jsonLd";
 
 // ISR instead of fully dynamic per-request rendering — with ~454k product
 // pages and no generateStaticParams (pre-rendering all of them at build
@@ -170,8 +171,8 @@ export default async function ProductDetailPage({ params }) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(productSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }} />
 
       <div className="container py-4" style={{ maxWidth: 860 }}>
         {/* Breadcrumb */}

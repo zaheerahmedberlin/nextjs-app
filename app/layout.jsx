@@ -1,6 +1,7 @@
 // app/layout.jsx – SEO-optimised shell for German price comparison market
 import "./globals.css";
 import CookieBanner from "@/components/CookieBanner";
+import { safeJsonLd } from "@/lib/jsonLd";
 
 const BASE_URL = "https://www.preisgucken.de";
 
@@ -166,11 +167,11 @@ export default function RootLayout({ children }) {
         {/* Structured data */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(orgSchema) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteSchema) }}
         />
 
 

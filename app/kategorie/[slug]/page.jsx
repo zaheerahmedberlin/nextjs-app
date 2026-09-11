@@ -5,6 +5,7 @@ import { query } from "@/lib/db";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CategoryProductGrid from "@/components/CategoryProductGrid";
+import { safeJsonLd } from "@/lib/jsonLd";
 
 const BASE_URL = "https://www.preisgucken.de";
 
@@ -272,8 +273,8 @@ export default async function KategoriePage({ params }) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListSchema) }} />
 
       <Navbar />
 
