@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Weekly dead-link checker.
+Dead-link checker.
 
 Follows every active product's URL (through AWIN redirects where applicable)
 and deactivates products whose page returns 404/410 on the merchant's site.
@@ -12,8 +12,21 @@ Only a clear 404/410 counts as "dead" — timeouts, connection errors, and
 genuinely removed product, and we don't want to deactivate real inventory
 because of a momentary blip on the merchant's side.
 
+Runs as a bounded daily batch, not an unbounded weekly sweep of the entire
+catalog — at ~453k active products, checking everything in one run took
+long enough (hours, not minutes) that the SSH session backing the cron job
+died from what looked like a network idle-timeout ("client_loop: send
+disconnect: Broken pipe") long before the script could finish, since it
+only prints progress every 1000 items and can go silent for a long stretch.
+Each run now takes the --batch-size least-recently-checked products
+(NULLS FIRST, so never-checked ones are always prioritized) via the
+partial index on link_checked_at, so a never-checked or long-stale product
+always gets picked up, and the whole catalog cycles through over multiple
+days instead of one giant run trying to do it all at once. See
+.github/workflows/sync_awin.yml, which now calls this daily.
+
 Usage:
-    python scripts/check_dead_links.py [--dry-run] [--workers N]
+    python scripts/check_dead_links.py [--dry-run] [--workers N] [--batch-size N]
 """
 import argparse
 import concurrent.futures
@@ -60,20 +73,32 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--workers", type=int, default=20)
-    parser.add_argument("--limit", type=int, default=None, help="Only check N products (for testing)")
+    parser.add_argument("--batch-size", type=int, default=25000,
+                         help="Check only the N least-recently-checked active products "
+                              "(never-checked ones first). Keeps each run bounded regardless "
+                              "of total catalog size — the full catalog cycles through over "
+                              "multiple runs rather than one unbounded sweep.")
+    parser.add_argument("--limit", type=int, default=None,
+                         help="Deprecated alias for --batch-size (kept for any existing callers).")
     args = parser.parse_args()
+    batch_size = args.limit if args.limit is not None else args.batch_size
 
     conn = connect()
     with conn.cursor() as cur:
-        cur.execute(f"""
+        # NULLS FIRST so a product that has never been checked always outranks
+        # one checked yesterday — matches idx_products_link_checked_at, a
+        # partial index on this same WHERE clause, so this stays a fast index
+        # scan no matter how large the products table grows.
+        cur.execute("""
             SELECT p.id, p.title, p.url, v.name
             FROM products p
             LEFT JOIN vendors v ON v.id = p.vendor_id
             WHERE p.is_active = TRUE AND p.url IS NOT NULL AND p.url != ''
-            {"LIMIT %s" if args.limit else ""}
-        """, (args.limit,) if args.limit else None)
+            ORDER BY p.link_checked_at ASC NULLS FIRST
+            LIMIT %s
+        """, (batch_size,))
         rows = cur.fetchall()
-    print(f"Checking {len(rows)} active products...")
+    print(f"Checking {len(rows)} products (batch of {batch_size})...")
 
     id_lookup = {r[0]: (r[1], r[3]) for r in rows}
     dead_ids = []
@@ -91,8 +116,13 @@ def main():
                 dead_ids.append(pid)
             elif status is None:
                 unknown += 1
-            if i % 1000 == 0:
-                print(f"  ...{i}/{len(rows)} checked")
+            if i % 200 == 0:
+                # More frequent than the old every-1000 — keeps some output
+                # flowing over the SSH session this runs under regularly
+                # rather than going silent for long stretches, which is part
+                # of what triggered the "Broken pipe" disconnects at the old
+                # unbounded catalog-wide scale (see module docstring).
+                print(f"  ...{i}/{len(rows)} checked", flush=True)
 
     print(f"\nDone — {len(dead_ids)} dead, {unknown} unreachable/timed out (left as-is), {len(rows)} total checked")
 

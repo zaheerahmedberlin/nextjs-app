@@ -53,7 +53,7 @@ jobs:
           HOST: ${{ secrets.NETCUP_HOST }}
         run: |
           echo "$SSH_KEY" > key.pem && chmod 600 key.pem
-          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "awin-voghion"
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "awin-voghion"
 
   # Everyone else with a feed_url (Centa-Star, DeubaXXL, GERMENS, BlazeVideo,
   # Dowinx, Smartwatcharmbaender — all comfortably fast). Excludes Voghion by
@@ -72,7 +72,7 @@ jobs:
           HOST: ${{ secrets.NETCUP_HOST }}
         run: |
           echo "$SSH_KEY" > key.pem && chmod 600 key.pem
-          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "awin-fast"
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "awin-fast"
 
   # Tsarbomba and Sparkle GmbH use Shopify's /products.json, not an AWIN
   # feed — independent of both jobs above.
@@ -89,24 +89,30 @@ jobs:
           HOST: ${{ secrets.NETCUP_HOST }}
         run: |
           echo "$SSH_KEY" > key.pem && chmod 600 key.pem
-          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "awin-shopify"
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "awin-shopify"
 
-  weekly-dead-link-check:
+  # Used to run everything (~453k products) once a week (Sundays only) —
+  # that took long enough that the SSH session died from what looked like a
+  # network idle-timeout ("client_loop: send disconnect: Broken pipe") well
+  # before the script could finish, confirmed live 2026-09-13 running this
+  # job alone with no other jobs competing for the server (so it wasn't the
+  # concurrency issue the other three jobs had — a separate, genuine scale
+  # problem). check_dead_links.py now takes a bounded --batch-size (default
+  # 25,000) of the least-recently-checked products each run instead, so this
+  # runs daily like the others: a bounded, reliable slice every day instead
+  # of one unbounded sweep once a week, and the full catalog still cycles
+  # through completely every couple of weeks.
+  dead-link-check:
     needs: sync-shopify-vendors
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
-      - name: Weekly dead-link check (Sundays only) on server
+      - name: Dead-link check (bounded daily batch) on server
         env:
           SSH_KEY: ${{ secrets.NETCUP_SSH_KEY }}
           HOST: ${{ secrets.NETCUP_HOST }}
         run: |
-          if [ "$(date +%u)" = "7" ]; then
-            echo "Sunday — running full dead-link check"
-            echo "$SSH_KEY" > key.pem && chmod 600 key.pem
-            ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "dead-links"
-          else
-            echo "Not Sunday — skipping weekly dead-link check"
-          fi
+          echo "$SSH_KEY" > key.pem && chmod 600 key.pem
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "dead-links"

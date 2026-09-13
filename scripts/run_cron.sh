@@ -14,6 +14,15 @@ source "$ENV_TMP"
 set +a
 rm -f "$ENV_TMP"
 
+# Python fully buffers stdout when it isn't a TTY (i.e. always, over this
+# non-interactive SSH invocation) — a long-running script that doesn't print
+# often enough can go silent for minutes at a time even though it's actively
+# working, which is part of what let check_dead_links.py's SSH session look
+# idle and get dropped ("client_loop: send disconnect: Broken pipe") before
+# it could finish. Unbuffered stdout for every job here, not just that one,
+# since any future long-running script would hit the exact same failure mode.
+export PYTHONUNBUFFERED=1
+
 case "${SSH_ORIGINAL_COMMAND:-}" in
   awin-voghion)
     export VENDOR_FILTER="Voghion Global"
