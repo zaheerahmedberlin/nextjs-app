@@ -21,11 +21,27 @@ concurrency:
 # allows 22/80/443), so this avoids opening it up just for these jobs.
 # The SSH key is restricted (forced command) to exactly these job names.
 jobs:
+  # These four jobs used to all run in parallel, each opening its own SSH
+  # session to the same small netcup VPS at the same instant. That matches
+  # the exact failure mode already learned the hard way with manual vendor
+  # imports (see project memory: "never run two large imports at once, they
+  # starve each other over the network") — just never applied to this
+  # workflow. Confirmed live: on 2026-09-06 and 2026-09-13 (both Sundays,
+  # the only day weekly-dead-link-check actually does its heavy sweep
+  # instead of skipping), sync-voghion AND weekly-dead-link-check both died
+  # with exit 255 and zero output within ~2-4 minutes — the signature of an
+  # abrupt kill (most likely OOM from four heavy jobs hitting the server
+  # concurrently), not a script error. `needs:` chains them to run one at a
+  # time instead; `if: always()` keeps a failure in one from skipping the
+  # rest, preserving the original intent of the split (one slow/failed job
+  # shouldn't block the others) without the concurrent server load.
+
   # Voghion's feed (~92,000 raw rows, individual SELECT+INSERT/UPDATE per
   # row) has repeatedly run past 60 minutes on GitHub's runners and gotten
   # cancelled — which used to also skip every step after it in the same job,
   # including the unrelated Shopify-vendor refresh below. Split into its own
-  # job so a slow/timed-out Voghion run can't block anything else.
+  # job so a slow/timed-out Voghion run can't block anything else. Runs
+  # first since it's the heaviest/slowest job.
   sync-voghion:
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -44,6 +60,8 @@ jobs:
   # name rather than listing these explicitly, so a newly onboarded vendor's
   # feed_url lands here automatically without a workflow edit.
   sync-fast-vendors:
+    needs: sync-voghion
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -59,6 +77,8 @@ jobs:
   # Tsarbomba and Sparkle GmbH use Shopify's /products.json, not an AWIN
   # feed — independent of both jobs above.
   sync-shopify-vendors:
+    needs: sync-fast-vendors
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -72,6 +92,8 @@ jobs:
           ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "awin-shopify"
 
   weekly-dead-link-check:
+    needs: sync-shopify-vendors
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
