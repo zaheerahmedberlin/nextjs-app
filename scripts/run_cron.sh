@@ -44,6 +44,41 @@ case "${SSH_ORIGINAL_COMMAND:-}" in
   dead-links)
     exec ./scripts/.venv/bin/python3 scripts/check_dead_links.py
     ;;
+  gartengeraete-sample)
+    # Temporary, one-off — real product titles/prices/vendors for the
+    # Gartengeräte category (id 119), to ground the price-example section
+    # of a new blog post in real inventory. Remove once the post is written.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT p.title, p.price, v.name
+        FROM products p
+        LEFT JOIN vendors v ON v.id = p.vendor_id
+        WHERE p.category_id = 119 AND p.is_active = TRUE AND p.in_stock = TRUE
+        ORDER BY p.price ASC
+    ''')
+    rows = cur.fetchall()
+    n = len(rows)
+    print(f'TOTAL: {n}')
+    # Sample across the price spectrum: cheapest 5, ~25th/50th/75th pct, priciest 5
+    idxs = sorted(set([0,1,2,3,4, n//4, n//2, 3*n//4, n-5,n-4,n-3,n-2,n-1]))
+    for i in idxs:
+        if 0 <= i < n:
+            title, price, vendor = rows[i]
+            print(f'{price}|{vendor}|{title[:90]}')
+    cur.execute('''
+        SELECT v.name, COUNT(*) FROM products p
+        LEFT JOIN vendors v ON v.id = p.vendor_id
+        WHERE p.category_id = 119 AND p.is_active = TRUE AND p.in_stock = TRUE
+        GROUP BY v.name ORDER BY COUNT(*) DESC LIMIT 10
+    ''')
+    print('--- vendors ---')
+    for name, cnt in cur.fetchall():
+        print(f'{name}: {cnt}')
+"
+    ;;
   category-counts)
     # Temporary, one-off — dumps id/parent_id/slug/name/direct product count
     # for every active category, for a content-gap analysis against
