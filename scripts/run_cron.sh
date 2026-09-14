@@ -44,6 +44,27 @@ case "${SSH_ORIGINAL_COMMAND:-}" in
   dead-links)
     exec ./scripts/.venv/bin/python3 scripts/check_dead_links.py
     ;;
+  onboard-autofull)
+    # Temporary, one-off — onboard Autofull EU (AWIN merchant 125332).
+    # Idempotent insert (ON CONFLICT), then a scoped import of just this
+    # vendor. Remove once onboarded and verified.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''
+        INSERT INTO vendors (name, slug, feed_url, awin_merchant_id, is_active)
+        VALUES (%s, %s, %s, %s, TRUE)
+        ON CONFLICT (slug) DO UPDATE SET feed_url = EXCLUDED.feed_url, awin_merchant_id = EXCLUDED.awin_merchant_id
+    ''', ('Autofull EU', 'autofull-eu',
+          'https://ui.awin.com/productdata-darwin-download/publisher/2988023/441dd8c531d5bac0a84d1df5f5ff071f/1/feed/F3135.csv.gz',
+          '125332'))
+print('vendor row upserted')
+"
+    export VENDOR_FILTER="Autofull EU"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
   vendors-schema)
     # Temporary, one-off — show the vendors table columns + one real
     # existing row, to know the exact shape needed for onboarding a new
@@ -127,6 +148,25 @@ with conn.cursor() as cur:
     for row in cur.fetchall():
         print('|'.join(str(x) for x in row))
 "
+    ;;
+  server-health)
+    # Temporary, one-off — two deploys in a row got cancelled for exceeding
+    # their job timeout (15min, then 30min), a sharp regression from the
+    # normal 12-13.5min. Checking whether a cancelled GitHub Actions job
+    # actually killed the remote npm run build process, or left it running
+    # orphaned on the server (SSH client disconnecting doesn't guarantee
+    # the remote command dies) — if several of those piled up across
+    # today's several deploy attempts, they'd all compete for the same
+    # CPU/memory/disk as Postgres itself, which runs on this same server.
+    # Remove once the deploy issue is understood.
+    echo "--- node/npm processes ---"
+    ps aux | grep -iE 'node|npm' | grep -v grep
+    echo "--- disk usage ---"
+    df -h /
+    echo "--- memory ---"
+    free -h
+    echo "--- load average ---"
+    uptime
     ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2

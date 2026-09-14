@@ -2,17 +2,22 @@ name: TEMP DB Check
 
 on:
   workflow_dispatch:
+    inputs:
+      job:
+        description: 'run_cron.sh job name to invoke'
+        required: true
+        default: 'server-health'
 
 jobs:
-  vendors-schema:
+  run:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
-      - name: Show vendors table schema + an example row
+      - name: Run temp diagnostic/onboarding job on the server
         env:
           SSH_KEY: ${{ secrets.NETCUP_SSH_KEY }}
           HOST: ${{ secrets.NETCUP_HOST }}
         run: |
           echo "$SSH_KEY" > key.pem && chmod 600 key.pem
-          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "vendors-schema"
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "${{ inputs.job }}"

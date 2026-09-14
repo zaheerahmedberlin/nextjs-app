@@ -3,32 +3,52 @@
 // component so the server-rendered /kategorie/[slug] page never has to read
 // searchParams — reading searchParams at all (even just to check if it's
 // unset) permanently opts a Next.js App Router page out of static/ISR
-// caching, which was the root cause of ~460k pages sitting stuck in Google's
+// caching, which was the root cause of ~460k pages stuck in Google's
 // "Discovered - currently not indexed" queue (Google throttles crawling
 // once it sees every request forces a slow, uncached SSR DB round-trip).
 // Filtering by vendor now re-fetches from the already-Redis-cached
 // /api/products route client-side instead, so the base category page stays
 // static/ISR-cacheable no matter how this feature is used.
+//
+// "Load more" pagination added after the page shipped with a hard cap of
+// 24 products and no way to see anything past that — a category with tens
+// of thousands of products (e.g. Handwerkzeug: 73,134) was only ever
+// browsable via its first 24 cheapest items, with no next page, no
+// scroll-load, nothing. Reuses the same /api/products route (already
+// supports page/limit) rather than a new endpoint.
 import { useState } from "react";
 import ProductImage from "@/components/ProductImage";
 
+const PAGE_SIZE = 24;
 const fmtPrice = (v) => new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(v);
 
-export default function CategoryProductGrid({ slug, categoryName, initialProducts, vendorCounts }) {
+export default function CategoryProductGrid({ slug, categoryName, initialProducts, vendorCounts, totalCount }) {
   const [products, setProducts] = useState(initialProducts);
   const [selectedVendor, setSelectedVendor] = useState(null);
+  const [page, setPage] = useState(1);
+  // Total for the *current* filter — starts at the server-computed
+  // unfiltered totalCount, but a vendor filter narrows it, so this is
+  // re-set from the API response's own `total` whenever the filter changes.
+  const [total, setTotal] = useState(totalCount);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  async function fetchPage({ vendor, pageNum }) {
+    const params = new URLSearchParams({ category: slug, sort: "priceAsc", limit: String(PAGE_SIZE), page: String(pageNum) });
+    if (vendor) params.set("vendor", vendor);
+    const res = await fetch(`/api/products?${params.toString()}`);
+    return res.json();
+  }
 
   async function selectVendor(vendorName) {
     if (vendorName === selectedVendor) return;
     setSelectedVendor(vendorName);
     setLoading(true);
     try {
-      const params = new URLSearchParams({ category: slug, sort: "priceAsc", limit: "24" });
-      if (vendorName) params.set("vendor", vendorName);
-      const res = await fetch(`/api/products?${params.toString()}`);
-      const data = await res.json();
+      const data = await fetchPage({ vendor: vendorName, pageNum: 1 });
       setProducts(data.products || []);
+      setTotal(data.total ?? 0);
+      setPage(1);
       // Reflects the filter in the URL for shareability/back-button support
       // without a full navigation/reload — the canonical tag still always
       // points at the unfiltered page, so this never creates a competing
@@ -43,6 +63,23 @@ export default function CategoryProductGrid({ slug, categoryName, initialProduct
       setLoading(false);
     }
   }
+
+  async function loadMore() {
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const data = await fetchPage({ vendor: selectedVendor, pageNum: nextPage });
+      setProducts((prev) => [...prev, ...(data.products || [])]);
+      setTotal(data.total ?? total);
+      setPage(nextPage);
+    } catch {
+      // Leave the grid as-is on a failed fetch — the button just stays put to retry.
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  const hasMore = products.length < total;
 
   return (
     <>
@@ -102,10 +139,22 @@ export default function CategoryProductGrid({ slug, categoryName, initialProduct
                 </article>
               ))}
             </div>
-            <p className="text-muted text-center small">
-              Zeige die günstigsten {products.length} {categoryName}-Angebote.{" "}
-              <a href={`/?category=${slug}`}>Alle {categoryName}-Angebote durchsuchen →</a>
-            </p>
+
+            <div className="text-center">
+              <p className="text-muted small mb-3">
+                Zeige {products.length.toLocaleString("de-DE")} von {total.toLocaleString("de-DE")} {categoryName}-Angeboten.
+              </p>
+              {hasMore && (
+                <button
+                  type="button"
+                  className="btn btn-brand px-4"
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? "Lädt…" : "Weitere Angebote laden"}
+                </button>
+              )}
+            </div>
           </>
         ) : (
           <p className="text-muted py-5 text-center">

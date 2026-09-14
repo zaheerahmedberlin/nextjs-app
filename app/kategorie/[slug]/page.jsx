@@ -195,6 +195,20 @@ export default async function KategoriePage({ params }) {
 
   const products = prodRes.rows;
 
+  // Real total for this category — the page previously used products.length
+  // (capped at 24 by the LIMIT above) as the displayed count and had no way
+  // to see anything past those first 24 at all: no pagination, no "load
+  // more", nothing. A category with tens of thousands of products (e.g.
+  // Handwerkzeug: 73,134) showed "24+ Produkte" and that was the entire
+  // browsable catalog for it. Fixed properly: this count now drives both
+  // the header text and CategoryProductGrid's "Load more" pagination below.
+  const totalCountRes = await query(
+    `SELECT COUNT(*)::int AS cnt FROM products p
+     WHERE p.category_id = ANY($1) AND p.is_active = TRUE AND p.in_stock = TRUE`,
+    [catIds]
+  );
+  const totalCount = totalCountRes.rows[0]?.cnt || 0;
+
   // Vendor chips: every vendor selling in this category, regardless of
   // which one (if any) is currently selected, so a shopper can switch
   // between them freely.
@@ -290,7 +304,7 @@ export default async function KategoriePage({ params }) {
           </nav>
           <h1 className="brand-heading mb-1 fw-bold">{category.icon && <i className={`bi ${category.icon} me-2`}></i>}{category.name} Preisvergleich</h1>
           <p className="text-muted mb-0">
-            Vergleichen Sie {products.length > 0 ? `${products.length}+` : "alle"} {category.name}-Produkte
+            Vergleichen Sie {totalCount > 0 ? totalCount.toLocaleString("de-DE") : "alle"} {category.name}-Produkte
             aus deutschen Online-Shops – günstig, aktuell, kostenlos.
           </p>
         </div>
@@ -326,6 +340,7 @@ export default async function KategoriePage({ params }) {
         categoryName={category.name}
         initialProducts={products}
         vendorCounts={vendorCounts}
+        totalCount={totalCount}
       />
 
       <div className="container">
