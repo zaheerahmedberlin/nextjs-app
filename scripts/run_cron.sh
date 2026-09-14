@@ -121,7 +121,7 @@ RULES = [
     # 'Urinalkondom' (a incontinence product, not contraception) is
     # intercepted first — bare 'kondom' in intimgesundheit would
     # otherwise wrongly claim it.
-    (256, 'pflegebedarf-inkontinenz', ['katheter', 'beinbeutel', 'inkontinenz', 'urinbeutel', 'vorlage', 'stoma', 'windelhose', 'tribag', 'urinalkond', 'sekretbeutel']),
+    (256, 'pflegebedarf-inkontinenz', ['katheter', 'beinbeutel', 'inkontinenz', 'urinbeutel', 'vorlage', 'stoma', 'windelhose', 'tribag', 'urinalkond', 'sekretbeutel', ' seni ']),
     (244, 'homoeopathie-naturheilmittel', ['globuli', 'dilution', 'weleda', 'wala ', 'urtinktur', 'schüssler', 'komplexmittel', ' d6 ', ' d12 ', ' d30 ', ' d4 ', ' d200 ', 'ledum', 'arnica', 'nux vomica', 'bachblüten', 'homaccord', 'injeel', 'spenglersan']),
     (261, 'intimgesundheit-verhuetung', ['kondom', 'gleitgel', 'verhütung', 'femidom', 'intimwaschlotion', 'sagella', 'vaginal']),
     (248, 'verbandsmaterial-erste-hilfe', ['pflaster', 'kompresse', 'verband', 'binde', 'mullbinde', 'elastomull', 'fixierbinde', 'wundschnellverband', 'zinkleimbinde', 'tg fix', 'es-kompressen', 'wund pad', 'wundpad', 'wundverb', 'tamponade', 'alkoholtupfer', 'tupfer', 'wundfolie']),
@@ -139,9 +139,12 @@ RULES = [
     # hit 'Tamponade' (wound packing, verbandsmaterial), not feminine
     # hygiene; caught by verbandsmaterial's 'tamponade' rule above instead.
     (252, 'frauengesundheit-schwangerschaft', ['schwangerschaft', 'menstruation', 'wechseljahre']),
-    # 'windel' (broad) is safe here since windelhose (adult incontinence)
-    # is already intercepted by the pflegebedarf rule checked first.
-    (255, 'baby-kindergesundheit', ['baby', 'säugling', 'schnuller', 'nutrini', 'kinderwaage', 'windel']),
+    # 'windeln' (plural, not bare 'windel') so it doesn't false-match
+    # the unrelated word 'Schwindel' (dizziness) — 'Schwindelzuständen'
+    # contains 'windel' but never 'windeln'. Adult SENI-brand diapers
+    # are already intercepted by pflegebedarf-inkontinenz's ' seni '
+    # rule checked first, so this only catches real baby diapers.
+    (255, 'baby-kindergesundheit', ['baby', 'säugling', 'schnuller', 'nutrini', 'kinderwaage', 'windeln']),
     (259, 'tiergesundheit-apotheke', [' hund ', ' katze ', 'hunde-', 'katzen-', 'tierarznei']),
     (260, 'praxisbedarf-hygiene', ['handschuhe', 'desinfektion', 'einmalhandschuhe', 'mundschutz', 'kanüle', 'spritze steril', 'ampuwa', 'infusionslösung', 'injektionslösung']),
     (257, 'haar-fusspflege', ['shampoo', 'fußcreme', 'fußpflege', 'nagelpflege', 'hornhaut']),
