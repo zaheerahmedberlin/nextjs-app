@@ -2,17 +2,22 @@ name: TEMP DB Check
 
 on:
   workflow_dispatch:
+    inputs:
+      job:
+        description: 'run_cron.sh job name to invoke'
+        required: true
+        default: 'sonstiges-sample'
 
 jobs:
-  onboard-autofull:
+  run:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
-      - name: Onboard Autofull EU (AWIN 125332) — DB insert + scoped import only
+      - name: Run temp diagnostic job on the server
         env:
           SSH_KEY: ${{ secrets.NETCUP_SSH_KEY }}
           HOST: ${{ secrets.NETCUP_HOST }}
         run: |
           echo "$SSH_KEY" > key.pem && chmod 600 key.pem
-          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "onboard-autofull"
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "${{ inputs.job }}"

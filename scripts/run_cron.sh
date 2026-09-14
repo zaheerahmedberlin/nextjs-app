@@ -70,6 +70,64 @@ print('vendor row upserted: Autofull EU (autofull-eu, AWIN 125332)')
     export VENDOR_FILTER="Autofull EU"
     exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
     ;;
+  autofull-check)
+    # One-off — verify Autofull EU's 26 imported products and see what
+    # category they landed in (their vendor name isn't covered by any
+    # existing keyword rule in import_awin_feeds.py, so they likely fell
+    # through to the generic default). Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT p.id, p.title, p.price, c.slug, c.name
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'autofull-eu'
+        ORDER BY p.id
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
+  sonstiges-sample)
+    # One-off — start of the Sonstiges (catch-all/misc) categorization
+    # task: vendor breakdown (where to focus keyword-rule effort, same
+    # methodology as every previous category split this project) plus a
+    # real title sample spread across vendors to spot clusters. Remove
+    # once the categorization work is done.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT v.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE c.slug = 'sonstiges' AND p.is_active = TRUE
+        GROUP BY v.name
+        ORDER BY cnt DESC
+        LIMIT 30
+    ''')
+    print('--- vendor breakdown ---')
+    for name, cnt in cur.fetchall():
+        print(f'{name}: {cnt}')
+    cur.execute('''
+        SELECT p.id, v.name, p.title
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE c.slug = 'sonstiges' AND p.is_active = TRUE
+        ORDER BY random()
+        LIMIT 400
+    ''')
+    print('--- title sample (400 random) ---')
+    for pid, vname, title in cur.fetchall():
+        print(f'{pid}|{vname}|{title[:120]}')
+"
+    ;;
   category-counts)
     # Temporary, one-off — dumps id/parent_id/slug/name/direct product count
     # for every active category, for a content-gap analysis against
