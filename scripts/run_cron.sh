@@ -91,6 +91,42 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  aliva-sonstiges)
+    # One-off — Aliva Apotheke DE alone accounts for 28,841 of the 39,152
+    # Sonstiges products (73.6%) — the pharmacy vendor onboarded 2026-09-08
+    # with 35,421 products but only 18 subcategories, leaving most of the
+    # catalog uncategorized. Pulling the existing pharmacy category
+    # structure (to route into, not duplicate) plus a large real title
+    # sample to find actual clusters. Remove once the categorization work
+    # is done.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT c.id, c.parent_id, c.slug, c.name,
+               (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.is_active = TRUE) AS cnt
+        FROM categories c
+        WHERE c.id = 41 OR c.parent_id = 41
+        ORDER BY c.id
+    ''')
+    print('--- existing Gesundheit (id=41) + subcategories ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT p.id, p.title
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE c.slug = 'sonstiges' AND p.is_active = TRUE AND v.name = 'Aliva Apotheke DE'
+        ORDER BY random()
+        LIMIT 1000
+    ''')
+    print('--- Aliva Sonstiges title sample (1000 random) ---')
+    for pid, title in cur.fetchall():
+        print(f'{pid}|{title[:130]}')
+"
+    ;;
   sonstiges-sample)
     # One-off — start of the Sonstiges (catch-all/misc) categorization
     # task: vendor breakdown (where to focus keyword-rule effort, same
