@@ -44,37 +44,6 @@ case "${SSH_ORIGINAL_COMMAND:-}" in
   dead-links)
     exec ./scripts/.venv/bin/python3 scripts/check_dead_links.py
     ;;
-  add-link-checked-index)
-    # Temporary, one-off — the partial index supporting the bounded
-    # dead-link-check batch query (see check_dead_links.py) was created
-    # against 192.168.178.37, since confirmed to be a stale, disconnected
-    # snapshot rather than the real production DB (127.0.0.1/railway on
-    # this server). Applying it here for real. CONCURRENTLY so it doesn't
-    # lock the table. Remove this case once confirmed applied.
-    exec ./scripts/.venv/bin/python3 -c "
-import os, psycopg2
-conn = psycopg2.connect(os.environ['DATABASE_URL'])
-conn.autocommit = True
-with conn.cursor() as cur:
-    cur.execute('''
-        CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_products_link_checked_at
-        ON products (link_checked_at ASC NULLS FIRST)
-        WHERE is_active = TRUE AND url IS NOT NULL AND url != ''
-    ''')
-    print('Index created (or already existed).')
-    cur.execute('''
-        EXPLAIN ANALYZE
-        SELECT p.id, p.title, p.url, v.name
-        FROM products p
-        LEFT JOIN vendors v ON v.id = p.vendor_id
-        WHERE p.is_active = TRUE AND p.url IS NOT NULL AND p.url != ''
-        ORDER BY p.link_checked_at ASC NULLS FIRST
-        LIMIT 25000
-    ''')
-    for row in cur.fetchall():
-        print(row[0])
-"
-    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
