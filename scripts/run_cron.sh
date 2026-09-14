@@ -117,25 +117,40 @@ print(f'Total Aliva Sonstiges products: {len(rows)}')
 # Checked in order, first match wins. Keywords are substrings, matched
 # case-insensitively against the lowercased title.
 RULES = [
-    (244, 'homoeopathie-naturheilmittel', ['globuli', 'dilution', 'weleda', 'wala ', 'urtinktur', 'schüssler', 'komplexmittel', ' d6 ', ' d12 ', ' d30 ', ' d4 ', ' d200 ', 'ledum', 'arnica', 'nux vomica']),
-    (256, 'pflegebedarf-inkontinenz', ['katheter', 'beinbeutel', 'inkontinenz', 'urinbeutel', 'vorlage', 'stoma', 'windelhose', 'tribag']),
-    (261, 'intimgesundheit-verhuetung', ['kondom', 'gleitgel', 'verhütung', 'femidom', 'intimwaschlotion', 'sagella']),
-    (248, 'verbandsmaterial-erste-hilfe', ['pflaster', 'kompresse', 'verband', 'binde', 'mullbinde', 'elastomull', 'fixierbinde', 'wundschnellverband', 'zinkleimbinde', 'tg fix', 'es-kompressen']),
-    (253, 'schmerzen-bewegungsapparat', ['schmerzgel', 'bandage', 'bort ', 'gelenkschmerz', 'rückenschmerz', 'orthese', 'bandagen', 'kniebandage', 'sprunggelenk']),
+    # pflegebedarf-inkontinenz checked before intimgesundheit so
+    # "Urinalkondom" (a incontinence product, not contraception) is
+    # intercepted first — bare 'kondom' in intimgesundheit would
+    # otherwise wrongly claim it.
+    (256, 'pflegebedarf-inkontinenz', ['katheter', 'beinbeutel', 'inkontinenz', 'urinbeutel', 'vorlage', 'stoma', 'windelhose', 'tribag', 'urinalkond', 'sekretbeutel']),
+    (244, 'homoeopathie-naturheilmittel', ['globuli', 'dilution', 'weleda', 'wala ', 'urtinktur', 'schüssler', 'komplexmittel', ' d6 ', ' d12 ', ' d30 ', ' d4 ', ' d200 ', 'ledum', 'arnica', 'nux vomica', 'bachblüten', 'homaccord', 'injeel', 'spenglersan']),
+    (261, 'intimgesundheit-verhuetung', ['kondom', 'gleitgel', 'verhütung', 'femidom', 'intimwaschlotion', 'sagella', 'vaginal']),
+    (248, 'verbandsmaterial-erste-hilfe', ['pflaster', 'kompresse', 'verband', 'binde', 'mullbinde', 'elastomull', 'fixierbinde', 'wundschnellverband', 'zinkleimbinde', 'tg fix', 'es-kompressen', 'wund pad', 'wundpad', 'wundverb', 'tamponade', 'alkoholtupfer', 'tupfer', 'wundfolie']),
+    # 'grippal' (as in "grippaler Infekt") replaces the old bare
+    # 'grippe' keyword — that substring falsely matched "Gripper"
+    # (a needle/lancet brand); 'grippal' catches the real cold/flu
+    # products (incl. "Gripp-Heel bei grippalen Infekten") without it.
+    (246, 'erkaeltung-immunsystem', ['erkältung', 'hustensaft', 'grippal', 'immunsystem', 'halsschmerz', 'lutschtabletten', 'hustenstiller', 'bronchial', 'coldex']),
+    (253, 'schmerzen-bewegungsapparat', ['schmerzgel', 'bandage', 'bort ', 'gelenkschmerz', 'rückenschmerz', 'orthese', 'bandagen', 'kniebandage', 'sprunggelenk', 'schmerztablette', 'ibuprofen', 'unterarmkrücke', 'krücke']),
     (251, 'augen-nase-ohren', ['augentropfen', 'nasenspray', 'ohrentropfen', 'kontaktlinsen', 'augencreme', 'augensalbe', 'nasenpflege']),
-    (246, 'erkaeltung-immunsystem', ['erkältung', 'hustensaft', 'grippe', 'immunsystem', 'halsschmerz', 'lutschtabletten', 'hustenstiller', 'bronchial']),
-    (247, 'magen-darm', ['abführ', 'verstopfung', 'durchfall', 'magensäure', 'reflux', 'darmflora', 'probiotika', 'blähung', 'sodbrennen']),
+    (247, 'magen-darm', ['abführ', 'verstopfung', 'durchfall', 'magensäure', 'reflux', 'darmflora', 'probiotika', 'blähung', 'sodbrennen', 'galletropfen', 'galle']),
     (250, 'mund-zahnpflege', ['zahnpasta', 'mundspülung', 'zahnbürste', 'zahncreme', 'mundwasser', 'zahnfleisch']),
     (254, 'herz-kreislauf-stoffwechsel', ['blutdruck', 'cholesterin', 'diabetes', 'blutzucker']),
-    (252, 'frauengesundheit-schwangerschaft', ['schwangerschaft', 'menstruation', 'wechseljahre', 'tampon']),
-    (255, 'baby-kindergesundheit', ['baby', 'säugling', 'schnuller', 'nutrini', 'kinderwaage']),
+    # bare 'tampon' dropped — in this pharmacy catalog it almost always
+    # hit "Tamponade" (wound packing, verbandsmaterial), not feminine
+    # hygiene; caught by verbandsmaterial's 'tamponade' rule above instead.
+    (252, 'frauengesundheit-schwangerschaft', ['schwangerschaft', 'menstruation', 'wechseljahre']),
+    # 'windel' (broad) is safe here since windelhose (adult incontinence)
+    # is already intercepted by the pflegebedarf rule checked first.
+    (255, 'baby-kindergesundheit', ['baby', 'säugling', 'schnuller', 'nutrini', 'kinderwaage', 'windel']),
     (259, 'tiergesundheit-apotheke', [' hund ', ' katze ', 'hunde-', 'katzen-', 'tierarznei']),
-    (260, 'praxisbedarf-hygiene', ['handschuhe', 'desinfektion', 'einmalhandschuhe', 'mundschutz', 'kanüle', 'spritze steril']),
+    (260, 'praxisbedarf-hygiene', ['handschuhe', 'desinfektion', 'einmalhandschuhe', 'mundschutz', 'kanüle', 'spritze steril', 'ampuwa', 'infusionslösung', 'injektionslösung']),
     (257, 'haar-fusspflege', ['shampoo', 'fußcreme', 'fußpflege', 'nagelpflege', 'hornhaut']),
-    (249, 'haut-gesichtspflege', ['creme', 'gesichtscreme', 'lotion', 'salbe', 'balsam', ' gel ', 'serum', 'handcreme']),
-    (245, 'nahrungsergaenzung-vitamine', ['kapseln', 'vitamin', 'calcium', 'magnesium', 'zink ', 'multivitamin', 'omega-3', 'eisen ', 'nahrungsergänzung']),
+    (249, 'haut-gesichtspflege', ['creme', 'gesichtscreme', 'lotion', 'salbe', 'balsam', ' gel ', 'serum', 'handcreme', 'hautschutzschaum']),
+    # 'magnesi' (root) instead of 'magnesium' catches brand variants
+    # like "Magnesiocard" that don't contain the literal word.
+    (245, 'nahrungsergaenzung-vitamine', ['kapseln', 'vitamin', 'calcium', 'magnesi', 'zink ', 'multivitamin', 'omega-3', 'eisen ', 'nahrungsergänzung', 'gerstengras', 'sanddorn', 'fresubin', 'jonosteril']),
     (258, 'tees-wellness', [' tee ', 'filterbeutel', 'kräutertee', 'früchtetee']),
-    (47, 'blutdruckmessung', ['blutdruckmessgerät']),
+    (47, 'blutdruckmessung', ['blutdruckmessgerät', 'visomat', 'manschette']),
     (48, 'heizkissen', ['heizkissen']),
     (49, 'rollatoren', ['rollator']),
     (50, 'massagegeraete', ['massagegerät']),
