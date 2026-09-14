@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  db-check:
+  add-index:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - name: Print DATABASE_URL host/db/user (no password) from the server
+      - name: Add the link_checked_at index on the real production DB
         env:
           SSH_KEY: ${{ secrets.NETCUP_SSH_KEY }}
           HOST: ${{ secrets.NETCUP_HOST }}
         run: |
           echo "$SSH_KEY" > key.pem && chmod 600 key.pem
-          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "db-check"
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "add-link-checked-index"
