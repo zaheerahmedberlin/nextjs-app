@@ -150,26 +150,28 @@ with conn.cursor() as cur:
 "
     ;;
   emergency-restart)
-    # Temporary, one-off — server-health revealed TWO stale `npm start`
-    # processes running concurrently (started 11:07 and 11:47), neither
-    # killed by whatever systemctl restart ran at the time, while a build
-    # kept overwriting .next/static out from under whichever one was
-    # actually serving requests — explains the live "chunk requests 500"
-    # breakage a real user hit today. Kills every related process (both
-    # the stale start processes AND any in-progress build, since
-    # restarting against a build's half-written .next would just trade one
-    # broken state for another) and does one complete, clean
-    # build-then-restart from scratch — the same sequence deploy.sh's
-    # deploy_de() runs, just invoked directly instead of through the
-    # currently very slow "Deploy preisgucken.de" GitHub Actions pipeline.
-    # Remove once confirmed the site is healthy and stays that way.
+    # Temporary, one-off. First attempt at this (plain `pkill` on the
+    # process) made things worse: killing the process without going
+    # through systemd left the unit's own Restart=on-failure/always policy
+    # (whichever it is) auto-respawning `npm start` immediately against a
+    # .next directory this same script had just rm -rf'd for the rebuild —
+    # a crash-restart loop, confirmed live via a load average spike from
+    # 1.6 to 8.58 within minutes and a build that kept running 10+ minutes
+    # past what should be a ~1-2 minute job. Fixed to go through
+    # `systemctl stop` FIRST so the service manager knows this is
+    # intentional and won't fight the rebuild, only pkill anything left
+    # over as a fallback, then `systemctl start` (not restart, since it's
+    # already stopped) once the clean build is actually done. Remove once
+    # confirmed the site is healthy and stays that way.
     echo "--- before ---"
     ps aux | grep -E 'npm start|next start|npm run build|next build|jest-worker' | grep -v grep
-    sudo pkill -9 -f "npm start" || true
+    sudo systemctl stop preisgucken-de.service || true
+    sleep 2
     sudo pkill -9 -f "npm run build" || true
+    sudo pkill -9 -f "npm start" || true
     sudo pkill -9 -f "node .*next" || true
     sleep 2
-    echo "--- killed, rebuilding clean ---"
+    echo "--- stopped, rebuilding clean ---"
     cd /var/www/preisgucken-de
     ENV_TMP="$(mktemp)"
     sudo cat /etc/preisgucken-de.env > "$ENV_TMP"
@@ -179,7 +181,8 @@ with conn.cursor() as cur:
     rm -f "$ENV_TMP"
     rm -rf .next
     npm run build
-    sudo systemctl restart preisgucken-de.service
+    echo "--- build done, starting service ---"
+    sudo systemctl start preisgucken-de.service
     sleep 5
     echo "--- after ---"
     ps aux | grep -E 'npm start|next start' | grep -v grep
