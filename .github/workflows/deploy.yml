@@ -19,7 +19,12 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Was 15 — normal successful runs take 12-13.5 min, leaving almost no
+    # margin. Confirmed live 2026-09-14: two consecutive deploys hit exactly
+    # this 15-minute ceiling and got cancelled (cleanly — no "Broken pipe",
+    # the SSH keepalive fix above is working; just not enough time). Bumped
+    # to 30 for real headroom.
+    timeout-minutes: 30
 
     steps:
       - name: Deploy to netcup
