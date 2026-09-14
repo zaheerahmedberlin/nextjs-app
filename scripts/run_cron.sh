@@ -44,6 +44,32 @@ case "${SSH_ORIGINAL_COMMAND:-}" in
   dead-links)
     exec ./scripts/.venv/bin/python3 scripts/check_dead_links.py
     ;;
+  onboard-autofull)
+    # One-off vendor onboarding — Autofull EU (AWIN merchant 125332), per
+    # explicit user request. Idempotent insert (ON CONFLICT on slug, safe
+    # to re-run), then a scoped import of just this vendor via the same
+    # already-proven import_awin_feeds.py used for every other vendor
+    # (including the daily awin-fast/awin-voghion cron jobs). This is a
+    # pure database operation — no build, no service restart, does not
+    # touch the running app process at all. Remove this case once the
+    # vendor is confirmed onboarded.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''
+        INSERT INTO vendors (name, slug, feed_url, awin_merchant_id, is_active)
+        VALUES (%s, %s, %s, %s, TRUE)
+        ON CONFLICT (slug) DO UPDATE SET feed_url = EXCLUDED.feed_url, awin_merchant_id = EXCLUDED.awin_merchant_id
+    ''', ('Autofull EU', 'autofull-eu',
+          'https://ui.awin.com/productdata-darwin-download/publisher/2988023/441dd8c531d5bac0a84d1df5f5ff071f/1/feed/F3135.csv.gz',
+          '125332'))
+print('vendor row upserted: Autofull EU (autofull-eu, AWIN 125332)')
+"
+    export VENDOR_FILTER="Autofull EU"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
   category-counts)
     # Temporary, one-off — dumps id/parent_id/slug/name/direct product count
     # for every active category, for a content-gap analysis against
