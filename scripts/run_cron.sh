@@ -149,6 +149,42 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  emergency-restart)
+    # Temporary, one-off — server-health revealed TWO stale `npm start`
+    # processes running concurrently (started 11:07 and 11:47), neither
+    # killed by whatever systemctl restart ran at the time, while a build
+    # kept overwriting .next/static out from under whichever one was
+    # actually serving requests — explains the live "chunk requests 500"
+    # breakage a real user hit today. Kills every related process (both
+    # the stale start processes AND any in-progress build, since
+    # restarting against a build's half-written .next would just trade one
+    # broken state for another) and does one complete, clean
+    # build-then-restart from scratch — the same sequence deploy.sh's
+    # deploy_de() runs, just invoked directly instead of through the
+    # currently very slow "Deploy preisgucken.de" GitHub Actions pipeline.
+    # Remove once confirmed the site is healthy and stays that way.
+    echo "--- before ---"
+    ps aux | grep -E 'npm start|next start|npm run build|next build|jest-worker' | grep -v grep
+    sudo pkill -9 -f "npm start" || true
+    sudo pkill -9 -f "npm run build" || true
+    sudo pkill -9 -f "node .*next" || true
+    sleep 2
+    echo "--- killed, rebuilding clean ---"
+    cd /var/www/preisgucken-de
+    ENV_TMP="$(mktemp)"
+    sudo cat /etc/preisgucken-de.env > "$ENV_TMP"
+    set -a
+    source "$ENV_TMP"
+    set +a
+    rm -f "$ENV_TMP"
+    rm -rf .next
+    npm run build
+    sudo systemctl restart preisgucken-de.service
+    sleep 5
+    echo "--- after ---"
+    ps aux | grep -E 'npm start|next start' | grep -v grep
+    curl -sf -o /dev/null -w "local health check: HTTP %{http_code}\n" http://localhost:3000/ || echo "local health check FAILED"
+    ;;
   server-health)
     # Temporary, one-off — two deploys in a row got cancelled for exceeding
     # their job timeout (15min, then 30min), a sharp regression from the
