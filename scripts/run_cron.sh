@@ -197,6 +197,87 @@ for s in unmatched[:40]:
     print(f'  {s}')
 "
     ;;
+  aliva-categorize-apply)
+    # One-off — REAL WRITE, single transaction (all-or-nothing). Applies
+    # the exact same RULES validated via aliva-categorize-dryrun (3
+    # false-positive bugs found and fixed across 3 dry-run iterations:
+    # 'grippe'->Gripper needle brand, 'kondom'->Urinalkondom, 'tampon'->
+    # Tamponade wound packing, 'windel'->Schwindel dizziness, adult SENI
+    # diapers->baby). Prints every single product moved (id|old|new|
+    # title) for a full audit trail, plus the same summary counts.
+    # Remove once the real categorization is done.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+cur = conn.cursor()
+cur.execute('''
+    SELECT p.id, p.title FROM products p
+    JOIN vendors v ON v.id = p.vendor_id
+    JOIN categories c ON c.id = p.category_id
+    WHERE c.slug = 'sonstiges' AND p.is_active = TRUE AND v.name = 'Aliva Apotheke DE'
+''')
+rows = cur.fetchall()
+print(f'Total Aliva Sonstiges products: {len(rows)}')
+
+RULES = [
+    (256, 'pflegebedarf-inkontinenz', ['katheter', 'beinbeutel', 'inkontinenz', 'urinbeutel', 'vorlage', 'stoma', 'windelhose', 'tribag', 'urinalkond', 'sekretbeutel', ' seni ']),
+    (244, 'homoeopathie-naturheilmittel', ['globuli', 'dilution', 'weleda', 'wala ', 'urtinktur', 'schüssler', 'komplexmittel', ' d6 ', ' d12 ', ' d30 ', ' d4 ', ' d200 ', 'ledum', 'arnica', 'nux vomica', 'bachblüten', 'homaccord', 'injeel', 'spenglersan']),
+    (261, 'intimgesundheit-verhuetung', ['kondom', 'gleitgel', 'verhütung', 'femidom', 'intimwaschlotion', 'sagella', 'vaginal']),
+    (248, 'verbandsmaterial-erste-hilfe', ['pflaster', 'kompresse', 'verband', 'binde', 'mullbinde', 'elastomull', 'fixierbinde', 'wundschnellverband', 'zinkleimbinde', 'tg fix', 'es-kompressen', 'wund pad', 'wundpad', 'wundverb', 'tamponade', 'alkoholtupfer', 'tupfer', 'wundfolie']),
+    (246, 'erkaeltung-immunsystem', ['erkältung', 'hustensaft', 'grippal', 'immunsystem', 'halsschmerz', 'lutschtabletten', 'hustenstiller', 'bronchial', 'coldex']),
+    (253, 'schmerzen-bewegungsapparat', ['schmerzgel', 'bandage', 'bort ', 'gelenkschmerz', 'rückenschmerz', 'orthese', 'bandagen', 'kniebandage', 'sprunggelenk', 'schmerztablette', 'ibuprofen', 'unterarmkrücke', 'krücke']),
+    (251, 'augen-nase-ohren', ['augentropfen', 'nasenspray', 'ohrentropfen', 'kontaktlinsen', 'augencreme', 'augensalbe', 'nasenpflege']),
+    (247, 'magen-darm', ['abführ', 'verstopfung', 'durchfall', 'magensäure', 'reflux', 'darmflora', 'probiotika', 'blähung', 'sodbrennen', 'galletropfen', 'galle']),
+    (250, 'mund-zahnpflege', ['zahnpasta', 'mundspülung', 'zahnbürste', 'zahncreme', 'mundwasser', 'zahnfleisch']),
+    (254, 'herz-kreislauf-stoffwechsel', ['blutdruck', 'cholesterin', 'diabetes', 'blutzucker']),
+    (252, 'frauengesundheit-schwangerschaft', ['schwangerschaft', 'menstruation', 'wechseljahre']),
+    (255, 'baby-kindergesundheit', ['baby', 'säugling', 'schnuller', 'nutrini', 'kinderwaage', 'windeln']),
+    (259, 'tiergesundheit-apotheke', [' hund ', ' katze ', 'hunde-', 'katzen-', 'tierarznei']),
+    (260, 'praxisbedarf-hygiene', ['handschuhe', 'desinfektion', 'einmalhandschuhe', 'mundschutz', 'kanüle', 'spritze steril', 'ampuwa', 'infusionslösung', 'injektionslösung']),
+    (257, 'haar-fusspflege', ['shampoo', 'fußcreme', 'fußpflege', 'nagelpflege', 'hornhaut']),
+    (249, 'haut-gesichtspflege', ['creme', 'gesichtscreme', 'lotion', 'salbe', 'balsam', ' gel ', 'serum', 'handcreme', 'hautschutzschaum']),
+    (245, 'nahrungsergaenzung-vitamine', ['kapseln', 'vitamin', 'calcium', 'magnesi', 'zink ', 'multivitamin', 'omega-3', 'eisen ', 'nahrungsergänzung', 'gerstengras', 'sanddorn', 'fresubin', 'jonosteril']),
+    (258, 'tees-wellness', [' tee ', 'filterbeutel', 'kräutertee', 'früchtetee']),
+    (47, 'blutdruckmessung', ['blutdruckmessgerät', 'visomat', 'manschette']),
+    (48, 'heizkissen', ['heizkissen']),
+    (49, 'rollatoren', ['rollator']),
+    (50, 'massagegeraete', ['massagegerät']),
+    (46, 'massagesessel', ['massagesessel']),
+]
+
+moves = []
+for pid, title in rows:
+    t = ' ' + title.lower() + ' '
+    for cid, slug, kws in RULES:
+        if any(kw in t for kw in kws):
+            moves.append((pid, cid, slug, title))
+            break
+
+print(f'Will update {len(moves)} of {len(rows)} products (rest stay in Sonstiges)')
+try:
+    for pid, cid, slug, title in moves:
+        cur.execute('UPDATE products SET category_id = %s WHERE id = %s', (cid, pid))
+    conn.commit()
+    print('COMMITTED')
+except Exception as e:
+    conn.rollback()
+    print(f'ROLLED BACK — {e}')
+    raise
+
+counts = {}
+for pid, cid, slug, title in moves:
+    counts[slug] = counts.get(slug, 0) + 1
+print()
+print('--- final counts per category ---')
+for slug, n in sorted(counts.items(), key=lambda x: -x[1]):
+    print(f'{slug}: {n}')
+
+print()
+print('--- full change list (id|new_category|title) ---')
+for pid, cid, slug, title in moves:
+    print(f'{pid}|{slug}|{title}')
+"
+    ;;
   aliva-sonstiges)
     # One-off — Aliva Apotheke DE alone accounts for 28,841 of the 39,152
     # Sonstiges products (73.6%) — the pharmacy vendor onboarded 2026-09-08
