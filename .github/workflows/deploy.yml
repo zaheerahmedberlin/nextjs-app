@@ -28,4 +28,12 @@ jobs:
           HOST: ${{ secrets.NETCUP_HOST }}
         run: |
           echo "$SSH_KEY" > key.pem && chmod 600 key.pem
-          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new deploy@$HOST "deploy-de"
+          # ServerAlive* keeps the SSH connection alive during npm run build,
+          # which produces little/no output for several minutes at a time —
+          # without this, something in the network path treats the session
+          # as idle and drops it ("client_loop: send disconnect: Broken
+          # pipe"), aborting the deploy mid-build. Confirmed live 2026-09-14:
+          # exactly this killed a deploy, leaving category pages 500ing until
+          # a retry completed. Same fix already applied to sync_awin.yml
+          # after the identical failure mode hit check_dead_links.py.
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "deploy-de"
