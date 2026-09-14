@@ -44,6 +44,30 @@ case "${SSH_ORIGINAL_COMMAND:-}" in
   dead-links)
     exec ./scripts/.venv/bin/python3 scripts/check_dead_links.py
     ;;
+  category-counts)
+    # Temporary, one-off — dumps id/parent_id/slug/name/direct product count
+    # for every active category, for a content-gap analysis against
+    # preisgucken_com/lib/blogCategories.ts's pgLink coverage. Uses the same
+    # SSH mechanism as every other real-data check this project needs (see
+    # memory: production_db_location — direct psql from a local machine
+    # only ever reaches a stale snapshot, never the real DB). Remove once
+    # the gap analysis is done.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT c.id, c.parent_id, c.slug, c.name, COUNT(p.id)
+        FROM categories c
+        LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE AND p.in_stock = TRUE
+        WHERE c.is_active = TRUE
+        GROUP BY c.id, c.parent_id, c.slug, c.name
+        ORDER BY c.id
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
