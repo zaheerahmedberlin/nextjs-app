@@ -44,6 +44,31 @@ case "${SSH_ORIGINAL_COMMAND:-}" in
   dead-links)
     exec ./scripts/.venv/bin/python3 scripts/check_dead_links.py
     ;;
+  vendors-schema)
+    # Temporary, one-off — show the vendors table columns + one real
+    # existing row, to know the exact shape needed for onboarding a new
+    # vendor (Autofull EU). Remove once the new vendor is onboarded.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT column_name, data_type, is_nullable, column_default
+        FROM information_schema.columns
+        WHERE table_name = 'vendors' ORDER BY ordinal_position
+    ''')
+    print('--- columns ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('SELECT * FROM vendors WHERE name = %s', ('Voghion Global',))
+    colnames = [desc[0] for desc in cur.description]
+    print('--- example row (Voghion Global) ---')
+    row = cur.fetchone()
+    if row:
+        for name, val in zip(colnames, row):
+            print(f'{name}: {val}')
+"
+    ;;
   gartengeraete-sample)
     # Temporary, one-off — real product titles/prices/vendors for the
     # Gartengeräte category (id 119), to ground the price-example section

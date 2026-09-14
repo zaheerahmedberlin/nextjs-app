@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  gartengeraete-sample:
+  vendors-schema:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - name: Sample Gartengeräte products from the real production DB
+      - name: Show vendors table schema + an example row
         env:
           SSH_KEY: ${{ secrets.NETCUP_SSH_KEY }}
           HOST: ${{ secrets.NETCUP_HOST }}
         run: |
           echo "$SSH_KEY" > key.pem && chmod 600 key.pem
-          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "gartengeraete-sample"
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "vendors-schema"
