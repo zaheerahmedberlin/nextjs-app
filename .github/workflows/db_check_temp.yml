@@ -2,22 +2,17 @@ name: TEMP DB Check
 
 on:
   workflow_dispatch:
-    inputs:
-      job:
-        description: 'run_cron.sh job name to invoke'
-        required: true
-        default: 'server-health'
 
 jobs:
-  run:
+  category-counts:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     steps:
-      - name: Run temp diagnostic/onboarding job on the server
+      - name: Dump category tree + product counts from the real production DB
         env:
           SSH_KEY: ${{ secrets.NETCUP_SSH_KEY }}
           HOST: ${{ secrets.NETCUP_HOST }}
         run: |
           echo "$SSH_KEY" > key.pem && chmod 600 key.pem
-          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "${{ inputs.job }}"
+          ssh -i key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10 deploy@$HOST "category-counts"

@@ -19,12 +19,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Was 15 — normal successful runs already take 12-13.5 min (npm ci +
-    # npm run build on the server), leaving almost no margin. Confirmed live
-    # 2026-09-14: a deploy that was otherwise healthy (SSH keepalive fix
-    # working, no "Broken pipe") got cancelled by GitHub Actions itself for
-    # hitting this timeout mid-build. Bumped to 30 for real headroom.
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
       - name: Deploy to netcup
