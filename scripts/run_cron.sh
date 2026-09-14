@@ -61,7 +61,18 @@ with conn.cursor() as cur:
         ON products (link_checked_at ASC NULLS FIRST)
         WHERE is_active = TRUE AND url IS NOT NULL AND url != ''
     ''')
-print('Index created (or already existed).')
+    print('Index created (or already existed).')
+    cur.execute('''
+        EXPLAIN ANALYZE
+        SELECT p.id, p.title, p.url, v.name
+        FROM products p
+        LEFT JOIN vendors v ON v.id = p.vendor_id
+        WHERE p.is_active = TRUE AND p.url IS NOT NULL AND p.url != ''
+        ORDER BY p.link_checked_at ASC NULLS FIRST
+        LIMIT 25000
+    ''')
+    for row in cur.fetchall():
+        print(row[0])
 "
     ;;
   *)
