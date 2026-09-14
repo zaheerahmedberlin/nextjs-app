@@ -91,6 +91,94 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  aliva-categorize-dryrun)
+    # One-off — DRY RUN ONLY, zero writes. Classifies Aliva Apotheke DE's
+    # 28,841 Sonstiges products into the 18 existing (currently empty,
+    # 0 products each) pharmacy subcategories under Gesundheit & Pflege
+    # (id 41), using keyword rules built from a real 1000-title frequency
+    # analysis. Prints per-rule match counts + a title sample from each,
+    # so both the matched AND leftover-unmatched buckets can be
+    # spot-checked before any real UPDATE runs — same methodology as
+    # every previous category split this project (Sportspar, Grill,
+    # Netzwerktechnik). Remove once the real categorization is done.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2, re
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT p.id, p.title FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE c.slug = 'sonstiges' AND p.is_active = TRUE AND v.name = 'Aliva Apotheke DE'
+    ''')
+    rows = cur.fetchall()
+print(f'Total Aliva Sonstiges products: {len(rows)}')
+
+# Checked in order, first match wins. Keywords are substrings, matched
+# case-insensitively against the lowercased title.
+RULES = [
+    (244, 'homoeopathie-naturheilmittel', ['globuli', 'dilution', 'weleda', 'wala ', 'urtinktur', 'schüssler', 'komplexmittel', ' d6 ', ' d12 ', ' d30 ', ' d4 ', ' d200 ', 'ledum', 'arnica', 'nux vomica']),
+    (256, 'pflegebedarf-inkontinenz', ['katheter', 'beinbeutel', 'inkontinenz', 'urinbeutel', 'vorlage', 'stoma', 'windelhose', 'tribag']),
+    (261, 'intimgesundheit-verhuetung', ['kondom', 'gleitgel', 'verhütung', 'femidom', 'intimwaschlotion', 'sagella']),
+    (248, 'verbandsmaterial-erste-hilfe', ['pflaster', 'kompresse', 'verband', 'binde', 'mullbinde', 'elastomull', 'fixierbinde', 'wundschnellverband', 'zinkleimbinde', 'tg fix', 'es-kompressen']),
+    (253, 'schmerzen-bewegungsapparat', ['schmerzgel', 'bandage', 'bort ', 'gelenkschmerz', 'rückenschmerz', 'orthese', 'bandagen', 'kniebandage', 'sprunggelenk']),
+    (251, 'augen-nase-ohren', ['augentropfen', 'nasenspray', 'ohrentropfen', 'kontaktlinsen', 'augencreme', 'augensalbe', 'nasenpflege']),
+    (246, 'erkaeltung-immunsystem', ['erkältung', 'hustensaft', 'grippe', 'immunsystem', 'halsschmerz', 'lutschtabletten', 'hustenstiller', 'bronchial']),
+    (247, 'magen-darm', ['abführ', 'verstopfung', 'durchfall', 'magensäure', 'reflux', 'darmflora', 'probiotika', 'blähung', 'sodbrennen']),
+    (250, 'mund-zahnpflege', ['zahnpasta', 'mundspülung', 'zahnbürste', 'zahncreme', 'mundwasser', 'zahnfleisch']),
+    (254, 'herz-kreislauf-stoffwechsel', ['blutdruck', 'cholesterin', 'diabetes', 'blutzucker']),
+    (252, 'frauengesundheit-schwangerschaft', ['schwangerschaft', 'menstruation', 'wechseljahre', 'tampon']),
+    (255, 'baby-kindergesundheit', ['baby', 'säugling', 'schnuller', 'nutrini', 'kinderwaage']),
+    (259, 'tiergesundheit-apotheke', [' hund ', ' katze ', 'hunde-', 'katzen-', 'tierarznei']),
+    (260, 'praxisbedarf-hygiene', ['handschuhe', 'desinfektion', 'einmalhandschuhe', 'mundschutz', 'kanüle', 'spritze steril']),
+    (257, 'haar-fusspflege', ['shampoo', 'fußcreme', 'fußpflege', 'nagelpflege', 'hornhaut']),
+    (249, 'haut-gesichtspflege', ['creme', 'gesichtscreme', 'lotion', 'salbe', 'balsam', ' gel ', 'serum', 'handcreme']),
+    (245, 'nahrungsergaenzung-vitamine', ['kapseln', 'vitamin', 'calcium', 'magnesium', 'zink ', 'multivitamin', 'omega-3', 'eisen ', 'nahrungsergänzung']),
+    (258, 'tees-wellness', [' tee ', 'filterbeutel', 'kräutertee', 'früchtetee']),
+    (47, 'blutdruckmessung', ['blutdruckmessgerät']),
+    (48, 'heizkissen', ['heizkissen']),
+    (49, 'rollatoren', ['rollator']),
+    (50, 'massagegeraete', ['massagegerät']),
+    (46, 'massagesessel', ['massagesessel']),
+]
+
+matched_counts = {slug: 0 for _, slug, _ in RULES}
+matched_samples = {slug: [] for _, slug, _ in RULES}
+unmatched = []
+for pid, title in rows:
+    t = ' ' + title.lower() + ' '
+    hit = None
+    for cid, slug, kws in RULES:
+        if any(kw in t for kw in kws):
+            hit = slug
+            break
+    if hit:
+        matched_counts[hit] += 1
+        if len(matched_samples[hit]) < 8:
+            matched_samples[hit].append(title[:90])
+    else:
+        unmatched.append(title[:90])
+
+print()
+print('--- match counts per category ---')
+for cid, slug, kws in RULES:
+    print(f'{slug}: {matched_counts[slug]}')
+print(f'UNMATCHED (stays in Sonstiges): {len(unmatched)}')
+
+print()
+print('--- sample per matched category ---')
+for cid, slug, kws in RULES:
+    if matched_samples[slug]:
+        print(f'[{slug}]')
+        for s in matched_samples[slug]:
+            print(f'  {s}')
+
+print()
+print('--- unmatched sample (first 40) ---')
+for s in unmatched[:40]:
+    print(f'  {s}')
+"
+    ;;
   aliva-sonstiges)
     # One-off — Aliva Apotheke DE alone accounts for 28,841 of the 39,152
     # Sonstiges products (73.6%) — the pharmacy vendor onboarded 2026-09-08
