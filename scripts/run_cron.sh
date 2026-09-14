@@ -164,9 +164,18 @@ with conn.cursor() as cur:
     # already stopped) once the clean build is actually done. Remove once
     # confirmed the site is healthy and stays that way.
     echo "--- before ---"
-    ps aux | grep -E 'npm start|next start|npm run build|next build|jest-worker' | grep -v grep
+    ps aux | grep -E 'npm start|next start|npm run build|next build|jest-worker|deploy\.sh|npm ci' | grep -v grep
     sudo systemctl stop preisgucken-de.service || true
-    sleep 2
+    # Also kill any orphaned deploy.sh runs from earlier cancelled GitHub
+    # Actions jobs — a cancelled run's SSH client disconnecting does NOT
+    # reliably kill the remote command (already confirmed this pattern
+    # multiple times today). If one of those is independently mid-way
+    # through its own npm ci / npm run build / systemctl restart right
+    # now, it would collide with this script no matter how carefully this
+    # one behaves — need to clear those out too, not just this script's
+    # own prior attempts.
+    sudo pkill -9 -f "deploy.sh" || true
+    sudo pkill -9 -f "npm ci" || true
     sudo pkill -9 -f "npm run build" || true
     sudo pkill -9 -f "npm start" || true
     sudo pkill -9 -f "node .*next" || true
@@ -200,6 +209,8 @@ with conn.cursor() as cur:
     # Remove once the deploy issue is understood.
     echo "--- node/npm processes ---"
     ps aux | grep -iE 'node|npm' | grep -v grep
+    echo "--- deploy.sh / git / npm ci processes (checking for orphaned cancelled deploys) ---"
+    ps aux | grep -iE 'deploy\.sh|deploy_de|npm ci|git (fetch|reset)' | grep -v grep
     echo "--- disk usage ---"
     df -h /
     echo "--- memory ---"
