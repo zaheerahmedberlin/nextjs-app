@@ -116,40 +116,24 @@ print('vendor row upserted: Anthbot DE (anthbot-de, AWIN 125144)')
     exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
     ;;
   anthbot-check)
-    # One-off — verify Anthbot DE's imported products and see what
-    # category they landed in. Remove once confirmed.
+    # One-off — Anthbot DE's 59 genuine robot-mower products need a home.
+    # Checking the existing Outdoor/Garten category tree (id and slug of
+    # every category whose name/slug suggests garden equipment) to decide
+    # whether a new 'Mähroboter' subcategory is warranted, same process
+    # as every previous new-category decision (Grill & Outdoor-Küche,
+    # Balkonkraftwerke & Solar, etc). Remove once confirmed.
     exec ./scripts/.venv/bin/python3 -c "
 import os, psycopg2
 conn = psycopg2.connect(os.environ['DATABASE_URL'])
 with conn.cursor() as cur:
     cur.execute('''
-        SELECT COUNT(*) FROM products p
-        JOIN vendors v ON v.id = p.vendor_id
-        WHERE v.slug = 'anthbot-de'
+        SELECT id, parent_id, slug, name FROM categories
+        WHERE slug ILIKE '%outdoor%' OR slug ILIKE '%garten%' OR name ILIKE '%outdoor%' OR name ILIKE '%garten%'
+        ORDER BY parent_id NULLS FIRST, id
     ''')
-    print(f'Total Anthbot DE products: {cur.fetchone()[0]}')
-    cur.execute('''
-        SELECT c.slug, c.name, COUNT(*) AS cnt
-        FROM products p
-        JOIN vendors v ON v.id = p.vendor_id
-        LEFT JOIN categories c ON c.id = p.category_id
-        WHERE v.slug = 'anthbot-de'
-        GROUP BY c.slug, c.name
-        ORDER BY cnt DESC
-    ''')
-    print('--- category breakdown ---')
+    print('--- Outdoor/Garten category tree ---')
     for row in cur.fetchall():
         print('|'.join(str(x) for x in row))
-    cur.execute('''
-        SELECT p.id, p.title, p.price
-        FROM products p
-        JOIN vendors v ON v.id = p.vendor_id
-        WHERE v.slug = 'anthbot-de'
-        ORDER BY p.title
-    ''')
-    print('--- ALL products (id|price|title) ---')
-    for pid, title, price in cur.fetchall():
-        print(f'{pid}|{price}|{title[:150]}')
 "
     ;;
   aliva-categorize-dryrun)
