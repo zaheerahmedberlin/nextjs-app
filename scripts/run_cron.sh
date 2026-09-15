@@ -525,6 +525,56 @@ with conn.cursor() as cur:
     systemctl is-active preisgucken-de.service
     systemctl show preisgucken-de.service -p MainPID
     ;;
+  rebuild-live-start)
+    # Orphans cleared (rebuild-kill-orphans) -- now the only builder,
+    # so a normal in-place 'npm run build' should behave like it always
+    # did before the concurrent-build pileup (past deploys succeeded in
+    # ~12-13 min; the 30-min timeouts only started once orphans were
+    # thrashing the box for CPU/memory). Building IN the live directory
+    # is safe here: the running process keeps serving from its already-
+    # loaded files throughout the build (same as every normal deploy) --
+    # only the final restart is a brief interruption. Launched fully
+    # detached (setsid + disown + nohup, output to a log file) so this
+    # SSH command returns immediately and is not itself at risk of
+    # becoming another orphan if the connection drops. Does NOT restart
+    # the service -- that's a separate, explicit step once verified.
+    # Env vars (DATABASE_URL etc) are already sourced+exported into this
+    # shell by the top of this script, before the case statement --
+    # setsid/nohup inherit them automatically, no need to re-read the env
+    # file here (which would fail anyway without sudo).
+    rm -f /tmp/rebuild_live.log
+    setsid nohup npm run build > /tmp/rebuild_live.log 2>&1 < /dev/null &
+    disown
+    sleep 2
+    echo "Build launched detached. PID group:"
+    pgrep -f 'next build' || echo "(not yet visible -- check again shortly)"
+    ;;
+  rebuild-live-status)
+    # Read-only -- check on the detached build from rebuild-live-start.
+    echo "--- is a build still running? ---"
+    pgrep -af 'next build' || echo "(no build process running)"
+    echo "--- last 30 log lines ---"
+    tail -30 /tmp/rebuild_live.log 2>&1
+    echo "--- BUILD_ID present? ---"
+    cat .next/BUILD_ID 2>&1
+    ;;
+  rebuild-live-finish)
+    # Only run once rebuild-live-status confirms BUILD_ID exists and no
+    # build process is still running. Restarts the service against the
+    # freshly-built .next and verifies previously-broken routes recover.
+    # This restart is the only moment of live interruption in the whole
+    # fix -- a few seconds, not the multi-minute outage a stop-then-
+    # rebuild-then-start approach would have caused.
+    sudo systemctl restart preisgucken-de.service
+    sleep 5
+    echo "--- service status ---"
+    systemctl is-active preisgucken-de.service
+    echo "--- direct localhost verification ---"
+    curl -s -o /dev/null -w 'homepage: %{http_code}\n' http://localhost:3000/
+    curl -s -o /dev/null -w 'impressum: %{http_code}\n' http://localhost:3000/impressum
+    curl -s -o /dev/null -w 'datenschutz: %{http_code}\n' http://localhost:3000/datenschutz
+    curl -s -o /dev/null -w 'kategorie: %{http_code}\n' http://localhost:3000/kategorie/elektronik
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
