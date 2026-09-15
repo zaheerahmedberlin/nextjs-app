@@ -115,25 +115,65 @@ print('vendor row upserted: Anthbot DE (anthbot-de, AWIN 125144)')
     export VENDOR_FILTER="Anthbot DE"
     exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
     ;;
-  anthbot-check)
-    # One-off — Anthbot DE's 59 genuine robot-mower products need a home.
-    # Checking the existing Outdoor/Garten category tree (id and slug of
-    # every category whose name/slug suggests garden equipment) to decide
-    # whether a new 'Mähroboter' subcategory is warranted, same process
-    # as every previous new-category decision (Grill & Outdoor-Küche,
-    # Balkonkraftwerke & Solar, etc). Remove once confirmed.
+  anthbot-finalize)
+    # One-off — final step of Anthbot DE onboarding. Full 161-product
+    # listing was manually reviewed: 98 are 'Shipping Protection -
+    # S001'..'S098' (a shipping-insurance price ladder, not real
+    # products), 1 is 'Differenzgebühr' (a billing-adjustment line
+    # item), 3 are 'ANTHBOT Geschenkkarte' (gift cards, excluded same
+    # as Happy Lamps) — 102 non-product listings, soft-deleted via
+    # is_active=FALSE (not hard-deleted, matches project convention).
+    # The remaining 59 genuine robot-mower products get a new
+    # 'Mähroboter' category under Outdoor (id 8), sibling to the
+    # existing Gartengeräte — same reasoning as every previous new-
+    # category decision (Grill & Outdoor-Küche, Balkonkraftwerke &
+    # Solar): a distinctive, high-interest product type deserves its
+    # own category rather than a generic bucket. Single transaction.
+    # Remove this case once confirmed.
     exec ./scripts/.venv/bin/python3 -c "
 import os, psycopg2
 conn = psycopg2.connect(os.environ['DATABASE_URL'])
-with conn.cursor() as cur:
+cur = conn.cursor()
+try:
     cur.execute('''
-        SELECT id, parent_id, slug, name FROM categories
-        WHERE slug ILIKE '%outdoor%' OR slug ILIKE '%garten%' OR name ILIKE '%outdoor%' OR name ILIKE '%garten%'
-        ORDER BY parent_id NULLS FIRST, id
+        INSERT INTO categories (parent_id, slug, name, is_active)
+        VALUES (8, 'maehroboter', 'Mähroboter', TRUE)
+        ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, is_active = TRUE
+        RETURNING id
     ''')
-    print('--- Outdoor/Garten category tree ---')
-    for row in cur.fetchall():
-        print('|'.join(str(x) for x in row))
+    cat_id = cur.fetchone()[0]
+    print(f'Category Mähroboter ready: id={cat_id}')
+
+    cur.execute('''
+        UPDATE products SET is_active = FALSE
+        WHERE vendor_id = (SELECT id FROM vendors WHERE slug = 'anthbot-de')
+        AND (title LIKE 'Shipping Protection%' OR title = 'Differenzgebühr' OR title LIKE 'ANTHBOT Geschenkkarte%')
+    ''')
+    print(f'Deactivated {cur.rowcount} non-product listings (Shipping Protection / Differenzgebühr / Geschenkkarte)')
+
+    cur.execute('''
+        UPDATE products SET category_id = %s
+        WHERE vendor_id = (SELECT id FROM vendors WHERE slug = 'anthbot-de')
+        AND is_active = TRUE
+    ''', (cat_id,))
+    print(f'Categorized {cur.rowcount} genuine products into Mähroboter (id={cat_id})')
+
+    conn.commit()
+    print('COMMITTED')
+except Exception as e:
+    conn.rollback()
+    print(f'ROLLED BACK -- {e}')
+    raise
+
+cur.execute('''
+    SELECT p.id, p.title, p.price FROM products p
+    JOIN vendors v ON v.id = p.vendor_id
+    WHERE v.slug = 'anthbot-de' AND p.is_active = TRUE
+    ORDER BY p.title
+''')
+print('--- final active Mähroboter listing ---')
+for pid, title, price in cur.fetchall():
+    print(f'{pid}|{price}|{title[:150]}')
 "
     ;;
   aliva-categorize-dryrun)
