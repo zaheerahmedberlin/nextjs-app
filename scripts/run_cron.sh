@@ -487,6 +487,20 @@ with conn.cursor() as cur:
     curl -s -o /dev/null -w 'impressum: %{http_code}\n' http://localhost:3000/impressum
     curl -s -w '\nkategorie body:\n%{http_code}\n' http://localhost:3000/kategorie/elektronik | tail -30
     ;;
+  rebuild-orphan-check)
+    # Read-only — before touching anything, checking whether any
+    # deploy.sh/npm ci/next build process is still running orphaned
+    # from an earlier GitHub-Actions-cancelled deploy (cancelling the
+    # workflow kills the local runner but not necessarily the remote
+    # SSH-invoked process). Shown against the live service's own PIDs
+    # (from systemctl) so orphans are clearly distinguishable from the
+    # actual running app. Does NOT kill anything. Remove once diagnosed.
+    echo "--- live service PIDs (do not touch these) ---"
+    systemctl show preisgucken-de.service -p MainPID -p ControlGroup
+    echo
+    echo "--- all deploy.sh / npm / next build processes on the box ---"
+    ps -eo pid,ppid,etime,cmd | grep -E 'deploy\.sh|npm ci|npm run build|next build|next-server' | grep -v grep
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
