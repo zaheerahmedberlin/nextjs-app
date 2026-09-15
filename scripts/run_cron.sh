@@ -145,12 +145,11 @@ with conn.cursor() as cur:
         FROM products p
         JOIN vendors v ON v.id = p.vendor_id
         WHERE v.slug = 'anthbot-de'
-        ORDER BY random()
-        LIMIT 40
+        ORDER BY p.title
     ''')
-    print('--- title sample (40 random) ---')
+    print('--- ALL products (id|price|title) ---')
     for pid, title, price in cur.fetchall():
-        print(f'{pid}|{price}|{title[:120]}')
+        print(f'{pid}|{price}|{title[:150]}')
 "
     ;;
   aliva-categorize-dryrun)
