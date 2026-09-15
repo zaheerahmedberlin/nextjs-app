@@ -575,6 +575,34 @@ with conn.cursor() as cur:
     curl -s -o /dev/null -w 'datenschutz: %{http_code}\n' http://localhost:3000/datenschutz
     curl -s -o /dev/null -w 'kategorie: %{http_code}\n' http://localhost:3000/kategorie/elektronik
     ;;
+  aliva-verify)
+    # Read-only sanity check — category-counts (which filters
+    # is_active=TRUE AND in_stock=TRUE) showed drastically lower Aliva
+    # pharmacy counts than the 18,105 categorized in
+    # aliva-categorize-apply. Checking whether the category_id
+    # assignments are actually intact (this is just an in_stock filter
+    # artifact) or genuinely lost. Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT
+            COUNT(*) FILTER (WHERE c.slug != 'sonstiges') AS categorized,
+            COUNT(*) FILTER (WHERE c.slug = 'sonstiges') AS still_sonstiges,
+            COUNT(*) FILTER (WHERE p.is_active) AS active,
+            COUNT(*) FILTER (WHERE p.in_stock) AS in_stock,
+            COUNT(*) FILTER (WHERE p.is_active AND p.in_stock) AS active_and_in_stock,
+            COUNT(*) AS total
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Aliva Apotheke DE'
+    ''')
+    row = cur.fetchone()
+    print(f'categorized={row[0]} still_sonstiges={row[1]} active={row[2]} in_stock={row[3]} active_and_in_stock={row[4]} total={row[5]}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
