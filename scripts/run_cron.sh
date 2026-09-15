@@ -460,6 +460,33 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  site-health)
+    # Read-only diagnostic — user reported all footer links (Impressum
+    # etc) and category pages 500ing while the ISR-cached homepage
+    # still works. That split points at a possibly-corrupted .next
+    # build directory from one of several recent deploys that hit the
+    # 30-min timeout and got cancelled mid-build. Checks service
+    # status, recent error logs, build directory state, and hits the
+    # Node process directly on localhost (bypassing Caddy/CDN) to
+    # narrow down where the failure actually is. Does NOT touch the
+    # running service. Remove once diagnosed.
+    echo "--- systemctl status ---"
+    systemctl status preisgucken-de.service --no-pager -l | head -20
+    echo
+    echo "--- last 40 log lines ---"
+    sudo journalctl -u preisgucken-de.service -n 40 --no-pager
+    echo
+    echo "--- .next build directory ---"
+    ls -la .next/ 2>&1 | head -10
+    echo "BUILD_ID: $(cat .next/BUILD_ID 2>&1)"
+    echo "server dir mtime range:"
+    find .next/server -maxdepth 1 -newer .next/BUILD_ID 2>&1 | head -5
+    echo
+    echo "--- direct localhost curl (bypass Caddy) ---"
+    curl -s -o /dev/null -w 'homepage: %{http_code}\n' http://localhost:3000/
+    curl -s -o /dev/null -w 'impressum: %{http_code}\n' http://localhost:3000/impressum
+    curl -s -w '\nkategorie body:\n%{http_code}\n' http://localhost:3000/kategorie/elektronik | tail -30
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
