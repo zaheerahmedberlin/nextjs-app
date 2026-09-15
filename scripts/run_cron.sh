@@ -603,6 +603,67 @@ with conn.cursor() as cur:
     print(f'categorized={row[0]} still_sonstiges={row[1]} active={row[2]} in_stock={row[3]} active_and_in_stock={row[4]} total={row[5]}')
 "
     ;;
+  onboard-toputure)
+    # One-off vendor onboarding — Toputure US (AWIN merchant 125464), per
+    # explicit user request. Same idempotent-insert + scoped-import
+    # pattern as every previous vendor (Anthbot DE, Autofull EU, etc.) —
+    # pure database operation, no build, no service restart, does not
+    # touch the running app process. Remove this case once the vendor
+    # is confirmed onboarded.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''
+        INSERT INTO vendors (name, slug, feed_url, awin_merchant_id, is_active)
+        VALUES (%s, %s, %s, %s, TRUE)
+        ON CONFLICT (slug) DO UPDATE SET feed_url = EXCLUDED.feed_url, awin_merchant_id = EXCLUDED.awin_merchant_id
+    ''', ('Toputure US', 'toputure-us',
+          'https://ui.awin.com/productdata-darwin-download/publisher/2988023/441dd8c531d5bac0a84d1df5f5ff071f/1/feed/F3285.csv.gz',
+          '125464'))
+print('vendor row upserted: Toputure US (toputure-us, AWIN 125464)')
+"
+    export VENDOR_FILTER="Toputure US"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  toputure-check)
+    # One-off — verify Toputure US's imported products and see what
+    # category they landed in. Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'toputure-us'
+    ''')
+    print(f'Total Toputure US products: {cur.fetchone()[0]}')
+    cur.execute('''
+        SELECT c.slug, c.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'toputure-us'
+        GROUP BY c.slug, c.name
+        ORDER BY cnt DESC
+    ''')
+    print('--- category breakdown ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT p.id, p.title, p.price
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'toputure-us'
+        ORDER BY p.title
+    ''')
+    print('--- ALL products (id|price|title) ---')
+    for pid, title, price in cur.fetchall():
+        print(f'{pid}|{price}|{title[:150]}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
