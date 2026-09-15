@@ -91,6 +91,68 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  onboard-anthbot)
+    # One-off vendor onboarding — Anthbot DE (AWIN merchant 125144), per
+    # explicit user request. Same idempotent-insert + scoped-import
+    # pattern as every previous vendor (Autofull EU, Sportspar, etc.) —
+    # pure database operation, no build, no service restart, does not
+    # touch the running app process. Remove this case once the vendor
+    # is confirmed onboarded.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''
+        INSERT INTO vendors (name, slug, feed_url, awin_merchant_id, is_active)
+        VALUES (%s, %s, %s, %s, TRUE)
+        ON CONFLICT (slug) DO UPDATE SET feed_url = EXCLUDED.feed_url, awin_merchant_id = EXCLUDED.awin_merchant_id
+    ''', ('Anthbot DE', 'anthbot-de',
+          'https://ui.awin.com/productdata-darwin-download/publisher/2988023/441dd8c531d5bac0a84d1df5f5ff071f/1/feed/F3145.csv.gz',
+          '125144'))
+print('vendor row upserted: Anthbot DE (anthbot-de, AWIN 125144)')
+"
+    export VENDOR_FILTER="Anthbot DE"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  anthbot-check)
+    # One-off — verify Anthbot DE's imported products and see what
+    # category they landed in. Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'anthbot-de'
+    ''')
+    print(f'Total Anthbot DE products: {cur.fetchone()[0]}')
+    cur.execute('''
+        SELECT c.slug, c.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'anthbot-de'
+        GROUP BY c.slug, c.name
+        ORDER BY cnt DESC
+    ''')
+    print('--- category breakdown ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT p.id, p.title, p.price
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'anthbot-de'
+        ORDER BY random()
+        LIMIT 40
+    ''')
+    print('--- title sample (40 random) ---')
+    for pid, title, price in cur.fetchall():
+        print(f'{pid}|{price}|{title[:120]}')
+"
+    ;;
   aliva-categorize-dryrun)
     # One-off — DRY RUN ONLY, zero writes. Classifies Aliva Apotheke DE's
     # 28,841 Sonstiges products into the 18 existing (currently empty,
