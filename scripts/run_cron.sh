@@ -501,6 +501,30 @@ with conn.cursor() as cur:
     echo "--- all deploy.sh / npm / next build processes on the box ---"
     ps -eo pid,ppid,etime,cmd | grep -E 'deploy\.sh|npm ci|npm run build|next build|next-server' | grep -v grep
     ;;
+  rebuild-kill-orphans)
+    # Confirmed via rebuild-orphan-check: SIX orphaned deploy.sh processes
+    # (up to 19h40m old), each running its own 'npm run build'/'next
+    # build' against the SAME shared /var/www/preisgucken-de directory —
+    # cancelling a GitHub Actions workflow kills the local runner but not
+    # the remote SSH-invoked deploy.sh, so every timed-out deploy this
+    # session left one behind, all racing each other and corrupting
+    # .next. Killing by exact command pattern ('next build'/'npm run
+    # build'/this script's own path) — the live service runs 'npm
+    # start'/'next start'/'next-server', which never matches any of
+    # these patterns, so it is not touched. Verified against the live
+    # MainPID separately in rebuild-orphan-check before running this.
+    echo "--- before ---"
+    ps -eo pid,ppid,etime,cmd | grep -E 'deploy\.sh|npm run build|next build' | grep -v grep || echo "(none found)"
+    pkill -9 -f 'next build' || true
+    pkill -9 -f 'npm run build' || true
+    pkill -9 -f '/var/www/preisgucken-de/scripts/deploy.sh' || true
+    sleep 2
+    echo "--- after ---"
+    ps -eo pid,ppid,etime,cmd | grep -E 'deploy\.sh|npm run build|next build' | grep -v grep || echo "(none found — all orphans cleared)"
+    echo "--- live service still healthy? ---"
+    systemctl is-active preisgucken-de.service
+    systemctl show preisgucken-de.service -p MainPID
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
