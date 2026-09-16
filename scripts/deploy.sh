@@ -23,6 +23,23 @@ wait_for_port() {
 }
 
 deploy_de() {
+  # Confirmed live 2026-09-15/16: cancelling the GitHub Actions workflow
+  # kills the local runner but NOT this remote SSH-invoked process, so a
+  # timed-out deploy keeps running orphaned on the server. A second push
+  # (or a retry) then starts a THIRD process racing the same .next
+  # directory -- this happened repeatedly and twice corrupted the live
+  # build (missing BUILD_ID/_error.js -> 500s; then a stale HTML/chunk
+  # mismatch -> client-side ChunkLoadError + React #423 on every real
+  # browser, iOS and Android both). flock here means any new invocation
+  # -- however it was triggered, orphan or fresh -- immediately detects
+  # a deploy is already in flight and exits instead of racing it. The
+  # lock is tied to this fd and releases automatically when the holding
+  # process exits for any reason, including an orphaned kill.
+  exec 200>/tmp/deploy-de.lock
+  if ! flock -n 200; then
+    echo "deploy-de: another deploy is already running (lock held) -- exiting without starting a competing build" >&2
+    exit 1
+  fi
   cd /var/www/preisgucken-de
   git fetch origin
   git reset --hard origin/main
@@ -46,6 +63,14 @@ deploy_de() {
 }
 
 deploy_com() {
+  # Same lock as deploy_de -- see its comment for why. Separate lockfile
+  # so a .de deploy and a .com deploy never block each other, only two
+  # attempts at the same site.
+  exec 201>/tmp/deploy-com.lock
+  if ! flock -n 201; then
+    echo "deploy-com: another deploy is already running (lock held) -- exiting without starting a competing build" >&2
+    exit 1
+  fi
   cd /var/www/preisgucken-com
   git fetch origin
   git reset --hard origin/main
