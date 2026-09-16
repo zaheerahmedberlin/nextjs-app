@@ -705,6 +705,48 @@ with conn.cursor() as cur:
     echo "--- Caddy config (cache-relevant directives only) ---"
     sudo grep -n -i "cache\|preisgucken.de" /etc/caddy/Caddyfile 2>&1 | head -40
     ;;
+  ihoverboard-check)
+    # Read-only -- user asked to verify iHoverboard DE's products are
+    # actually live (memory says AWIN vendor 110026, 39 products, onboarded
+    # 2026-09-08 -- confirming against real data rather than trusting a
+    # possibly-stale record). Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT id, name, slug, is_active, awin_merchant_id
+        FROM vendors WHERE name ILIKE '%ihoverboard%' OR slug ILIKE '%ihoverboard%'
+    ''')
+    vendors = cur.fetchall()
+    if not vendors:
+        print('No vendor matching iHoverboard found.')
+    for vid, name, slug, is_active, mid in vendors:
+        print(f'vendor: id={vid} name={name} slug={slug} is_active={is_active} awin_merchant_id={mid}')
+        cur.execute('''
+            SELECT COUNT(*) FILTER (WHERE is_active), COUNT(*)
+            FROM products WHERE vendor_id = %s
+        ''', (vid,))
+        active_cnt, total_cnt = cur.fetchone()
+        print(f'  products: active={active_cnt} total={total_cnt}')
+        cur.execute('''
+            SELECT c.slug, c.name, COUNT(*) FROM products p
+            LEFT JOIN categories c ON c.id = p.category_id
+            WHERE p.vendor_id = %s AND p.is_active = TRUE
+            GROUP BY c.slug, c.name ORDER BY COUNT(*) DESC
+        ''', (vid,))
+        for cslug, cname, cnt in cur.fetchall():
+            print(f'  category: {cslug} ({cname}): {cnt}')
+        cur.execute('''
+            SELECT id, title, price FROM products
+            WHERE vendor_id = %s AND is_active = TRUE
+            ORDER BY random() LIMIT 8
+        ''', (vid,))
+        print('  sample:')
+        for pid, title, price in cur.fetchall():
+            print(f'    {pid}|{price}|{title[:100]}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
