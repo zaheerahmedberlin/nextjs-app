@@ -556,7 +556,7 @@ with conn.cursor() as cur:
     echo "--- last 30 log lines ---"
     tail -30 /tmp/rebuild_live.log 2>&1
     echo "--- BUILD_ID present? ---"
-    cat .next/BUILD_ID 2>&1
+    cat .next/BUILD_ID 2>&1 || echo "(not yet -- build still in progress)"
     ;;
   rebuild-live-finish)
     # Only run once rebuild-live-status confirms BUILD_ID exists and no
