@@ -683,6 +683,28 @@ with conn.cursor() as cur:
     print(f'Deactivated: {label}')
 "
     ;;
+  stale-chunk-check)
+    # Read-only -- browser testing reproduced a real bug: /impressum
+    # (and likely every page) serves HTML referencing a JS chunk hash
+    # from an OLDER build (page-b3894efdae6db2e7.js), which 400s because
+    # only the CURRENT build's chunks exist in .next/static now. curl
+    # tests all showed 200 because they only check the HTML document
+    # status, never execute its JS -- a real browser fails client-side
+    # hydration (ChunkLoadError -> React #423) and goes blank. Checking
+    # whether this is Next.js's own ISR page cache (.next/cache) still
+    # holding a stale render from a previous build, or a Caddy-level
+    # cache. Does not touch anything. Remove once diagnosed.
+    echo "--- current live chunk hash for /impressum ---"
+    ls -la .next/static/chunks/app/impressum/ 2>&1
+    echo "--- BUILD_ID ---"
+    cat .next/BUILD_ID
+    echo "--- what HTML does the live Node process itself return (bypass Caddy) ---"
+    curl -s http://localhost:3000/impressum | grep -oE 'app/impressum/page-[a-z0-9]+\.js' | head -3
+    echo "--- what HTML does Caddy return externally ---"
+    curl -s https://www.preisgucken.de/impressum | grep -oE 'app/impressum/page-[a-z0-9]+\.js' | head -3
+    echo "--- Caddy config (cache-relevant directives only) ---"
+    sudo grep -n -i "cache\|preisgucken.de" /etc/caddy/Caddyfile 2>&1 | head -40
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
