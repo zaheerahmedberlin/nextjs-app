@@ -664,6 +664,25 @@ with conn.cursor() as cur:
         print(f'{pid}|{price}|{title[:150]}')
 "
     ;;
+  deactivate-toputure)
+    # Per explicit user decision — Toputure US's feed is entirely USD-
+    # priced (US-market vendor) and this site is EUR-only. The import
+    # correctly skipped all 43 rows rather than mislabel dollar prices
+    # as euros, so there are zero real products to remove. Deactivating
+    # the vendor so the nightly AWIN sync stops re-downloading this feed
+    # every night for no benefit. Not deleted, matches project soft-
+    # delete convention. Remove this case once confirmed.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''UPDATE vendors SET is_active = FALSE WHERE slug = 'toputure-us' RETURNING name''')
+    row = cur.fetchone()
+    label = row[0] if row else 'not found'
+    print(f'Deactivated: {label}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
