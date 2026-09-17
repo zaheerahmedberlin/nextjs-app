@@ -842,6 +842,27 @@ for slug, n in counts.items():
     print(f'{slug}: {n}')
 "
     ;;
+  toputure-category-check)
+    # Read-only -- user confirmed toputure.com's EU storefront charges
+    # the identical face-value number in EUR as the AWIN feed lists in
+    # USD (verified: TP5 389.00 USD == e389,00 on site, TP3 279.00 USD
+    # == e279,00). Reactivating this vendor with a currency-check
+    # bypass, but first checking what category fits treadmills/walking
+    # pads/exercise bikes -- likely an existing Sport/Fitness category.
+    # Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT id, parent_id, slug, name FROM categories
+        WHERE slug ILIKE '%fitness%' OR slug ILIKE '%sport%' OR name ILIKE '%fitness%' OR name ILIKE '%sport%'
+        ORDER BY parent_id NULLS FIRST, id
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
