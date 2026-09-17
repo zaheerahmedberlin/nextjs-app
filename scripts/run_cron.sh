@@ -780,6 +780,68 @@ with conn.cursor() as cur:
         print(f'{pid}|{price}|{cslug}|{title[:130]}')
 "
     ;;
+  ihoverboard-apply)
+    # One-off REAL WRITE, single transaction. All 39 iHoverboard DE
+    # titles were manually reviewed via ihoverboard-plan -- confirmed a
+    # clean 3-way substring split with zero ambiguity/overlap:
+    # 'e-scooter' -> e-scooter (id 180), 'hoverboard' -> hoverboards
+    # (id 243, incl. the K3 seat accessory), 'e-bike' -> e-bikes (id
+    # 206). Fixes the nightly-sync-induced miscategorization (most had
+    # landed in 'leuchten'/Lighting, a false match on 'LED' in titles
+    # like 'iHoverboard H8 LED...'). Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+cur = conn.cursor()
+cur.execute('''
+    SELECT p.id, p.title FROM products p
+    JOIN vendors v ON v.id = p.vendor_id
+    WHERE v.slug = 'ihoverboard-de' AND p.is_active = TRUE
+''')
+rows = cur.fetchall()
+
+RULES = [
+    (180, 'e-scooter', ['e-scooter']),
+    (243, 'hoverboards', ['hoverboard']),
+    (206, 'e-bikes', ['e-bike']),
+]
+
+moves = []
+unmatched = []
+for pid, title in rows:
+    t = title.lower()
+    hit = None
+    for cid, slug, kws in RULES:
+        if any(kw in t for kw in kws):
+            hit = (cid, slug)
+            break
+    if hit:
+        moves.append((pid, hit[0], hit[1], title))
+    else:
+        unmatched.append(title)
+
+print(f'{len(moves)} of {len(rows)} matched, {len(unmatched)} unmatched')
+for title in unmatched:
+    print(f'  UNMATCHED: {title}')
+
+try:
+    for pid, cid, slug, title in moves:
+        cur.execute('UPDATE products SET category_id = %s WHERE id = %s', (cid, pid))
+    conn.commit()
+    print('COMMITTED')
+except Exception as e:
+    conn.rollback()
+    print(f'ROLLED BACK -- {e}')
+    raise
+
+counts = {}
+for pid, cid, slug, title in moves:
+    counts[slug] = counts.get(slug, 0) + 1
+print('--- final counts ---')
+for slug, n in counts.items():
+    print(f'{slug}: {n}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
