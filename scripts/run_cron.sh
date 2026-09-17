@@ -857,7 +857,17 @@ with conn.cursor() as cur:
     cur.execute('''
         SELECT id, parent_id, slug, name FROM categories
         WHERE slug ILIKE '%fitness%' OR slug ILIKE '%sport%' OR name ILIKE '%fitness%' OR name ILIKE '%sport%'
+           OR parent_id = 207
         ORDER BY parent_id NULLS FIRST, id
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    print('--- existing product count under 207 ---')
+    cur.execute('''
+        SELECT c.slug, COUNT(*) FROM products p
+        JOIN categories c ON c.id = p.category_id
+        WHERE (c.id = 207 OR c.parent_id = 207) AND p.is_active = TRUE
+        GROUP BY c.slug
     ''')
     for row in cur.fetchall():
         print('|'.join(str(x) for x in row))
