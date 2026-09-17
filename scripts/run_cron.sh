@@ -747,6 +747,39 @@ with conn.cursor() as cur:
             print(f'    {pid}|{price}|{title[:100]}')
 "
     ;;
+  ihoverboard-plan)
+    # Read-only -- iHoverboard DE's 39 products are miscategorized (most
+    # in 'leuchten'/Lighting, likely a 'LED' substring false-match in the
+    # generic guess_category() logic used by the nightly sync). Pulling
+    # the full title list plus the E-Scooter category subtree to plan a
+    # correct fix -- this is a real mix of hoverboards, e-scooters and
+    # e-bikes, not purely hoverboards. Remove once the fix is applied.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT id, parent_id, slug, name FROM categories
+        WHERE slug ILIKE '%scooter%' OR slug ILIKE '%hoverboard%' OR slug ILIKE '%e-bike%' OR slug ILIKE '%ebike%'
+           OR name ILIKE '%scooter%' OR name ILIKE '%hoverboard%' OR name ILIKE '%e-bike%'
+        ORDER BY parent_id NULLS FIRST, id
+    ''')
+    print('--- E-Scooter/Hoverboard/E-Bike category tree ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT p.id, p.title, p.price, c.slug
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'ihoverboard-de' AND p.is_active = TRUE
+        ORDER BY p.title
+    ''')
+    print('--- ALL 39 products (id|price|current_category|title) ---')
+    for pid, title, price, cslug in cur.fetchall():
+        print(f'{pid}|{price}|{cslug}|{title[:130]}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
