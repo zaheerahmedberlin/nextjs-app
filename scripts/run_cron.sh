@@ -1051,6 +1051,26 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  outin-apply)
+    # One-off REAL WRITE -- routes all 54 OutIn Germany products (a
+    # small, single-focus vendor: portable espresso machines + their
+    # accessories, all genuine, 0 junk) into the existing Kaffeemaschinen
+    # category (42), same as not fragmenting other small single-brand
+    # vendors like EarFun. Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+cur = conn.cursor()
+cur.execute('''
+    UPDATE products SET category_id = 42
+    WHERE vendor_id = (SELECT id FROM vendors WHERE slug = 'outin-germany')
+    AND is_active = TRUE
+''')
+print(f'Categorized {cur.rowcount} products into Kaffeemaschinen (42)')
+conn.commit()
+print('COMMITTED')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
