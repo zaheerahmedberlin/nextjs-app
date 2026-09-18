@@ -873,6 +873,26 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  create-heimtrainer-category)
+    # One-off -- create the Heimtrainer (exercise bikes) subcategory
+    # under Fitness & Krafttraining (207), sibling to the existing
+    # Laufbänder (208). Needed for Toputure's TEB-series exercise
+    # bikes, which have no existing home. Idempotent (ON CONFLICT).
+    # Remove once confirmed.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''
+        INSERT INTO categories (parent_id, slug, name, is_active)
+        VALUES (207, 'heimtrainer', 'Heimtrainer', TRUE)
+        ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, is_active = TRUE
+        RETURNING id
+    ''')
+    print(f'Heimtrainer category id: {cur.fetchone()[0]}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
