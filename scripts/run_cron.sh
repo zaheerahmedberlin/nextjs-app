@@ -930,6 +930,48 @@ with conn.cursor() as cur:
         print(f'{pid}|{price}|{cslug}|{title[:120]}')
 "
     ;;
+  coupons-cron-check)
+    # Read-only diagnostic -- the hourly deactivate-expired-coupons
+    # GitHub Actions cron just failed with HTTP 500. Testing the exact
+    # same UPDATE query directly against the DB (bypassing the HTTP
+    # layer/CRON_SECRET entirely) to isolate whether this is a genuine
+    # DB/schema issue or a deploy/app-layer issue. Also checks the
+    # coupons table's actual schema and row state. Read-only (no writes
+    # via this job -- it explicitly does NOT commit the UPDATE, just
+    # runs it inside a rolled-back transaction to see if it would
+    # succeed). Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    print('--- coupons table columns ---')
+    cur.execute('''
+        SELECT column_name, data_type FROM information_schema.columns
+        WHERE table_name = 'coupons' ORDER BY ordinal_position
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    print('--- row counts ---')
+    cur.execute('SELECT COUNT(*), COUNT(*) FILTER (WHERE is_active), COUNT(*) FILTER (WHERE valid_until < NOW()) FROM coupons')
+    total, active, expired = cur.fetchone()
+    print(f'total={total} active={active} expired_by_date={expired}')
+    print('--- test the exact cron UPDATE (rolled back, not committed) ---')
+    try:
+        cur.execute('''
+            UPDATE coupons
+            SET is_active = FALSE
+            WHERE is_active = TRUE
+              AND valid_until IS NOT NULL
+              AND valid_until < NOW()
+            RETURNING id, code
+        ''')
+        print(f'Would deactivate {cur.rowcount} rows -- query itself is fine')
+        conn.rollback()
+    except Exception as e:
+        print(f'QUERY FAILS: {e}')
+        conn.rollback()
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
