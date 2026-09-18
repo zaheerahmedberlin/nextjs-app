@@ -972,6 +972,66 @@ with conn.cursor() as cur:
         conn.rollback()
 "
     ;;
+  onboard-outin)
+    # One-off vendor onboarding — Outin Germany (AWIN merchant 127821),
+    # per explicit user request. Same idempotent-insert + scoped-import
+    # pattern as every previous vendor. Pure database operation, no
+    # build, no service restart, does not touch the running app.
+    # Remove this case once the vendor is confirmed onboarded.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''
+        INSERT INTO vendors (name, slug, feed_url, awin_merchant_id, is_active)
+        VALUES (%s, %s, %s, %s, TRUE)
+        ON CONFLICT (slug) DO UPDATE SET feed_url = EXCLUDED.feed_url, awin_merchant_id = EXCLUDED.awin_merchant_id
+    ''', ('Outin Germany', 'outin-germany',
+          'https://ui.awin.com/productdata-darwin-download/publisher/2988023/441dd8c531d5bac0a84d1df5f5ff071f/1/feed/F4050.csv.gz',
+          '127821'))
+print('vendor row upserted: Outin Germany (outin-germany, AWIN 127821)')
+"
+    export VENDOR_FILTER="Outin Germany"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  outin-check)
+    # One-off — verify Outin Germany's imported products and see what
+    # category they landed in. Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'outin-germany'
+    ''')
+    print(f'Total Outin Germany products: {cur.fetchone()[0]}')
+    cur.execute('''
+        SELECT c.slug, c.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'outin-germany'
+        GROUP BY c.slug, c.name
+        ORDER BY cnt DESC
+    ''')
+    print('--- category breakdown ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT p.id, p.title, p.price
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'outin-germany'
+        ORDER BY p.title
+    ''')
+    print('--- ALL products (id|price|title) ---')
+    for pid, title, price in cur.fetchall():
+        print(f'{pid}|{price}|{title[:150]}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
