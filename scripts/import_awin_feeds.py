@@ -621,6 +621,17 @@ def guess_isinwheel_category(_merchant_category, title=None):
         return 206  # E-Bikes
     return 180  # E-Scooter (incl. the E-Scooter battery spare part)
 
+def guess_toputure_category(_merchant_category, title=None):
+    # Toputure US — single-brand home-fitness vendor (treadmills, walking
+    # pads, exercise bikes). 'teb'/'exercise bike'/'cycle' catches the
+    # TEB-series bikes (new Heimtrainer category, 265); everything else
+    # (TP-series treadmills/walking pads, EU-plug accessory packs,
+    # lubricant, mats, bundles) goes to the existing Laufbänder (208).
+    t = (title or "").lower()
+    if "teb" in t or "exercise bike" in t or "cycle" in t:
+        return 265  # Heimtrainer (new)
+    return 208  # Laufbänder
+
 # Kohl DE — 5 combined AWIN data feeds (Harley-Davidson, BMW Motorrad,
 # a multi-brand touring feed, AC Schnitzer, and Wunderlich) under one
 # vendor, all sharing a blank merchant_category, so this override is
@@ -798,6 +809,22 @@ def guess_acer_category(_merchant_category, title=None):
     return 130      # Sonstiges IT-Zubehör (fallback)
 
 VENDOR_OVERRIDES = {
+    # Toputure US — feed prices are labeled USD, but confirmed 2026-09-17
+    # that toputure.com/en-de charges the identical face-value number in
+    # EUR (TP5 "389.00 USD" here == "389,00 EUR" on their own EU
+    # storefront) -- currency-agnostic parity pricing, common for DTC
+    # brands. skip_currency_check treats the number as-is instead of
+    # rejecting every row as non-EUR. Excludes gift cards, the generic
+    # "Custom Payment" placeholder, and UK/US-plug accessory variants
+    # (physically wrong plug for the German market — only the EU-plug
+    # variant is a real, sellable product here).
+    "Toputure US": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": {"gift card", "custom payment", "uk plug", "us plug"},
+        "category_fn": guess_toputure_category,
+        "skip_currency_check": True,
+    },
     # EarFun — single-brand audio vendor (earbuds, speakers, a USB-DAC,
     # 3 headphone case covers). merchant_category splits into
     # HEADPHONES/SPEAKERS/ACCESSORIES, but the site's real active category
@@ -950,7 +977,7 @@ def sample_rows(rows, limit):
         return hashlib.md5(url.encode()).hexdigest()
     return sorted(rows, key=stable_key)[:limit]
 
-def parse_row(row, is_darwin, url_field="aw_deep_link", category_field="merchant_category", brand_field=None):
+def parse_row(row, is_darwin, url_field="aw_deep_link", category_field="merchant_category", brand_field=None, skip_currency_check=False):
     """Normalize a CSV row from either the classic AWIN format (product_name,
     search_price, aw_image_url, merchant_category) or the Darwin/Google
     Shopping format (title, price, image_link, product_type) — Dowinx uses
@@ -970,8 +997,15 @@ def parse_row(row, is_darwin, url_field="aw_deep_link", category_field="merchant
         url = (row.get(url_field) or "").strip()
         price_raw = (row.get("price") or "").strip()
         parts = price_raw.split()
-        if len(parts) == 2 and parts[1] != "EUR":
+        if len(parts) == 2 and parts[1] != "EUR" and not skip_currency_check:
             return None  # non-EUR entry, skip rather than misreport currency
+        # skip_currency_check is for vendors confirmed to price at
+        # currency-agnostic parity (Toputure: verified 2026-09-17 that
+        # toputure.com/en-de charges the identical face-value number in
+        # EUR as this feed lists in USD -- e.g. TP5 "389.00 USD" here is
+        # literally "389,00 EUR" on their own EU storefront). The number
+        # itself is still correct; only the currency label is wrong for
+        # this feed's market.
         try:
             price = float(parts[0]) if parts else 0.0
         except ValueError:
@@ -1044,8 +1078,9 @@ def import_vendor(cur, vendor_id, vendor_name, feed_url):
     url_field = override.get("url_field", "aw_deep_link") if override else "aw_deep_link"
     category_field = override.get("category_field", "merchant_category") if override else "merchant_category"
     brand_field = override.get("brand_field") if override else None
+    skip_currency_check = override.get("skip_currency_check", False) if override else False
     for row in rows:
-        parsed = parse_row(row, is_darwin, url_field, category_field, brand_field)
+        parsed = parse_row(row, is_darwin, url_field, category_field, brand_field, skip_currency_check)
         if not parsed:
             skipped += 1
             continue

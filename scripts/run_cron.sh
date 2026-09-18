@@ -893,6 +893,43 @@ with conn.cursor() as cur:
     print(f'Heimtrainer category id: {cur.fetchone()[0]}')
 "
     ;;
+  reactivate-toputure)
+    # Reactivate Toputure US (was deactivated for the USD-price issue,
+    # now fixed via a skip_currency_check vendor override + a proper
+    # category_fn in import_awin_feeds.py) and run a scoped import.
+    # Remove this case once confirmed onboarded.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''UPDATE vendors SET is_active = TRUE WHERE slug = 'toputure-us' RETURNING name''')
+    row = cur.fetchone()
+    label = row[0] if row else 'not found'
+    print(f'Reactivated: {label}')
+"
+    export VENDOR_FILTER="Toputure US"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  toputure-verify)
+    # Read-only -- confirm the import landed correctly. Remove once
+    # confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT p.id, p.price, c.slug, p.title
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'toputure-us' AND p.is_active = TRUE
+        ORDER BY p.title
+    ''')
+    for pid, price, cslug, title in cur.fetchall():
+        print(f'{pid}|{price}|{cslug}|{title[:120]}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
