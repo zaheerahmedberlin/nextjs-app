@@ -1032,6 +1032,25 @@ with conn.cursor() as cur:
         print(f'{pid}|{price}|{title[:150]}')
 "
     ;;
+  outin-category-check)
+    # Read-only -- OutIn Germany's 54 products (all genuine, 0 skipped)
+    # are portable espresso machines/coffee gear, mostly landed in
+    # generic Sonstiges. Checking for an existing Kaffee/Küche category
+    # before deciding whether to route there or create a new one.
+    # Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT id, parent_id, slug, name FROM categories
+        WHERE slug ILIKE '%kaffee%' OR slug ILIKE '%kueche%' OR name ILIKE '%kaffee%' OR name ILIKE '%küche%'
+        ORDER BY parent_id NULLS FIRST, id
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
