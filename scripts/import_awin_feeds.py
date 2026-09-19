@@ -632,6 +632,25 @@ def guess_toputure_category(_merchant_category, title=None):
         return 265  # Heimtrainer (new)
     return 208  # Laufbänder
 
+def guess_ihoverboard_category(_merchant_category, title=None):
+    # iHoverboard DE — had no vendor override at all before, so it ran on
+    # the generic guess_category() fallback, which matched 'LED' inside
+    # titles like 'iHoverboard H8 LED Hoverboard' and routed most of the
+    # catalog into Leuchten (Lighting). Fixed once as a one-off manual
+    # UPDATE (2026-09-17/18), but the next nightly awin-fast sync
+    # silently undid it by re-running the same generic guesser on every
+    # row -- same durability gap as the Aliva pharmacy categorization.
+    # This makes the fix durable: it's now the vendor's own category_fn,
+    # so every future sync re-applies it instead of overwriting it.
+    t = (title or "").lower()
+    if "e-scooter" in t:
+        return 180  # E-Scooter
+    if "hoverboard" in t:
+        return 243  # Hoverboards
+    if "e-bike" in t:
+        return 206  # E-Bikes
+    return 180  # E-Scooter (accessories/spares with no clear keyword)
+
 # Kohl DE — 5 combined AWIN data feeds (Harley-Davidson, BMW Motorrad,
 # a multi-brand touring feed, AC Schnitzer, and Wunderlich) under one
 # vendor, all sharing a blank merchant_category, so this override is
@@ -824,6 +843,16 @@ VENDOR_OVERRIDES = {
         "excluded_title_substrings": {"gift card", "custom payment", "uk plug", "us plug"},
         "category_fn": guess_toputure_category,
         "skip_currency_check": True,
+    },
+    # iHoverboard DE — had no override at all, so 'LED' inside titles
+    # like 'iHoverboard H8 LED Hoverboard' kept getting caught by the
+    # generic guesser's Leuchten (Lighting) match on every nightly sync,
+    # undoing a manual fix repeatedly. See guess_ihoverboard_category.
+    "iHoverboard DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_ihoverboard_category,
     },
     # EarFun — single-brand audio vendor (earbuds, speakers, a USB-DAC,
     # 3 headphone case covers). merchant_category splits into

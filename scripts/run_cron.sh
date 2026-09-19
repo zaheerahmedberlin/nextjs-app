@@ -1177,6 +1177,34 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  ihoverboard-resync)
+    # Re-run the scoped import now that iHoverboard DE has a proper
+    # category_fn (guess_ihoverboard_category) in import_awin_feeds.py
+    # instead of relying on the generic guesser. This is the durable
+    # fix -- every future nightly awin-fast sync will re-apply it
+    # automatically instead of undoing it. Remove once confirmed.
+    export VENDOR_FILTER="iHoverboard DE"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  ihoverboard-verify)
+    # Read-only -- confirm the resync landed correctly. Remove once
+    # confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT c.slug, COUNT(*), MIN(p.price), MAX(p.price)
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'ihoverboard-de' AND p.is_active = TRUE
+        GROUP BY c.slug ORDER BY COUNT(*) DESC
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
