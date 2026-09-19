@@ -1348,6 +1348,47 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  autofull-resync)
+    # Deactivates the 9 confirmed junk checkout line items (Accessory
+    # Price Supplement x8, Exclusive use of the difference in price),
+    # then re-runs the scoped import now that Autofull EU has a durable
+    # category_fn. Exclusion alone only stops FUTURE syncs from
+    # touching the junk rows -- they were never explicitly deactivated
+    # in the first place, so still active right now without this.
+    # Single transaction for the deactivation. Remove once confirmed.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''
+        UPDATE products SET is_active = FALSE
+        WHERE vendor_id = (SELECT id FROM vendors WHERE slug = 'autofull-eu')
+        AND (title ILIKE '%Accessory Price Supplement%' OR title ILIKE '%Exclusive use of the difference in price%')
+    ''')
+    print(f'Deactivated {cur.rowcount} junk checkout line items')
+"
+    export VENDOR_FILTER="Autofull EU"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  autofull-verify)
+    # Read-only -- confirm the resync landed correctly. Remove once
+    # confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT c.slug, COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'autofull-eu' AND p.is_active = TRUE
+        GROUP BY c.slug ORDER BY COUNT(*) DESC
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1

@@ -696,6 +696,18 @@ def guess_aliva_category(_merchant_category, title=None):
             return cid
     return 41  # Gesundheit & Pflege (parent) -- stays broadly correct instead of falling through to unrelated categories
 
+def guess_autofull_category(_merchant_category, title=None):
+    # Autofull EU — never had an override at all (flagged as a known gap
+    # in an earlier read-only check, never actually fixed). Gaming
+    # chairs/desks, same product type as Dowinx -- reusing its
+    # categories rather than creating new ones. 'desk' catches the one
+    # gaming desk; everything else (all AutoFull M6/G7 chair variants)
+    # goes to Sessel.
+    t = (title or '').lower()
+    if 'desk' in t:
+        return 26  # Schreibtische
+    return 17  # Sessel
+
 # Kohl DE — 5 combined AWIN data feeds (Harley-Davidson, BMW Motorrad,
 # a multi-brand touring feed, AC Schnitzer, and Wunderlich) under one
 # vendor, all sharing a blank merchant_category, so this override is
@@ -935,6 +947,18 @@ VENDOR_OVERRIDES = {
         "excluded_substrings": set(),
         "excluded_title_substrings": set(),
         "category_fn": lambda _category_text, _title=None: 42,  # Kaffeemaschinen
+    },
+    # Autofull EU — user reported a gaming chair in Sonstiges. Confirmed:
+    # 15 genuine chairs + 1 gaming desk, all in Sonstiges, plus 9 non-
+    # product checkout line items ("Accessory Price Supplement" x8,
+    # "Exclusive use of the difference in price") scattered into
+    # Gesundheit & Pflege by the generic guesser matching some unrelated
+    # keyword -- same junk pattern as Anthbot's Shipping Protection.
+    "Autofull EU": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": {"accessory price supplement", "exclusive use of the difference in price"},
+        "category_fn": guess_autofull_category,
     },
     # EarFun — single-brand audio vendor (earbuds, speakers, a USB-DAC,
     # 3 headphone case covers). merchant_category splits into
