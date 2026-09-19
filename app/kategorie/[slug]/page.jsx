@@ -37,11 +37,14 @@ export async function generateMetadata({ params }) {
   const { slug } = params;
   try {
     const catRes = await query(
-      `SELECT id, name FROM categories WHERE slug = $1 AND is_active = TRUE`,
+      `SELECT c.id, c.name, parent.name AS parent_name
+       FROM categories c
+       LEFT JOIN categories parent ON parent.id = c.parent_id AND parent.is_active = TRUE
+       WHERE c.slug = $1 AND c.is_active = TRUE`,
       [slug]
     );
     if (!catRes.rows.length) return {};
-    const { id, name } = catRes.rows[0];
+    const { id, name, parent_name: parentName } = catRes.rows[0];
 
     // Same recursive-descendant + linked-category aggregation the page body
     // below uses for its own product query — a plain `p.category_id = c.id`
@@ -84,9 +87,28 @@ export async function generateMetadata({ params }) {
     const countText = count === 1 ? "1 Angebot" : count > 1 ? `${count.toLocaleString("de-DE")} Angebote` : "Aktuelle Angebote";
     const socialTitle = `${name} günstig kaufen – Preisvergleich`;
     const socialDescription = `${countText} für ${name} im direkten Preisvergleich auf Preisgucken.de.`;
+
+    // Pattern confirmed live on idealo.de (market leader) for a search like
+    // "Auto Beamer": "Auto Beamer | Preisvergleich bei idealo.de" / "14.887
+    // Angebote zu Auto Beamer im Beamer Preisvergleich. Bei idealo.de
+    // günstige Preise für Auto Beamer vergleichen." — the category name
+    // appears twice (opening count + closing call-to-action) and the
+    // parent category is folded into "im {Parent}-Preisvergleich" for
+    // subcategories, instead of a single generic mention plus trust-only
+    // filler like the old copy here had. Parent context only gets included
+    // when it keeps the whole description at or under 155 chars (Google's
+    // rough truncation point) — category names range from "Küche" to
+    // "Verbandsmaterial & Erste Hilfe", so a long name + long parent name
+    // can blow the budget where a short one wouldn't.
+    const withParent = parentName
+      ? `${countText} für ${name} im ${parentName}-Preisvergleich. Bei Preisgucken.de günstige Preise für ${name} vergleichen.`
+      : null;
+    const withoutParent = `${countText} für ${name} im Preisvergleich. Bei Preisgucken.de günstige Preise für ${name} vergleichen.`;
+    const metaDescription = withParent && withParent.length <= 155 ? withParent : withoutParent;
+
     return {
       title: `${name} günstig kaufen`,
-      description: `${countText} für ${name} im Preisvergleich – täglich aktualisiert aus deutschen Online-Shops, kostenlos & ohne Anmeldung.`,
+      description: metaDescription,
       alternates: { canonical: `${BASE_URL}/kategorie/${slug}` },
       // openGraph/twitter objects fully replace (not merge with) the root
       // layout's defaults once a page defines its own, so the image has to
