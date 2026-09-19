@@ -1205,6 +1205,58 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  vendor-drift-check)
+    # Read-only -- systematic check for the same class of bug found in
+    # Aliva and iHoverboard: vendors whose categorization was fixed via
+    # a one-off manual UPDATE (not a durable VENDOR_OVERRIDES
+    # category_fn) can get silently reverted by the next nightly
+    # awin-fast sync re-running the generic guess_category() fallback.
+    # Checking Aliva (highest risk -- 35,962 products, no override at
+    # all) and Anthbot (also no override) right now, plus a general
+    # scan for any vendor with an unusually high 'sonstiges' or
+    # 'leuchten' share relative to its likely product type. Remove
+    # once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT c.slug, COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'aliva-apotheke-de' AND p.is_active = TRUE
+        GROUP BY c.slug ORDER BY COUNT(*) DESC LIMIT 25
+    ''')
+    print('--- Aliva Apotheke DE category breakdown ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT c.slug, COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'anthbot-de' AND p.is_active = TRUE
+        GROUP BY c.slug ORDER BY COUNT(*) DESC
+    ''')
+    print('--- Anthbot DE category breakdown ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    print('--- vendors with high leuchten share (possible LED trap) ---')
+    cur.execute('''
+        SELECT v.name, v.slug, COUNT(*) FILTER (WHERE c.slug = 'leuchten') AS leuchten_cnt,
+               COUNT(*) AS total
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE p.is_active = TRUE
+        GROUP BY v.name, v.slug
+        HAVING COUNT(*) FILTER (WHERE c.slug = 'leuchten') > 0
+        ORDER BY leuchten_cnt DESC
+        LIMIT 15
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
