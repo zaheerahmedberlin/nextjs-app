@@ -1131,6 +1131,52 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  vendor-blog-gap-check)
+    # Read-only -- checking Dowinx (gaming chairs?) and hoverboard/
+    # e-scooter/e-bike vendors (iHoverboard, isinwheel) for real product
+    # mix and price range, to plan two more blog-gap posts: Hoverboard
+    # kaufen (confirmed zero coverage -- existing e-scooter post is
+    # ABE/eKFV street-legal registration only, nothing about
+    # hoverboards) and Gaming-Stuhl kaufen if Dowinx confirms. Remove
+    # once the data is pulled.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT c.slug, COUNT(*), MIN(p.price), MAX(p.price)
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'dowinx' AND p.is_active = TRUE
+        GROUP BY c.slug ORDER BY COUNT(*) DESC
+    ''')
+    print('--- Dowinx category breakdown ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT p.title, p.price FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'dowinx' AND p.is_active = TRUE
+        ORDER BY random() LIMIT 8
+    ''')
+    print('--- Dowinx sample ---')
+    for title, price in cur.fetchall():
+        print(f'{price}|{title[:100]}')
+    cur.execute('''
+        SELECT v.slug, c.slug, COUNT(*), MIN(p.price), MAX(p.price)
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug IN ('ihoverboard-de', 'isinwheel')
+        AND p.is_active = TRUE AND p.title ILIKE '%hoverboard%'
+        GROUP BY v.slug, c.slug ORDER BY v.slug
+    ''')
+    print('--- hoverboard-titled products across both vendors ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
