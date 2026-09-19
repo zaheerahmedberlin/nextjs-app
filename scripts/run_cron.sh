@@ -1335,6 +1335,19 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  sessel-schreibtische-ids)
+    # Read-only -- need the real category ids for Sessel and Schreibtische
+    # (already used correctly by Dowinx) to route Autofull EU's gaming
+    # chairs/desk the same way. Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''SELECT id, slug, name FROM categories WHERE slug IN ('sessel', 'schreibtische')''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
