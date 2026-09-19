@@ -1071,6 +1071,46 @@ conn.commit()
 print('COMMITTED')
 "
     ;;
+  anthbot-blog-data)
+    # Read-only -- pulling real current ANTHBOT pricing/inventory for a
+    # new preisgucken.com blog post (Mähroboter buying guide). Checking
+    # whether the earlier anthbot-finalize write (category creation +
+    # junk exclusion) actually landed, since that push got caught in
+    # the deploy-outage churn and may never have run. Remove once the
+    # blog post data is pulled.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT id, parent_id, slug, name FROM categories
+        WHERE slug ILIKE '%maehroboter%' OR name ILIKE '%Mähroboter%'
+    ''')
+    print('--- Mähroboter category ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT c.slug, COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'anthbot-de' AND p.is_active = TRUE
+        GROUP BY c.slug
+    ''')
+    print('--- current category breakdown ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT p.id, p.title, p.price
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'anthbot-de' AND p.is_active = TRUE
+        ORDER BY p.price
+    ''')
+    print('--- all active products ---')
+    for pid, title, price in cur.fetchall():
+        print(f'{pid}|{price}|{title[:130]}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
