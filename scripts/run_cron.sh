@@ -1257,6 +1257,57 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  aliva-resync)
+    # Re-run the scoped import now that Aliva Apotheke DE has a durable
+    # category_fn (guess_aliva_category) in import_awin_feeds.py instead
+    # of relying on the generic guesser that scattered it. This is the
+    # durable fix -- every future nightly awin-fast sync re-applies it
+    # automatically instead of undoing it. Remove once confirmed.
+    export VENDOR_FILTER="Aliva Apotheke DE"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  anthbot-resync)
+    # Re-run the scoped import now that Anthbot DE has a durable
+    # category_fn + junk exclusion in import_awin_feeds.py. Remove once
+    # confirmed.
+    export VENDOR_FILTER="Anthbot DE"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  aliva-anthbot-verify)
+    # Read-only -- confirm both resyncs landed correctly. Remove once
+    # confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT c.slug, COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'aliva-apotheke-de' AND p.is_active = TRUE
+        GROUP BY c.slug ORDER BY COUNT(*) DESC LIMIT 25
+    ''')
+    print('--- Aliva Apotheke DE category breakdown after resync ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT c.slug, COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'anthbot-de' AND p.is_active = TRUE
+        GROUP BY c.slug ORDER BY COUNT(*) DESC
+    ''')
+    print('--- Anthbot DE category breakdown after resync ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'anthbot-de' AND p.is_active = TRUE AND p.title ILIKE '%Shipping Protection%'
+    ''')
+    print(f'Anthbot Shipping Protection still active: {cur.fetchone()[0]} (should be 0)')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1

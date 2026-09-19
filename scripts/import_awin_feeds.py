@@ -651,6 +651,51 @@ def guess_ihoverboard_category(_merchant_category, title=None):
         return 206  # E-Bikes
     return 180  # E-Scooter (accessories/spares with no clear keyword)
 
+# Aliva Apotheke DE — had no vendor override at all (35,962 products, by
+# far the largest vendor without one). A 23-rule keyword classifier was
+# validated across 3 dry-run iterations and applied as a one-off manual
+# UPDATE moving 18,105 products out of the generic Sonstiges bucket
+# (2026-09-14ish). Confirmed 2026-09-19 that it had almost completely
+# reverted: the next few nightly awin-fast syncs re-ran the generic
+# guess_category() fallback on every row and scattered thousands of
+# pharmacy products into completely unrelated categories (2,803 into
+# Elektronik, 349 into Bad, 320 into Outdoor, 196 into Herrenmode) —
+# same durability gap as iHoverboard, just two orders of magnitude
+# larger. This makes the validated rules the vendor's own category_fn
+# so every future sync re-applies them instead of overwriting them.
+ALIVA_RULES = [
+    (256, ['katheter', 'beinbeutel', 'inkontinenz', 'urinbeutel', 'vorlage', 'stoma', 'windelhose', 'tribag', 'urinalkond', 'sekretbeutel', ' seni ']),
+    (244, ['globuli', 'dilution', 'weleda', 'wala ', 'urtinktur', 'schüssler', 'komplexmittel', ' d6 ', ' d12 ', ' d30 ', ' d4 ', ' d200 ', 'ledum', 'arnica', 'nux vomica', 'bachblüten', 'homaccord', 'injeel', 'spenglersan']),
+    (261, ['kondom', 'gleitgel', 'verhütung', 'femidom', 'intimwaschlotion', 'sagella', 'vaginal']),
+    (248, ['pflaster', 'kompresse', 'verband', 'binde', 'mullbinde', 'elastomull', 'fixierbinde', 'wundschnellverband', 'zinkleimbinde', 'tg fix', 'es-kompressen', 'wund pad', 'wundpad', 'wundverb', 'tamponade', 'alkoholtupfer', 'tupfer', 'wundfolie']),
+    (246, ['erkältung', 'hustensaft', 'grippal', 'immunsystem', 'halsschmerz', 'lutschtabletten', 'hustenstiller', 'bronchial', 'coldex']),
+    (253, ['schmerzgel', 'bandage', 'bort ', 'gelenkschmerz', 'rückenschmerz', 'orthese', 'bandagen', 'kniebandage', 'sprunggelenk', 'schmerztablette', 'ibuprofen', 'unterarmkrücke', 'krücke']),
+    (251, ['augentropfen', 'nasenspray', 'ohrentropfen', 'kontaktlinsen', 'augencreme', 'augensalbe', 'nasenpflege']),
+    (247, ['abführ', 'verstopfung', 'durchfall', 'magensäure', 'reflux', 'darmflora', 'probiotika', 'blähung', 'sodbrennen', 'galletropfen', 'galle']),
+    (250, ['zahnpasta', 'mundspülung', 'zahnbürste', 'zahncreme', 'mundwasser', 'zahnfleisch']),
+    (254, ['blutdruck', 'cholesterin', 'diabetes', 'blutzucker']),
+    (252, ['schwangerschaft', 'menstruation', 'wechseljahre']),
+    (255, ['baby', 'säugling', 'schnuller', 'nutrini', 'kinderwaage', 'windeln']),
+    (259, [' hund ', ' katze ', 'hunde-', 'katzen-', 'tierarznei']),
+    (260, ['handschuhe', 'desinfektion', 'einmalhandschuhe', 'mundschutz', 'kanüle', 'spritze steril', 'ampuwa', 'infusionslösung', 'injektionslösung']),
+    (257, ['shampoo', 'fußcreme', 'fußpflege', 'nagelpflege', 'hornhaut']),
+    (249, ['creme', 'gesichtscreme', 'lotion', 'salbe', 'balsam', ' gel ', 'serum', 'handcreme', 'hautschutzschaum']),
+    (245, ['kapseln', 'vitamin', 'calcium', 'magnesi', 'zink ', 'multivitamin', 'omega-3', 'eisen ', 'nahrungsergänzung', 'gerstengras', 'sanddorn', 'fresubin', 'jonosteril']),
+    (258, [' tee ', 'filterbeutel', 'kräutertee', 'früchtetee']),
+    (47, ['blutdruckmessgerät', 'visomat', 'manschette']),
+    (48, ['heizkissen']),
+    (49, ['rollator']),
+    (50, ['massagegerät']),
+    (46, ['massagesessel']),
+]
+
+def guess_aliva_category(_merchant_category, title=None):
+    t = ' ' + (title or '').lower() + ' '
+    for cid, kws in ALIVA_RULES:
+        if any(kw in t for kw in kws):
+            return cid
+    return 41  # Gesundheit & Pflege (parent) -- stays broadly correct instead of falling through to unrelated categories
+
 # Kohl DE — 5 combined AWIN data feeds (Harley-Davidson, BMW Motorrad,
 # a multi-brand touring feed, AC Schnitzer, and Wunderlich) under one
 # vendor, all sharing a blank merchant_category, so this override is
@@ -853,6 +898,30 @@ VENDOR_OVERRIDES = {
         "excluded_substrings": set(),
         "excluded_title_substrings": set(),
         "category_fn": guess_ihoverboard_category,
+    },
+    # Aliva Apotheke DE — see guess_aliva_category above for why this
+    # exists (35,962 products, the categorization had almost completely
+    # reverted without an override).
+    "Aliva Apotheke DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_aliva_category,
+    },
+    # Anthbot DE — no override before, so nothing stopped the next sync
+    # from reactivating the 102 non-product listings (a shipping-
+    # insurance price ladder, a billing-adjustment line, gift cards)
+    # that were manually deactivated during onboarding, or from
+    # scattering the 59 genuine robot-mower products away from the
+    # Mähroboter category via the generic guesser. Excluding the junk
+    # here means a future sync skips those rows entirely (leaves them
+    # at whatever is_active state they're in) instead of reinserting
+    # them as active.
+    "Anthbot DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": {"shipping protection", "differenzgebühr", "anthbot geschenkkarte"},
+        "category_fn": lambda _category_text, _title=None: 266,  # Mähroboter
     },
     # EarFun — single-brand audio vendor (earbuds, speakers, a USB-DAC,
     # 3 headphone case covers). merchant_category splits into
