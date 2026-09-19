@@ -1111,6 +1111,26 @@ with conn.cursor() as cur:
         print(f'{pid}|{price}|{title[:130]}')
 "
     ;;
+  all-vendors-list)
+    # Read-only -- full vendor list with product counts and top-level
+    # category, to cross-reference against existing preisgucken.com
+    # blog coverage and find genuine content gaps for new vendors
+    # (same process as ANTHBOT/OutIn/Toputure). Remove once done.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT v.id, v.name, v.slug, v.is_active, COUNT(p.id) FILTER (WHERE p.is_active) AS active_products
+        FROM vendors v
+        LEFT JOIN products p ON p.vendor_id = v.id
+        GROUP BY v.id, v.name, v.slug, v.is_active
+        ORDER BY v.id DESC
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
