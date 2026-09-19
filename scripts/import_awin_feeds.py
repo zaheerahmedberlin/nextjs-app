@@ -923,6 +923,19 @@ VENDOR_OVERRIDES = {
         "excluded_title_substrings": {"shipping protection", "differenzgebühr", "anthbot geschenkkarte"},
         "category_fn": lambda _category_text, _title=None: 266,  # Mähroboter
     },
+    # Outin Germany — small, single-focus vendor (portable espresso
+    # machines + accessories, all genuine, 0 junk), routed into the
+    # existing Kaffeemaschinen category same as EarFun's single-brand
+    # pattern. Had no override before -- user reported a product back in
+    # Sonstiges after a nightly sync, confirming the same durability gap
+    # as every other vendor fixed via a one-off manual UPDATE this
+    # session.
+    "Outin Germany": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": lambda _category_text, _title=None: 42,  # Kaffeemaschinen
+    },
     # EarFun — single-brand audio vendor (earbuds, speakers, a USB-DAC,
     # 3 headphone case covers). merchant_category splits into
     # HEADPHONES/SPEAKERS/ACCESSORIES, but the site's real active category

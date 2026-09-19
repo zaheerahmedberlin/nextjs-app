@@ -1308,6 +1308,33 @@ with conn.cursor() as cur:
     print(f'Anthbot Shipping Protection still active: {cur.fetchone()[0]} (should be 0)')
 "
     ;;
+  outin-resync)
+    # Re-run the scoped import now that Outin Germany has a durable
+    # category_fn in import_awin_feeds.py. User reported a product
+    # (Nano Tragbare Espressomaschine Pearlweiß) had reverted to
+    # Sonstiges -- same durability gap as every other vendor fixed via
+    # a one-off manual UPDATE this session. Remove once confirmed.
+    export VENDOR_FILTER="Outin Germany"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  outin-verify2)
+    # Read-only -- confirm the resync landed correctly. Remove once
+    # confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT c.slug, COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'outin-germany' AND p.is_active = TRUE
+        GROUP BY c.slug ORDER BY COUNT(*) DESC
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
