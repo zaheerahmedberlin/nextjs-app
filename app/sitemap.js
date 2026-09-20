@@ -19,13 +19,27 @@ export async function generateSitemaps() {
 
 export default async function sitemap({ id }) {
   if (id === 0) {
+    // Audited 2026-09-20 against the real app/ directory (find app -maxdepth
+    // 2 -name "page.jsx") after a user question about the sitemap's page
+    // count exposed that 5 real, live, index/follow pages had never been
+    // in this list at all: agb, cookie-einstellungen, gutscheine,
+    // affiliate-programm, and haendler-registrierung (the vendor
+    // registration page) — all verified 200 + "index, follow" before
+    // adding. Every page under app/ that isn't kategorie/produkt/api/
+    // admin/vendor should be listed here; re-run that find command to
+    // check for drift if new top-level pages get added later.
     const staticPages = [
       { url: BASE_URL,                                  lastModified: new Date(), changeFrequency: "daily",   priority: 1.0 },
       { url: `${BASE_URL}/ueber-uns`,                   lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
       { url: `${BASE_URL}/so-funktioniert-es`,          lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+      { url: `${BASE_URL}/gutscheine`,                  lastModified: new Date(), changeFrequency: "weekly",  priority: 0.6 },
+      { url: `${BASE_URL}/affiliate-programm`,          lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
+      { url: `${BASE_URL}/haendler-registrierung`,      lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
       { url: `${BASE_URL}/kontakt`,                     lastModified: new Date(), changeFrequency: "yearly",  priority: 0.4 },
       { url: `${BASE_URL}/impressum`,                   lastModified: new Date(), changeFrequency: "yearly",  priority: 0.3 },
       { url: `${BASE_URL}/datenschutz`,                 lastModified: new Date(), changeFrequency: "yearly",  priority: 0.3 },
+      { url: `${BASE_URL}/agb`,                         lastModified: new Date(), changeFrequency: "yearly",  priority: 0.3 },
+      { url: `${BASE_URL}/cookie-einstellungen`,        lastModified: new Date(), changeFrequency: "yearly",  priority: 0.3 },
     ];
 
     // Note: intentionally not wrapped in try/catch — a DB failure here must
