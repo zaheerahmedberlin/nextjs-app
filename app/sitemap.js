@@ -5,7 +5,7 @@
 // each file is served individually at /sitemap/0.xml, /sitemap/1.xml, etc.
 // robots.js lists every file explicitly so crawlers can discover them all.
 import { query } from "@/lib/db";
-import { PRODUCTS_PER_SITEMAP, PRODUCT_SITEMAP_FILTER, getProductSitemapChunkCount } from "@/lib/sitemap";
+import { getProductSitemapChunkCount } from "@/lib/sitemap";
 
 const BASE_URL = "https://www.preisgucken.de";
 
@@ -50,24 +50,12 @@ export default async function sitemap({ id }) {
     return [...staticPages, ...categoryPages];
   }
 
-  // Product chunks. Ordered by id (stable/immutable) rather than
-  // updated_at (which shifts constantly as prices refresh) so pagination
-  // across files stays consistent between crawls — sorting by a mutable
-  // column would risk skipping or duplicating products across chunks.
-  const offset = (id - 1) * PRODUCTS_PER_SITEMAP;
-  const productRes = await query(
-    `SELECT id, updated_at
-     FROM products
-     WHERE ${PRODUCT_SITEMAP_FILTER}
-     ORDER BY id ASC
-     LIMIT $1 OFFSET $2`,
-    [PRODUCTS_PER_SITEMAP, offset]
-  );
-
-  return productRes.rows.map((r) => ({
-    url:             `${BASE_URL}/produkt/${r.id}`,
-    lastModified:    r.updated_at ? new Date(r.updated_at) : new Date(),
-    changeFrequency: "daily",
-    priority:        0.7,
-  }));
+  // Product chunks -- removed 2026-09-20 (see lib/sitemap.js). Kept as a
+  // dead but harmless branch rather than deleted outright: getProductSitemapChunkCount()
+  // now returns 0 so generateSitemaps() never yields an id > 0, but Next.js's
+  // sitemap routing can still render an on-demand id that generateSitemaps()
+  // didn't list (e.g. a crawler hitting an old cached /sitemap/5.xml URL
+  // directly) -- returning [] unconditionally here means that can never
+  // serve product URLs again, regardless of how the route gets hit.
+  return [];
 }

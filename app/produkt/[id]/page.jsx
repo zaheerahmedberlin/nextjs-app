@@ -55,12 +55,20 @@ export async function generateMetadata({ params }) {
       description: `${p.title} jetzt für ${price} bei ${p.vendor || "Online-Shop"} kaufen. Preisverlauf und Preisalarm auf Preisgucken.de.`,
       alternates: { canonical: `https://www.preisgucken.de/produkt/${id}` },
       openGraph: { images: p.image ? [p.image] : [] },
-      // Out-of-stock listings stay reachable (price/history still useful,
-      // and it may come back in stock) but shouldn't compete for a crawl
-      // budget or index slot while unavailable — a large catalog with many
-      // thin, non-purchasable pages indexed is exactly what drags down
-      // Google's overall assessment of the site's crawl-worthiness.
-      robots: p.in_stock ? undefined : { index: false, follow: true },
+      // Extended 2026-09-20 from out-of-stock-only to every product page.
+      // Confirmed via real GSC exports: 458,387 of ~506k submitted URLs sat
+      // frozen at "Discovered - currently not indexed" for 10+ straight
+      // days, and sitemap sampling showed ~99.7% of all submitted URLs were
+      // individual /produkt/ pages — Google was being asked to crawl and
+      // index half a million thin, constantly-changing, largely duplicate
+      // listings (price + vendor link), which is exactly what triggers
+      // mass crawl-budget deprioritization at this scale. Matches how real
+      // price-comparison sites (idealo.de, confirmed live) actually rank —
+      // on category/search-term pages, not individual product URLs. Pages
+      // stay fully reachable/linkable (follow: true, still in the site nav
+      // and internal links) so PageRank keeps flowing to category pages;
+      // they're just excluded from Google's index itself.
+      robots: { index: false, follow: true },
     };
   } catch {
     return {};
