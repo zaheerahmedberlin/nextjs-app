@@ -1389,6 +1389,24 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  top-categories-check)
+    # Read-only -- pick the highest-value category pages to manually
+    # request indexing for in GSC after the sitemap cleanup. Remove once
+    # done.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT c.slug, c.name, COUNT(*) FROM products p
+        JOIN categories c ON c.id = p.category_id
+        WHERE p.is_active = TRUE AND c.is_active = TRUE AND c.slug != 'sonstiges'
+        GROUP BY c.slug, c.name ORDER BY COUNT(*) DESC LIMIT 15
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
