@@ -1389,40 +1389,36 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
-  valerion-check)
-    # Read-only -- scope out Valerion EU (closed vendor, AWIN 115481)
-    # before removing anything: vendor row, active product count, coupon
-    # count. Remove this case once confirmed.
+  valerion-remove)
+    # Valerion EU (AWIN 115481) has closed. Soft-delete per the project
+    # convention (same as DELETE /api/admin/vendors/[id]): deactivate
+    # products, coupons, then the vendor itself -- preserves price
+    # history / click history, just stops it appearing on the live
+    # site. Remove this case once confirmed.
     exec ./scripts/.venv/bin/python3 -c "
 import os, psycopg2
 conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
 with conn.cursor() as cur:
     cur.execute('''
         SELECT id, name, slug, awin_merchant_id, is_active
         FROM vendors WHERE awin_merchant_id = '115481' OR name ILIKE '%valerion%'
     ''')
-    print('VENDORS:')
-    for row in cur.fetchall():
-        print('|'.join(str(x) for x in row))
+    vendors = cur.fetchall()
+    if not vendors:
+        print('No matching vendor found -- nothing changed')
+    for vid, name, slug, awin_id, was_active in vendors:
+        print(f'Vendor: id={vid} name={name} slug={slug} awin_id={awin_id} was_active={was_active}')
 
-    cur.execute('''
-        SELECT v.id, COUNT(p.*) FILTER (WHERE p.is_active), COUNT(p.*)
-        FROM vendors v LEFT JOIN products p ON p.vendor_id = v.id
-        WHERE v.name ILIKE '%valerion%'
-        GROUP BY v.id
-    ''')
-    print('PRODUCTS (active/total):')
-    for row in cur.fetchall():
-        print('|'.join(str(x) for x in row))
+        cur.execute('UPDATE products SET is_active = FALSE WHERE vendor_id = %s AND is_active = TRUE RETURNING id', (vid,))
+        n_products = len(cur.fetchall())
 
-    cur.execute('''
-        SELECT c.id, c.code, c.title, c.is_active
-        FROM coupons c JOIN vendors v ON v.id = c.vendor_id
-        WHERE v.name ILIKE '%valerion%'
-    ''')
-    print('COUPONS:')
-    for row in cur.fetchall():
-        print('|'.join(str(x) for x in row))
+        cur.execute('UPDATE coupons SET is_active = FALSE WHERE vendor_id = %s AND is_active = TRUE RETURNING id', (vid,))
+        n_coupons = len(cur.fetchall())
+
+        cur.execute('UPDATE vendors SET is_active = FALSE WHERE id = %s', (vid,))
+
+        print(f'Deactivated: {n_products} products, {n_coupons} coupons, vendor id={vid}')
 "
     ;;
   *)
