@@ -1389,6 +1389,42 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  valerion-check)
+    # Read-only -- scope out Valerion EU (closed vendor, AWIN 115481)
+    # before removing anything: vendor row, active product count, coupon
+    # count. Remove this case once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT id, name, slug, awin_merchant_id, is_active
+        FROM vendors WHERE awin_merchant_id = '115481' OR name ILIKE '%valerion%'
+    ''')
+    print('VENDORS:')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT v.id, COUNT(p.*) FILTER (WHERE p.is_active), COUNT(p.*)
+        FROM vendors v LEFT JOIN products p ON p.vendor_id = v.id
+        WHERE v.name ILIKE '%valerion%'
+        GROUP BY v.id
+    ''')
+    print('PRODUCTS (active/total):')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT c.id, c.code, c.title, c.is_active
+        FROM coupons c JOIN vendors v ON v.id = c.vendor_id
+        WHERE v.name ILIKE '%valerion%'
+    ''')
+    print('COUPONS:')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
