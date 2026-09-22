@@ -1389,38 +1389,6 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
-  valerion-remove)
-    # Valerion EU (AWIN 115481) has closed. Soft-delete per the project
-    # convention (same as DELETE /api/admin/vendors/[id]): deactivate
-    # products, coupons, then the vendor itself -- preserves price
-    # history / click history, just stops it appearing on the live
-    # site. Remove this case once confirmed.
-    exec ./scripts/.venv/bin/python3 -c "
-import os, psycopg2
-conn = psycopg2.connect(os.environ['DATABASE_URL'])
-conn.autocommit = True
-with conn.cursor() as cur:
-    cur.execute('''
-        SELECT id, name, slug, awin_merchant_id, is_active
-        FROM vendors WHERE awin_merchant_id = '115481' OR name ILIKE '%valerion%'
-    ''')
-    vendors = cur.fetchall()
-    if not vendors:
-        print('No matching vendor found -- nothing changed')
-    for vid, name, slug, awin_id, was_active in vendors:
-        print(f'Vendor: id={vid} name={name} slug={slug} awin_id={awin_id} was_active={was_active}')
-
-        cur.execute('UPDATE products SET is_active = FALSE WHERE vendor_id = %s AND is_active = TRUE RETURNING id', (vid,))
-        n_products = len(cur.fetchall())
-
-        cur.execute('UPDATE coupons SET is_active = FALSE WHERE vendor_id = %s AND is_active = TRUE RETURNING id', (vid,))
-        n_coupons = len(cur.fetchall())
-
-        cur.execute('UPDATE vendors SET is_active = FALSE WHERE id = %s', (vid,))
-
-        print(f'Deactivated: {n_products} products, {n_coupons} coupons, vendor id={vid}')
-"
-    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
