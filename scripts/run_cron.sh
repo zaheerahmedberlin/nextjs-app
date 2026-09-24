@@ -1389,49 +1389,6 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
-  sportspar-full-audit)
-    # Read-only -- full Sportspar DE picture before designing a durable
-    # category_fn fix: how products spread across ALL categories (not just
-    # Sonstiges -- a weightlifting glove was found under Leuchten), plus
-    # the real category tree for sports-relevant slugs. Remove once done.
-    exec ./scripts/.venv/bin/python3 -c "
-import os, psycopg2
-conn = psycopg2.connect(os.environ['DATABASE_URL'])
-with conn.cursor() as cur:
-    cur.execute('''
-        SELECT c.slug, c.name, COUNT(*) FROM products p
-        JOIN vendors v ON v.id = p.vendor_id
-        LEFT JOIN categories c ON c.id = p.category_id
-        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE
-        GROUP BY c.slug, c.name ORDER BY COUNT(*) DESC
-    ''')
-    print('CATEGORY DISTRIBUTION:')
-    for row in cur.fetchall():
-        print('|'.join(str(x) for x in row))
-
-    cur.execute('''
-        SELECT id, slug, name, parent_id FROM categories
-        WHERE slug IN ('sportschuhe','fitness-krafttraining','taschen-koffer',
-                        'herrenmode','damenmode','kinderbekleidung','sonstiges',
-                        'herrenschuhe','damenschuhe','kinderschuhe','schuhe')
-        ORDER BY name
-    ''')
-    print('RELEVANT CATEGORIES:')
-    for row in cur.fetchall():
-        print('|'.join(str(x) for x in row))
-
-    cur.execute('''
-        SELECT p.title FROM products p
-        JOIN vendors v ON v.id = p.vendor_id
-        JOIN categories c ON c.id = p.category_id
-        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE AND c.slug IN ('bad','tische','schlafen','gartenmoebel','elektronik','kueche')
-        ORDER BY random() LIMIT 40
-    ''')
-    print('WRONG-CATEGORY SAMPLE (bad/tische/schlafen/gartenmoebel/elektronik/kueche):')
-    for row in cur.fetchall():
-        print(row[0])
-"
-    ;;
   sportspar-resync)
     # Apply guess_sportspar_category to the full Sportspar catalog.
     export VENDOR_FILTER="Sportspar DE"
