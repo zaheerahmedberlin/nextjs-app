@@ -1389,29 +1389,34 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
-  sportspar-sonstiges-check)
-    # Read-only -- audit Sportspar DE's Sonstiges bucket before designing
-    # a durable category_fn fix. Remove once confirmed.
+  sportspar-full-audit)
+    # Read-only -- full Sportspar DE picture before designing a durable
+    # category_fn fix: how products spread across ALL categories (not just
+    # Sonstiges -- a weightlifting glove was found under Leuchten), plus
+    # the real category tree for sports-relevant slugs. Remove once done.
     exec ./scripts/.venv/bin/python3 -c "
 import os, psycopg2
 conn = psycopg2.connect(os.environ['DATABASE_URL'])
 with conn.cursor() as cur:
     cur.execute('''
-        SELECT COUNT(*) FROM products p
+        SELECT c.slug, c.name, COUNT(*) FROM products p
         JOIN vendors v ON v.id = p.vendor_id
-        JOIN categories c ON c.id = p.category_id
-        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE AND c.slug = 'sonstiges'
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE
+        GROUP BY c.slug, c.name ORDER BY COUNT(*) DESC
     ''')
-    print('TOTAL SONSTIGES:', cur.fetchone()[0])
+    print('CATEGORY DISTRIBUTION:')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
 
     cur.execute('''
-        SELECT p.id, p.title FROM products p
-        JOIN vendors v ON v.id = p.vendor_id
-        JOIN categories c ON c.id = p.category_id
-        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE AND c.slug = 'sonstiges'
-        ORDER BY random() LIMIT 60
+        SELECT slug, name, parent_id FROM categories
+        WHERE name ILIKE '%sport%' OR name ILIKE '%fu%ball%' OR name ILIKE '%schuh%'
+           OR name ILIKE '%trikot%' OR name ILIKE '%training%' OR name ILIKE '%koffer%'
+           OR name ILIKE '%rucksack%' OR name ILIKE '%tasche%'
+        ORDER BY parent_id NULLS FIRST, name
     ''')
-    print('SAMPLE:')
+    print('RELEVANT CATEGORIES:')
     for row in cur.fetchall():
         print('|'.join(str(x) for x in row))
 "
