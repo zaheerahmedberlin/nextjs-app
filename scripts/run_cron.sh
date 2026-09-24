@@ -1435,16 +1435,21 @@ import os, psycopg2
 conn = psycopg2.connect(os.environ['DATABASE_URL'])
 with conn.cursor() as cur:
     cur.execute('''
-        SELECT p.id, p.title FROM products p
+        SELECT p.id, p.updated_at, p.title FROM products p
         JOIN vendors v ON v.id = p.vendor_id
         JOIN categories c ON c.id = p.category_id
         WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE AND c.slug = 'sonstiges'
           AND (p.title ILIKE '%hoodie%' OR p.title ILIKE '%ball%' OR p.title ILIKE '% shal%' OR p.title ILIKE '%schal%')
-        LIMIT 30
+        ORDER BY p.updated_at DESC LIMIT 30
     ''')
-    print('SPORTSPAR hoodie/ball SAMPLE:')
+    print('SPORTSPAR hoodie/ball SAMPLE (id, updated_at, title):')
     for row in cur.fetchall():
         print('|'.join(str(x) for x in row))
+
+    cur.execute('''SELECT MAX(updated_at), MIN(updated_at), COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE''')
+    print('SPORTSPAR updated_at range (max, min, total active):', cur.fetchone())
 
     cur.execute('''
         SELECT c.slug, c.name, COUNT(*) FROM products p
