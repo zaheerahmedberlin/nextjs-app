@@ -1423,6 +1423,72 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  sonstiges-followup-audit)
+    # Read-only -- three more leads from real user-reported examples:
+    # Sportspar hoodie/ball gaps, Amazgifts DE (jewelry-making supplies,
+    # no override at all), Voghion Global (existing override, but a
+    # product_type-based classifier -- checking whether products.category
+    # still holds that raw text so a fix doesn't require re-downloading
+    # the 24k-row feed). Remove once done.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT p.id, p.title FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE AND c.slug = 'sonstiges'
+          AND (p.title ILIKE '%hoodie%' OR p.title ILIKE '%ball%' OR p.title ILIKE '% shal%' OR p.title ILIKE '%schal%')
+        LIMIT 30
+    ''')
+    print('SPORTSPAR hoodie/ball SAMPLE:')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT c.slug, c.name, COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Amazgifts DE' AND p.is_active = TRUE
+        GROUP BY c.slug, c.name ORDER BY COUNT(*) DESC
+    ''')
+    print('AMAZGIFTS DE CATEGORY DISTRIBUTION:')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT p.id, p.category, p.title FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Amazgifts DE' AND p.is_active = TRUE AND c.slug = 'sonstiges'
+        ORDER BY random() LIMIT 30
+    ''')
+    print('AMAZGIFTS DE SONSTIGES SAMPLE (id, raw category col, title):')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Voghion Global' AND p.is_active = TRUE AND c.slug = 'sonstiges'
+    ''')
+    print('VOGHION SONSTIGES TOTAL:', cur.fetchone()[0])
+
+    cur.execute('''
+        SELECT p.id, p.category, p.title FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Voghion Global' AND p.is_active = TRUE AND c.slug = 'sonstiges'
+          AND p.title ILIKE '%schal%'
+        LIMIT 10
+    ''')
+    print('VOGHION scarf SAMPLE (id, raw category col, title):')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
