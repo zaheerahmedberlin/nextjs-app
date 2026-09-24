@@ -1492,6 +1492,15 @@ with conn.cursor() as cur:
     print('VOGHION scarf SAMPLE (id, raw category col, title):')
     for row in cur.fetchall():
         print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT id, slug, name FROM categories
+        WHERE slug IN ('halsketten','armbaender','ringe','schluesselanhaenger','accessoires')
+        ORDER BY name
+    ''')
+    print('CATEGORY IDS NEEDED:')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
 "
     ;;
   *)
