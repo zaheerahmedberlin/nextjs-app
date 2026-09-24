@@ -708,6 +708,65 @@ def guess_autofull_category(_merchant_category, title=None):
         return 26  # Schreibtische
     return 17  # Sessel
 
+# Sportspar DE — never had a durable override. A one-off SQL fix on
+# 2026-09-09 moved ~1,262 football/tennis/golf/basketball boots into
+# Sportschuhe, but with no VENDOR_OVERRIDES entry the next nightly sync
+# silently reverted all of it — found 2026-09-24 when a HEELYS roller-shoe
+# turned up back in Sonstiges (3,642 products stuck there total) and a
+# separate weightlifting glove turned up under Leuchten. Full audit that
+# day also caught a real substring-collision bug in the generic
+# guess_category() keyword map: it matches "bad" inside "Badehose"/
+# "Badeshorts" and routes swimwear into the Bath category — same class of
+# bug as the "grillz"/"Grillzange" collision fixed for another vendor
+# earlier in this project. The sample also showed the biggest single
+# cluster in Sonstiges wasn't shoes or equipment at all -- it was plain
+# jerseys/kits/shorts/training wear (Zeus Kit, Trikot-Set, Trainingshose,
+# ...) that the generic guesser has no keyword for. Those get an explicit
+# apparel tier here, routed by gender/age cue when present and defaulting
+# to Herrenmode (the vendor's own existing dominant bucket) otherwise.
+# Genuine miscellany with none of these signals (collectible figurines,
+# flags, neck pillows) still falls through to the generic guesser rather
+# than being forced into a category it doesn't belong in.
+def guess_sportspar_category(merchant_category, title=None):
+    t = (title or '').lower()
+
+    # Equipment / protective gear -- checked before the shoe rule below,
+    # since "Handschuhe" (gloves) contains "schuhe" (shoes) as a substring
+    # and several of these titles are exactly that (Torwarthandschuhe,
+    # Gewichtheber-...-Handschuhe).
+    if any(k in t for k in ('gewichtheber', 'hindernishürde', 'rebounder',
+                             'faszienrolle', 'foam roller', 'kniebandage',
+                             'knieschoner', 'torwarthandschuhe', 'yoga kissen',
+                             'tischtennisnetz', 'tischtennisplatte', 'tischkicker',
+                             'netzanlage')):
+        return 207  # Fitness & Krafttraining
+
+    # Footwear -- 'handschuh' excluded as a second guard for any glove
+    # item not already caught above (found via "Zeus Guanto Space
+    # Torwarthandschuhe" false-matching Sportschuhe in testing).
+    if 'heelys' in t or (any(k in t for k in ('schuhe', 'sneaker', 'stiefel')) and 'handschuh' not in t):
+        return 93  # Sportschuhe
+
+    # Bags & luggage
+    if any(k in t for k in ('koffer', 'rucksack', 'laptoptasche', 'shopper')):
+        return 95  # Taschen & Koffer
+
+    # General sportswear apparel -- the largest real cluster in Sonstiges.
+    # Swimwear folds in here too (fixes the Bath-category collision).
+    if any(k in t for k in ('trikot', 'kit', 'shorts', 'hose', 'jacke',
+                             'trainingsanzug', 'anzug', 'leggings', 'tights',
+                             'mütze', 'stutzen', 'polo', 'pantaloncino', 'tuta',
+                             'regenjacke', 'calza', 'bikini', 'badehose',
+                             'badeshorts', 'bademode', 'badeanzug', 'shirt',
+                             'jersey')):
+        if any(k in t for k in ('jungen', 'mädchen', 'kinder', 'baby', 'kleinkind')):
+            return 165  # Kinderbekleidung
+        if 'damen' in t:
+            return 61  # Damenmode
+        return 87  # Herrenmode
+
+    return guess_category(merchant_category, title)
+
 # Kohl DE — 5 combined AWIN data feeds (Harley-Davidson, BMW Motorrad,
 # a multi-brand touring feed, AC Schnitzer, and Wunderlich) under one
 # vendor, all sharing a blank merchant_category, so this override is
@@ -959,6 +1018,15 @@ VENDOR_OVERRIDES = {
         "excluded_substrings": set(),
         "excluded_title_substrings": {"accessory price supplement", "exclusive use of the difference in price"},
         "category_fn": guess_autofull_category,
+    },
+    # Sportspar DE — see guess_sportspar_category above for the full story
+    # (3,642 products stuck in Sonstiges with no override, plus a real
+    # "Badehose" -> Bath substring-collision bug in the generic guesser).
+    "Sportspar DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_sportspar_category,
     },
     # EarFun — single-brand audio vendor (earbuds, speakers, a USB-DAC,
     # 3 headphone case covers). merchant_category splits into
