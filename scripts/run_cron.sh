@@ -1432,6 +1432,38 @@ with conn.cursor() as cur:
         print(row[0])
 "
     ;;
+  sportspar-resync)
+    # Apply guess_sportspar_category to the full Sportspar catalog.
+    export VENDOR_FILTER="Sportspar DE"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  sportspar-verify)
+    # Read-only -- confirm the resync landed correctly. Remove once
+    # confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT c.slug, c.name, COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE
+        GROUP BY c.slug, c.name ORDER BY COUNT(*) DESC
+    ''')
+    print('CATEGORY DISTRIBUTION AFTER FIX:')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT p.category_id FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE AND p.id = 770508
+    ''')
+    row = cur.fetchone()
+    print('HEELYS Propel 2.0 (770508) category_id:', row[0] if row else 'NOT FOUND')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
