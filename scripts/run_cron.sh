@@ -1456,12 +1456,14 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 
     cur.execute('''
-        SELECT p.category_id FROM products p
+        SELECT p.id, p.is_active, p.category_id, c.slug, p.title FROM products p
         JOIN vendors v ON v.id = p.vendor_id
-        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE AND p.id = 770508
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Sportspar DE' AND (p.id = 770508 OR p.title ILIKE '%heelys propel%')
     ''')
-    row = cur.fetchone()
-    print('HEELYS Propel 2.0 (770508) category_id:', row[0] if row else 'NOT FOUND')
+    print('HEELYS PROPEL LOOKUP (by id and by title):')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
 "
     ;;
   *)
