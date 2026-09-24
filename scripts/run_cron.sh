@@ -1389,6 +1389,33 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  sportspar-sonstiges-check)
+    # Read-only -- audit Sportspar DE's Sonstiges bucket before designing
+    # a durable category_fn fix. Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT COUNT(*) FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE AND c.slug = 'sonstiges'
+    ''')
+    print('TOTAL SONSTIGES:', cur.fetchone()[0])
+
+    cur.execute('''
+        SELECT p.id, p.title FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Sportspar DE' AND p.is_active = TRUE AND c.slug = 'sonstiges'
+        ORDER BY random() LIMIT 60
+    ''')
+    print('SAMPLE:')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
