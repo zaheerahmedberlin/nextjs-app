@@ -275,6 +275,14 @@ def guess_voghion_category(product_type, title=None):
     # direct product on the Baby World *parent*.
     if "für ältere kinder" in t or "ältere kinder" in t:
         return 165  # Kinderbekleidung
+    # Scarves/wraps -- German-language titles ("Jersey-Schal für Damen",
+    # "Kaschmirschal", "Muslimisches Kopftuch") with no matching
+    # product_type rule below, found 2026-09-24 via a real user-reported
+    # example sitting in Sonstiges. No dedicated scarf category exists
+    # sitewide, so these route to the general Accessoires bucket (also
+    # used by Peter Hahn's "accessoires" product_type).
+    if any(k in t for k in ("schal", "kopftuch", "schleier")):
+        return 70  # Accessoires
 
     leaf = pt.rsplit("/", 1)[-1].strip()
     for keyword, cat_id in VOGHION_CATEGORY_RULES:
@@ -734,11 +742,16 @@ def guess_sportspar_category(merchant_category, title=None):
     # since "Handschuhe" (gloves) contains "schuhe" (shoes) as a substring
     # and several of these titles are exactly that (Torwarthandschuhe,
     # Gewichtheber-...-Handschuhe).
+    # 'fußball ' with a trailing space matches the standalone product
+    # ("Trainings Fußball", "Match Ball Fußball") without also matching
+    # "Fußballschuhe"/"Fußballtor", neither of which has a space after
+    # "fußball" in the real titles.
     if any(k in t for k in ('gewichtheber', 'hindernishürde', 'rebounder',
                              'faszienrolle', 'foam roller', 'kniebandage',
                              'knieschoner', 'torwarthandschuhe', 'yoga kissen',
                              'tischtennisnetz', 'tischtennisplatte', 'tischkicker',
-                             'netzanlage')):
+                             'netzanlage', 'volleyball', 'gymnastikball',
+                             'schiedsrichterpfeife', 'fußball ', 'football')):
         return 207  # Fitness & Krafttraining
 
     # Footwear -- 'handschuh' excluded as a second guard for any glove
@@ -758,13 +771,28 @@ def guess_sportspar_category(merchant_category, title=None):
                              'mütze', 'stutzen', 'polo', 'pantaloncino', 'tuta',
                              'regenjacke', 'calza', 'bikini', 'badehose',
                              'badeshorts', 'bademode', 'badeanzug', 'shirt',
-                             'jersey')):
+                             'jersey', 'hoodie', 'schal')):
         if any(k in t for k in ('jungen', 'mädchen', 'kinder', 'baby', 'kleinkind')):
             return 165  # Kinderbekleidung
         if 'damen' in t:
             return 61  # Damenmode
         return 87  # Herrenmode
 
+    return guess_category(merchant_category, title)
+
+# Amazgifts DE — never had an override at all. Photo jewelry vendor
+# (Halsketten/Armbänder/Ringe/Schlüsselanhänger already the dominant
+# buckets), but a small cluster of jewelry-*making* supply — necklace
+# wire, sold as "Perlenkettenzubehör" — has no matching keyword in the
+# generic guesser and sits in Sonstiges. Found 2026-09-24 via a real
+# user-reported example. The other real Sonstiges cluster here
+# ("Personalisierte Foto Holz Puzzle" gift puzzles) is genuinely not
+# jewelry and has no better-fitting category, so it's left alone rather
+# than forced somewhere wrong.
+def guess_amazgifts_category(merchant_category, title=None):
+    t = (title or '').lower()
+    if 'perlenkettenzubehör' in t or ('perlenkette' in t and 'zubehör' in t):
+        return 82  # Halsketten
     return guess_category(merchant_category, title)
 
 # Kohl DE — 5 combined AWIN data feeds (Harley-Davidson, BMW Motorrad,
@@ -1027,6 +1055,13 @@ VENDOR_OVERRIDES = {
         "excluded_substrings": set(),
         "excluded_title_substrings": set(),
         "category_fn": guess_sportspar_category,
+    },
+    # Amazgifts DE — see guess_amazgifts_category above.
+    "Amazgifts DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_amazgifts_category,
     },
     # EarFun — single-brand audio vendor (earbuds, speakers, a USB-DAC,
     # 3 headphone case covers). merchant_category splits into
