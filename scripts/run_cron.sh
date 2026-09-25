@@ -1394,6 +1394,58 @@ with conn.cursor() as cur:
     export VENDOR_FILTER="Sportspar DE"
     exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
     ;;
+  amazgifts-resync)
+    export VENDOR_FILTER="Amazgifts DE"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  voghion-resync)
+    # Full 24k-product Voghion catalog -- takes longer than the others.
+    export VENDOR_FILTER="Voghion Global"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  sonstiges-followup-verify)
+    # Read-only -- confirm all three resyncs landed. Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    for vendor in ('Sportspar DE', 'Amazgifts DE', 'Voghion Global'):
+        cur.execute('''
+            SELECT c.slug, COUNT(*) FROM products p
+            JOIN vendors v ON v.id = p.vendor_id
+            LEFT JOIN categories c ON c.id = p.category_id
+            WHERE v.name = %s AND p.is_active = TRUE
+            GROUP BY c.slug ORDER BY COUNT(*) DESC LIMIT 8
+        ''', (vendor,))
+        print(f'--- {vendor} ---')
+        for row in cur.fetchall():
+            print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT p.id, p.category_id, c.slug FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Sportspar DE' AND p.title ILIKE %s AND p.is_active = TRUE
+    ''', ('%Italien FIR Rugby macron Kinder Hoodie%',))
+    print('Rugby Hoodie check:', cur.fetchall())
+
+    cur.execute('''
+        SELECT p.id, p.category_id, c.slug FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Amazgifts DE' AND p.title ILIKE %s AND p.is_active = TRUE
+    ''', ('%Perlenkettenzubehör%',))
+    print('Perlenkettenzubehör check:', cur.fetchall())
+
+    cur.execute('''
+        SELECT p.id, p.category_id, c.slug FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Voghion Global' AND p.id = 32050
+    ''')
+    print('Jersey-Schal (32050) check:', cur.fetchall())
+"
+    ;;
   sportspar-verify)
     # Read-only -- confirm the resync landed correctly. Remove once
     # confirmed.
