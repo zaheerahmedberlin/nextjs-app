@@ -1398,6 +1398,29 @@ with conn.cursor() as cur:
     export VENDOR_FILTER="Amazgifts DE"
     exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
     ;;
+  amazgifts-perlenkette-fix)
+    # Amazgifts DE has no feed_url (not on the standard sync pipeline --
+    # amazgifts-resync found 0 vendors with feed URLs), so
+    # guess_amazgifts_category never actually runs for it. Direct one-off
+    # UPDATE for the 3 real 'Perlenkettenzubehör' rows instead -- same
+    # pattern as the Valerion deactivation. Halsketten = category id 82.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''
+        UPDATE products SET category_id = 82
+        WHERE id IN (SELECT p.id FROM products p JOIN vendors v ON v.id = p.vendor_id
+                     WHERE v.name = 'Amazgifts DE' AND p.title ILIKE '%Perlenkettenzubehör%')
+        RETURNING id, title
+    ''')
+    rows = cur.fetchall()
+    print(f'Updated {len(rows)} rows:')
+    for row in rows:
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   voghion-resync)
     # Full 24k-product Voghion catalog -- takes longer than the others.
     export VENDOR_FILTER="Voghion Global"
