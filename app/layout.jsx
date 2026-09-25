@@ -54,6 +54,16 @@ export const metadata = {
     "Vitamine Preisvergleich",
     "Foto Zubehör Preisvergleich",
 
+    // Question-intent phrases — matches how people actually search, not
+    // just category + "Preisvergleich". Backed by a real FAQ section
+    // (with matching FAQPage structured data) on /so-funktioniert-es.
+    "Preisvergleich ohne Anmeldung",
+    "günstigste Angebote finden",
+    "tagesaktuelle Preise vergleichen",
+    "Preise objektiv vergleichen",
+    "Kaufberatung Preisvergleich",
+    "Denkfehler beim Preisvergleich",
+
     // City-level intent — the site is national, not city-specific, but a
     // meaningful share of "Preisvergleich <Stadt>" search volume goes to
     // whichever result mentions the city, even from a nationwide service.
