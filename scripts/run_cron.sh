@@ -1578,6 +1578,27 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  pinolino-category-check)
+    # Read-only -- Pinolino DE (AWIN 129719, pending onboard) is a German
+    # wooden children's-furniture brand: Kinderzimmer-Sets, Kinderbetten,
+    # Wickelkommoden, Kleiderschränke, plus outdoor/play items (Bollerwagen,
+    # Lauflernwagen, Sandkästen). Checking for an existing Baby/Kindermöbel
+    # category tree (babymarkt onboarding added several) before deciding
+    # whether to route there or create new categories. Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT id, parent_id, slug, name FROM categories
+        WHERE slug ILIKE '%kind%' OR slug ILIKE '%baby%' OR slug ILIKE '%moebel%'
+           OR name ILIKE '%kind%' OR name ILIKE '%baby%' OR name ILIKE '%möbel%'
+        ORDER BY parent_id NULLS FIRST, id
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
