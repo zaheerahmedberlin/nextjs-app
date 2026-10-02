@@ -971,6 +971,51 @@ def guess_acer_category(_merchant_category, title=None):
         return 126  # Speicher & Laufwerke
     return 130      # Sonstiges IT-Zubehör (fallback)
 
+# Pinolino DE (AWIN 129719) — German wooden children's-furniture brand, 390
+# products, 100% EUR. merchant_category is a clean, reliable taxonomy here:
+# every one of the feed's ~48 distinct values was checked against real
+# titles before writing this (not just the top ones) — it's a straight
+# category-name map rather than title-keyword guessing. Fits entirely into
+# existing categories (babymarkt's Baby World tree, plus generic Spielzeug/
+# Tische/Schlafen/Möbelbeschläge/Gartenmöbel) — no new categories needed.
+PINOLINO_FURNITURE_CATEGORIES = {
+    "Kinderzimmer", "Wickelkommoden", "Einlegeböden", "Kinderbetten",
+    "Kleiderschränke", "Kindersitzgruppen", "Kindersitzgruppen Indoor",
+    "Jugendbetten", "Regale", "Wandregale", "Matratzen", "Bettschutzgitter",
+    "Lerntürme", "Truhen & Spielzeugkisten", "Hochstühle", "Wickeltische",
+    "Schminktische", "Himmelstangen", "Laufgitter", "Anstellbettchen",
+}
+PINOLINO_TOY_CATEGORIES = {
+    "Motorikspiele", "Hobby Horsing", "Zelte & Spielhäuser", "Kaufläden",
+    "Puppenmöbel", "Puppenwagen", "Puppenaccessoires",
+    "Laufräder und -dreiräder", "Mini-Laufdreiräder", "Sandkästen",
+    "Lauflernwagen", "Schaukelpferde", "Rutschen", "Kugelbahnen",
+    "Werkbänke", "Puppenhäuser & Spielwelten", "Rollenspiele", "Schlitten",
+    "Matschküchen", "Küchen & Haushalt", "Outdoorspiele", "Parkhäuser & Co.",
+}
+PINOLINO_CARE_CATEGORIES = {"Wickelmulden", "Wickelauflagen"}
+PINOLINO_BEDDING_CATEGORIES = {"Spannbetttücher", "Bettdecken & Kopfkissen"}
+
+def guess_pinolino_category(merchant_category, title=None):
+    mc = merchant_category or ""
+    if mc in PINOLINO_FURNITURE_CATEGORIES:
+        return 212  # Kinderzimmer
+    if mc in PINOLINO_TOY_CATEGORIES:
+        return 137  # Spielzeug
+    if mc in PINOLINO_CARE_CATEGORIES:
+        return 214  # Pflege & Baden
+    if mc in PINOLINO_BEDDING_CATEGORIES:
+        return 1    # Schlafen (bett/matratze/bettwäsche bucket)
+    if mc == "Bollerwagen":
+        return 213  # Kinderwagen & Unterwegs — used for walks, incl. rain covers
+    if mc == "Liegestühle":
+        return 36   # Gartenmöbel — outdoor lounge chairs (also sold "für Erwachsene")
+    if mc == "Schreibtische":
+        return 212  # Kinderzimmer — kids' desk, part of the same furniture line
+    if mc == "Rollensätze":
+        return 139  # Möbelbeschläge — replacement caster/wheel sets, furniture hardware
+    return guess_category(merchant_category, title)
+
 VENDOR_OVERRIDES = {
     # Toputure US — feed prices are labeled USD, but confirmed 2026-09-17
     # that toputure.com/en-de charges the identical face-value number in
@@ -1187,6 +1232,12 @@ VENDOR_OVERRIDES = {
         # Bugatti, ...) — prepend the actual brand so it's the first thing
         # a shopper reads, not buried in free-text description copy.
         "brand_field": "brand_name",
+    },
+    "Pinolino DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_pinolino_category,
     },
 }
 

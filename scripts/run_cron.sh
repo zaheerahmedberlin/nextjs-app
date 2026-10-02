@@ -1578,6 +1578,58 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  onboard-pinolino)
+    # One-off vendor onboarding — Pinolino DE (AWIN merchant 129719), per
+    # explicit user request. Feed checked first: 390 products, 100% EUR,
+    # German wooden children's furniture. Same idempotent-insert + scoped-
+    # import pattern as every previous vendor. Remove once confirmed.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''
+        INSERT INTO vendors (name, slug, feed_url, awin_merchant_id, is_active)
+        VALUES (%s, %s, %s, %s, TRUE)
+        ON CONFLICT (slug) DO UPDATE SET feed_url = EXCLUDED.feed_url, awin_merchant_id = EXCLUDED.awin_merchant_id
+    ''', ('Pinolino DE', 'pinolino-de',
+          'https://productdata.awin.com/datafeed/download/apikey/441dd8c531d5bac0a84d1df5f5ff071f/language/de/fid/117180/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/',
+          '129719'))
+print('vendor row upserted: Pinolino DE (pinolino-de, AWIN 129719)')
+"
+    export VENDOR_FILTER="Pinolino DE"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  pinolino-verify)
+    # Read-only — confirm Pinolino DE's import landed: total count, category
+    # breakdown (expect 212 Kinderzimmer, 137 Spielzeug, 213 Kinderwagen &
+    # Unterwegs, 214 Pflege & Baden, 1 Schlafen, 139 Möbelbeschläge, 36
+    # Gartenmöbel, 0 Sonstiges), and a title sample. Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''SELECT COUNT(*) FROM products p JOIN vendors v ON v.id = p.vendor_id WHERE v.slug = 'pinolino-de' ''')
+    print(f'Total Pinolino DE products: {cur.fetchone()[0]}')
+    cur.execute('''
+        SELECT c.id, c.slug, c.name, COUNT(*) AS cnt
+        FROM products p JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'pinolino-de'
+        GROUP BY c.id, c.slug, c.name ORDER BY cnt DESC
+    ''')
+    print('--- category breakdown ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT p.id, p.price, p.title FROM products p JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'pinolino-de' ORDER BY random() LIMIT 15
+    ''')
+    print('--- random sample ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   pinolino-category-check)
     # Read-only -- Pinolino DE (AWIN 129719, pending onboard) is a German
     # wooden children's-furniture brand: Kinderzimmer-Sets, Kinderbetten,
