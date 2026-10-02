@@ -1578,6 +1578,52 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  build-hang-diagnose)
+    # Two builds (Oct 1 deploy, Oct 2 detached rebuild) hung forever right
+    # after the "Next.js 14.2.35" banner. Captures box state, tests outbound
+    # network/DNS, DB locks, then a time-boxed build with telemetry off and
+    # a mid-run sample of what the build process is doing. Touches only
+    # .next (already broken); never the running service. Remove once fixed.
+    echo "--- load / memory ---"
+    uptime; free -m; df -h /var/www | tail -1
+    echo "--- top CPU ---"
+    ps -eo pid,stat,etime,time,pcpu,pmem,cmd --sort=-pcpu | head -8 | cut -c1-150
+    echo "--- network / DNS (10s cap each) ---"
+    timeout 10 getent hosts registry.npmjs.org || echo "DNS registry.npmjs.org FAILED"
+    timeout 10 curl -s -o /dev/null -w 'npm registry: %{http_code} in %{time_total}s\n' https://registry.npmjs.org/ || echo "npm registry curl FAILED/timeout"
+    timeout 10 curl -s -o /dev/null -w 'telemetry: %{http_code} in %{time_total}s\n' https://telemetry.nextjs.org/ || echo "telemetry curl FAILED/timeout"
+    echo "--- db activity ---"
+    timeout 30 ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'], connect_timeout=10)
+with conn.cursor() as cur:
+    cur.execute('''SELECT pid, state, wait_event_type, now()-xact_start AS xact_age, left(query, 90)
+                   FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()
+                   AND (state <> 'idle' OR xact_start IS NOT NULL) ORDER BY xact_start NULLS LAST LIMIT 15''')
+    rows = cur.fetchall()
+    print(f'{len(rows)} non-idle/in-transaction sessions')
+    for r in rows:
+        print(' | '.join(str(x) for x in r))
+" || echo "DB check failed/timeout"
+    echo "--- time-boxed build, telemetry OFF (150s cap) ---"
+    export NEXT_TELEMETRY_DISABLED=1
+    rm -f /tmp/build_diag.log
+    ( timeout 150 ./node_modules/.bin/next build > /tmp/build_diag.log 2>&1; echo "exit=$?" >> /tmp/build_diag.log ) &
+    sleep 40
+    BP="$(pgrep -f 'node .*next build' | head -1 || true)"
+    if [ -n "$BP" ]; then
+      echo "build pid $BP at +40s: $(grep -E 'State|VmRSS|Threads' /proc/$BP/status | tr '\n' ' ')"
+      echo "wchan: $(cat /proc/$BP/wchan 2>&1)  fds: $(ls /proc/$BP/fd 2>/dev/null | wc -l)"
+      ss -tnp 2>/dev/null | grep "pid=$BP," | head -5 || echo "(no sockets)"
+    else
+      echo "(build process already gone at +40s)"
+    fi
+    sleep 112
+    echo "--- build log ---"
+    tail -25 /tmp/build_diag.log
+    echo "--- BUILD_ID ---"
+    cat .next/BUILD_ID 2>&1
+    ;;
   pinolino-category-check)
     # Read-only -- Pinolino DE (AWIN 129719, pending onboard) is a German
     # wooden children's-furniture brand: Kinderzimmer-Sets, Kinderbetten,
