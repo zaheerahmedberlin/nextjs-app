@@ -1630,6 +1630,62 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  auto-category-audit)
+    # Read-only -- user asked to review/restructure the automotive category
+    # ("auto-fahrzeugzubehoer"), comparing against dedicated auto-parts shops.
+    # First pass: full category tree under it, product counts per leaf, which
+    # vendors sell into it, and a sample of what's actually in the biggest
+    # buckets (to spot Sonstiges-style miscategorization before redesigning).
+    # Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT id, parent_id, slug, name FROM categories
+        WHERE slug ILIKE '%auto%' OR slug ILIKE '%fahrzeug%' OR slug ILIKE '%motorrad%'
+           OR slug ILIKE '%kfz%' OR name ILIKE '%auto%' OR name ILIKE '%fahrzeug%'
+           OR name ILIKE '%motorrad%' OR name ILIKE '%kfz%'
+        ORDER BY parent_id NULLS FIRST, id
+    ''')
+    print('--- category tree (id|parent_id|slug|name) ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT c.id, c.slug, c.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN categories c ON c.id = p.category_id
+        WHERE c.slug ILIKE '%auto%' OR c.slug ILIKE '%fahrzeug%' OR c.slug ILIKE '%motorrad%' OR c.slug ILIKE '%kfz%'
+        GROUP BY c.id, c.slug, c.name ORDER BY cnt DESC
+    ''')
+    print('--- product counts per matching category ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT v.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE c.slug ILIKE '%auto%' OR c.slug ILIKE '%fahrzeug%' OR c.slug ILIKE '%motorrad%' OR c.slug ILIKE '%kfz%'
+        GROUP BY v.name ORDER BY cnt DESC
+    ''')
+    print('--- vendors selling into these categories ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT p.id, p.title FROM products p
+        JOIN categories c ON c.id = p.category_id
+        WHERE c.slug = 'auto-fahrzeugzubehoer'
+        ORDER BY random() LIMIT 40
+    ''')
+    print('--- random sample from auto-fahrzeugzubehoer itself (if it is a real leaf with products) ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
