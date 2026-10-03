@@ -1864,6 +1864,57 @@ with conn.cursor() as cur:
             print(f'{pid}|{title}')
 "
     ;;
+  bakerross-audit)
+    # Read-only -- Baker Ross DE has NO entry in import_awin_feeds.py at
+    # all (VENDOR_OVERRIDES or otherwise), yet 3,728 of its products are
+    # in Sonstiges right now. Original onboarding (memory: 2026-09-07,
+    # "new Basteln & Kreativbedarf category") must have been a one-off
+    # manual UPDATE that was never ported into durable code -- the
+    # nightly AWIN resync's generic guess_category() has been silently
+    # reverting it ever since. Checking full category breakdown, total
+    # product count, and whether merchant_category is a clean/reliable
+    # signal (titles already show a pattern: "... (pro Set N) <bucket>").
+    # Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''SELECT COUNT(*) FROM products p JOIN vendors v ON v.id = p.vendor_id WHERE v.name = 'Baker Ross DE' ''')
+    print(f'Total Baker Ross DE products: {cur.fetchone()[0]}')
+
+    cur.execute('''
+        SELECT c.id, c.slug, c.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Baker Ross DE'
+        GROUP BY c.id, c.slug, c.name ORDER BY cnt DESC
+    ''')
+    print('--- category breakdown ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT id, parent_id, slug, name FROM categories
+        WHERE slug ILIKE '%bastel%' OR name ILIKE '%bastel%' OR name ILIKE '%kreativ%'
+        ORDER BY parent_id NULLS FIRST, id
+    ''')
+    print('--- existing Basteln/Kreativ category tree ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT p.category, COUNT(*) AS cnt
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.name = 'Baker Ross DE'
+        GROUP BY p.category ORDER BY cnt DESC LIMIT 40
+    ''')
+    print('--- raw merchant category column distribution ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
