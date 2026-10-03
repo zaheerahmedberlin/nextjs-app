@@ -1686,6 +1686,31 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  auto-category-audit2)
+    # Read-only -- auto-category-audit showed 144 (Auto & Fahrzeugzubehör)
+    # is dominated by 0815 DE (2,593 products) and heavily caravan/RV gear
+    # (Dometic, Fiamma, Truma, Reich, Thule, Hindermann), not passenger-car
+    # accessories. Pulling a full title dump of 0815 DE's share of 144 (not
+    # just a random 40) plus DeubaXXL/ESR Tech's smaller shares, to build a
+    # real keyword taxonomy instead of guessing from a small sample. Remove
+    # once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    for vendor in ('0815 DE', 'DeubaXXL', 'ESR Tech (EU)'):
+        cur.execute('''
+            SELECT p.id, p.title FROM products p
+            JOIN vendors v ON v.id = p.vendor_id
+            WHERE v.name = %s AND p.category_id = 144
+            ORDER BY p.id
+        ''', (vendor,))
+        rows = cur.fetchall()
+        print(f'=== {vendor}: {len(rows)} products in category 144 ===')
+        for pid, title in rows:
+            print(f'{pid}|{title}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
