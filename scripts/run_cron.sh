@@ -1816,6 +1816,54 @@ conn.commit()
 print('COMMITTED')
 "
     ;;
+  sonstiges-deep-audit)
+    # Read-only -- broad survey of the Sonstiges (9) bucket across the
+    # whole catalog, not scoped to one vendor like earlier audits this
+    # session. Total size, per-vendor breakdown (where the real volume
+    # is), and a title sample from the top vendors to spot what's
+    # genuinely miscellaneous vs. miscategorized. Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''SELECT COUNT(*) FROM products p JOIN categories c ON c.id = p.category_id WHERE c.slug = 'sonstiges' AND p.is_active = TRUE''')
+    print(f'Total active Sonstiges products: {cur.fetchone()[0]}')
+
+    cur.execute('''
+        SELECT v.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE c.slug = 'sonstiges' AND p.is_active = TRUE
+        GROUP BY v.name ORDER BY cnt DESC LIMIT 25
+    ''')
+    print('--- per-vendor breakdown (top 25) ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT v.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE c.slug = 'sonstiges' AND p.is_active = TRUE
+        GROUP BY v.name ORDER BY cnt DESC LIMIT 5
+    ''')
+    top_vendors = [row[0] for row in cur.fetchall()]
+
+    for vendor in top_vendors:
+        cur.execute('''
+            SELECT p.id, p.title FROM products p
+            JOIN vendors v ON v.id = p.vendor_id
+            JOIN categories c ON c.id = p.category_id
+            WHERE v.name = %s AND c.slug = 'sonstiges' AND p.is_active = TRUE
+            ORDER BY random() LIMIT 25
+        ''', (vendor,))
+        print(f'--- sample from {vendor} ---')
+        for pid, title in cur.fetchall():
+            print(f'{pid}|{title}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
