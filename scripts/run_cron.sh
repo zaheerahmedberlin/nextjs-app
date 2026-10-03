@@ -1711,6 +1711,111 @@ with conn.cursor() as cur:
             print(f'{pid}|{title}')
 "
     ;;
+  auto-category-fix)
+    # One-off REAL WRITE -- auto-category-audit/audit2 found that
+    # "Auto & Fahrzeugzubehör" (144) is 91%+ Caravan/Wohnmobil/Anhänger
+    # gear (AL-KO stabilizers, KNOTT trailer axles, Eberspächer camper
+    # heaters, Thetford/SOG/Clesana caravan toilets, Dometic/Truma/Reich/
+    # Brunner/Fiamma/Hindermann/Thule/Maxview/TenHaaft etc.) from 0815 DE,
+    # not passenger-car accessories -- confirmed via a full 2568-title
+    # classification pass against real brand/keyword signals, each
+    # ambiguous brand (AL-KO, Eberspächer) spot-checked by hand before
+    # trusting it. Creates a new top-level category for that gear, moves
+    # motorcycle-specific items into the existing Motorradzubehör (209),
+    # and moves a handful of genuinely-misfiled non-auto items (built-in
+    # appliance door fronts, a bike computer) to Sonstiges (9). Genuinely
+    # auto-relevant items (lighting, dashcams, cargo straps, car care,
+    # 12V electrical, EV wallboxes, bike racks, DeubaXXL, ESR Tech) are
+    # left exactly where they are. Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+cur = conn.cursor()
+
+cur.execute('''
+    INSERT INTO categories (parent_id, slug, name, is_active)
+    VALUES (NULL, 'caravan-wohnmobil-anhaenger', 'Caravan, Wohnmobil & Anhänger', TRUE)
+    ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, is_active = TRUE
+    RETURNING id
+''')
+CARAVAN_ID = cur.fetchone()[0]
+print(f'Caravan, Wohnmobil & Anhänger category id: {CARAVAN_ID}')
+MOTORRAD_ID = 209
+SONSTIGES_ID = 9
+
+caravan_signal = ['dometic','fiamma','truma','reich ','brunner','hindermann','thule','arisol',
+  'dekalin','caratec','mpk ','lippert','e-trailer','emuk','votronic','mestic','vechline',
+  'thetford','gaslow','isabella','omnistor','kampa','markise','vorzelt','wohnwagen','wohnmobil',
+  'caravan','aufstelldach','gasflasche','gasregler','stützrad','rangierhilfe','deichsel',
+  'anhängerkupplung','wassertank','abwassertank','chemie-toilette','chemietoilette','fäkalientank',
+  'reisemobil','wintercover','frontschutzhaube','fenstersicherung',
+  'fawo','froli','maxview','tenhaaft','oyster','caraluna','campervan','vuqube',
+  'thitronik','cta drehkonsole','cta sitzbock','cta relax seat','x250','ducato',
+  'lilie','comet ','al-ko','camping-profi','camperdice','sog ','certiman','wmaquatec',
+  'hkg','clesana','iwh','yachticon','maxxair','trelino','pundmann','goldschmitt','sawiko',
+  'blaufaktor','cmc','dukdalf','eberspächer','heosolution','hülsberg','jokon','xzent',
+  'knott','tripus','umefa','eal','acr','sts ','grove','ams ','greenlock']
+ev_charging = ['wallbox','keba','ladestation','e-mobility','typ2 kabel','type2 kabel','ladekabel typ','ladesäule']
+motorrad_kw = ['motorrad','motorcycle','harley','kawasaki','ducati','yamaha','suzuki','triumph motor',
+  'enduro','sportster','roller ','helm','motorradzubehör']
+appliance_misfile = ['türfront','einbaukühlschrank','geschirrspüler','kühlschrank-','backofen']
+bike_misfile = ['fahrrad-navigation','fahrradcomputer','fahrrad-computer']
+security_kw = ['parkplatzsperre','anhängerschloss','bremsscheibenschloss','panzerkabelschloss','kastenschloss']
+garage_kw = ['wagenheber','ölabsaugpumpe','montageliege','felgenbaum','felgen-reinigung','reifenregal',
+  'drehmomentschlüssel','auffahrrampe','motorradheber']
+care_kw = ['autositzbezug','autoschutzdecke','kofferraumtasche','kofferraumschutz','sitzbezug',
+  'autoshampoo','autoglasreiniger','innenraumreiniger','cockpitpflege','wachspolitur',
+  'reinigungsmittel für hochdruckreiniger','autoreinigungsset']
+electrical_kw = ['starthilfekabel','überbrückungskabel','batterieladegerät','kfz-schalter','12 v','12v']
+bike_kw = ['fahrradtasche','fahrrad-montageständer','fahrradständer','fahrradanhänger','fahrradschloss','rollentrainer','e-bike']
+battery_kw = ['metallkanister']
+lighting_kw = ['hella','leuchte','rückstrahler','bremsleuchte','tagfahrleuchte']
+security2_kw = ['alu-line','reserveradhalter','spanngurt','zurrschiene','verzurrgurt','gepäckspanner','öse rund']
+dashcam_kw = ['euro-accessoires','dashcam','doppelkamera']
+STAY_KEYWORDS = (ev_charging + security_kw + garage_kw + care_kw + electrical_kw + bike_kw +
+                 battery_kw + lighting_kw + security2_kw + dashcam_kw)
+
+def classify(title):
+    t = (title or '').lower()
+    if any(k in t for k in appliance_misfile): return 'misfiled'
+    if any(k in t for k in bike_misfile): return 'misfiled'
+    if any(k in t for k in caravan_signal): return 'caravan'
+    if any(k in t for k in STAY_KEYWORDS): return 'stay'
+    if any(k in t for k in motorrad_kw): return 'motorrad'
+    return 'unclassified'
+
+cur.execute('''
+    SELECT p.id, p.title FROM products p
+    JOIN vendors v ON v.id = p.vendor_id
+    WHERE v.name = '0815 DE' AND p.category_id = 144
+''')
+rows = cur.fetchall()
+buckets = {'caravan': [], 'motorrad': [], 'misfiled': [], 'stay': [], 'unclassified': []}
+for pid, title in rows:
+    buckets[classify(title)].append(pid)
+
+# Titles that matched neither a caravan/motorrad/misfile/stay signal default
+# to caravan too -- audit2's full brand-frequency pass showed every one of
+# these (Lilie, Comet, AL-KO, KNOTT, Eberspächer, etc.) was itself a
+# dedicated caravan/trailer brand once sampled; the long tail is the same
+# segment, just more obscure niche suppliers, not a different product type.
+buckets['caravan'].extend(buckets.pop('unclassified'))
+
+if buckets['caravan']:
+    cur.execute('UPDATE products SET category_id = %s WHERE id = ANY(%s)', (CARAVAN_ID, buckets['caravan']))
+    print(f'Moved {cur.rowcount} products to Caravan, Wohnmobil & Anhänger ({CARAVAN_ID})')
+if buckets['motorrad']:
+    cur.execute('UPDATE products SET category_id = %s WHERE id = ANY(%s)', (MOTORRAD_ID, buckets['motorrad']))
+    print(f'Moved {cur.rowcount} products to Motorradzubehör ({MOTORRAD_ID})')
+if buckets['misfiled']:
+    cur.execute('UPDATE products SET category_id = %s WHERE id = ANY(%s)', (SONSTIGES_ID, buckets['misfiled']))
+    print(f'Moved {cur.rowcount} products to Sonstiges ({SONSTIGES_ID})')
+stay_count = len(buckets['stay'])
+print(f'Left in Auto & Fahrzeugzubehoer (144): {stay_count}')
+conn.commit()
+print('COMMITTED')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
