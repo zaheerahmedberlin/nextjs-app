@@ -12,6 +12,7 @@ export default function Footer() {
     { name: "Küche",           slug: "kueche"      },
     { name: "Bad",             slug: "bad"         },
     { name: "Elektronik",      slug: "elektronik"  },
+    { name: "Winterkollektion", slug: "winterkollektion" },
   ];
 
   return (
