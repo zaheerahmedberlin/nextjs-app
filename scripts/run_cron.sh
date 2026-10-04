@@ -1929,6 +1929,70 @@ with conn.cursor() as cur:
         print(f'{pid}|{title}')
 "
     ;;
+  winterkollektion-schema-audit)
+    # Read-only -- planning a new "Winterkollektion" top-level category
+    # that pulls in Herrenjacken + Damenjacken via the existing
+    # category_links mechanism (app/kategorie/[slug]/page.jsx already
+    # reads it). No migration file for categories/category_links exists
+    # in the repo (schema has drifted ahead of db/migrations/ via ad-hoc
+    # dispatcher SQL, same as every other change this session) -- getting
+    # the REAL live column list + constraints for categories,
+    # category_links and products before touching anything, per explicit
+    # "100% knowledge, don't break anything" instruction. Also pulls
+    # current Herrenjacken/Damenjacken ids+counts and an existing
+    # category_links row (Hochzeit/Brautkleider) as a working example.
+    # Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    for table in ('categories', 'category_links', 'products'):
+        cur.execute('''
+            SELECT column_name, data_type, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = %s ORDER BY ordinal_position
+        ''', (table,))
+        print(f'--- {table} columns ---')
+        for row in cur.fetchall():
+            print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT tc.constraint_type, tc.constraint_name, kcu.column_name, ccu.table_name AS references_table, ccu.column_name AS references_column
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tc.constraint_name
+        LEFT JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name AND ccu.table_name != tc.table_name
+        WHERE tc.table_name = 'category_links'
+    ''')
+    print('--- category_links constraints ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''SELECT COUNT(*) FROM category_links''')
+    print('category_links total rows:', cur.fetchone()[0])
+    cur.execute('''
+        SELECT cl.category_id, c1.slug, c1.name, cl.linked_category_id, c2.slug, c2.name
+        FROM category_links cl
+        JOIN categories c1 ON c1.id = cl.category_id
+        JOIN categories c2 ON c2.id = cl.linked_category_id
+        LIMIT 10
+    ''')
+    print('--- sample category_links rows ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT c.id, c.parent_id, c.slug, c.name,
+          (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.is_active = TRUE AND p.in_stock = TRUE) AS own_cnt
+        FROM categories c
+        WHERE c.slug ILIKE '%herrenjack%' OR c.slug ILIKE '%damenjack%'
+           OR c.name ILIKE '%herrenjack%' OR c.name ILIKE '%damenjack%'
+        ORDER BY c.id
+    ''')
+    print('--- Herrenjacken / Damenjacken candidates ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
