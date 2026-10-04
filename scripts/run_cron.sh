@@ -1929,6 +1929,59 @@ with conn.cursor() as cur:
         print(f'{pid}|{title}')
 "
     ;;
+  herrenmode-damen-audit)
+    # Read-only -- found while building Winterkollektion: 288 products
+    # sit directly in Herrenmode (87, not a subcategory) whose titles
+    # contain both "Damen" and "Jacke". Likely the same bug already
+    # flagged (unfixed) in Voghion's classifier: VOGHION_CATEGORY_RULES
+    # checks ("men's clothing", 87) before Damenmode rules, and "men's
+    # clothing" matches as a literal substring inside "women's clothing"
+    # product_type strings. Pulling vendor breakdown + a title sample to
+    # confirm the root cause and scope before touching anything. Remove
+    # once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT v.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE p.category_id = 87 AND p.is_active = TRUE
+          AND p.title ILIKE '%damen%' AND p.title ILIKE '%jacke%'
+        GROUP BY v.name ORDER BY cnt DESC
+    ''')
+    print('--- vendor breakdown ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT p.id, p.title, p.category
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE p.category_id = 87 AND p.is_active = TRUE
+          AND p.title ILIKE '%damen%' AND p.title ILIKE '%jacke%'
+        ORDER BY random() LIMIT 30
+    ''')
+    print('--- sample (id|title|raw category col) ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    # Scope check: how big is this beyond just damen+jacke -- any title
+    # containing Damen sitting in Herrenmode at all (not category-specific
+    # to jackets), to see the true size of the underlying bug.
+    cur.execute('''
+        SELECT v.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE p.category_id = 87 AND p.is_active = TRUE AND p.title ILIKE '%damen%'
+        GROUP BY v.name ORDER BY cnt DESC
+    ''')
+    print('--- vendor breakdown: ANY "Damen" in title sitting in Herrenmode ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
