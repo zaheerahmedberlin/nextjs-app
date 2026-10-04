@@ -1993,6 +1993,65 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  damenmode-tree-check)
+    # Read-only -- Herrenjacken (id 108) exists as a real subcategory of
+    # Herrenmode (87), but nothing matching Damenjacken exists anywhere.
+    # Checking Damenmode's (61) full subtree to see whether women's
+    # jackets have a differently-named home, or genuinely have no
+    # dedicated subcategory yet (sitting undifferentiated in Damenmode
+    # itself or wherever generic guess_category() routes them). Also a
+    # title-keyword scan across ALL active products for jacket/coat terms
+    # to see real inventory size regardless of current category. Remove
+    # once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT id, parent_id, slug, name,
+          (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.is_active = TRUE AND p.in_stock = TRUE) AS own_cnt
+        FROM categories c WHERE c.id = 61 OR c.parent_id = 61
+        ORDER BY c.id
+    ''')
+    print('--- Damenmode (61) + direct children ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT id, parent_id, slug, name,
+          (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.is_active = TRUE AND p.in_stock = TRUE) AS own_cnt
+        FROM categories c WHERE c.id = 87 OR c.parent_id = 87
+        ORDER BY c.id
+    ''')
+    print('--- Herrenmode (87) + direct children (for comparison) ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT id, slug, name FROM categories
+        WHERE slug ILIKE '%jacke%' OR slug ILIKE '%mantel%' OR slug ILIKE '%parka%'
+           OR name ILIKE '%jacke%' OR name ILIKE '%mantel%' OR name ILIKE '%parka%'
+        ORDER BY id
+    ''')
+    print('--- any category anywhere matching jacket/coat terms ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+
+    cur.execute('''
+        SELECT c.id, c.slug, c.name, COUNT(*) AS cnt
+        FROM products p
+        JOIN categories c ON c.id = p.category_id
+        WHERE p.is_active = TRUE AND p.in_stock = TRUE
+          AND (p.title ILIKE '%damenjacke%' OR p.title ILIKE '%damen-jacke%'
+               OR (p.title ILIKE '%jacke%' AND p.title ILIKE '%damen%')
+               OR p.title ILIKE '%mantel%')
+        GROUP BY c.id, c.slug, c.name ORDER BY cnt DESC LIMIT 20
+    ''')
+    print('--- where products with damen+jacke / mantel in the title currently live, by category ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
