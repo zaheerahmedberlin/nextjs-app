@@ -177,19 +177,25 @@ VOGHION_CATEGORY_RULES = [
     ("mother & kids/activity & entertainment", 137),  # Spielzeug
     ("mother & kids", 52),
 
-    # Herrenmode (87) subtree
-    ("suits & blazers", 88),
-    ("hoodies", 89),
-    ("men's sets", 89),
-    ("men's clothing", 87),
-
-    # Damenmode (61) subtree
+    # Damenmode (61) subtree -- MUST precede Herrenmode below: "men's
+    # clothing" is a literal substring of "women's clothing", so
+    # checking it first (the original order) silently routed every
+    # "Women's Clothing/..." product_type into Herrenmode(87). Same
+    # substring-collision pattern as "earring" vs "rings" above; found
+    # 2026-10-04 via 538 real "Damen..." titles sitting in Herrenmode
+    # (124 of them jackets specifically), all Voghion Global.
     ("women's clothing/tops", 64),
     ("women's clothing/dress", 62),
     ("women's clothing/party wear", 62),
     ("women's clothing/sets/shorts", 67),
     ("women's clothing/sets", 62),
     ("women's clothing", 61),
+
+    # Herrenmode (87) subtree
+    ("suits & blazers", 88),
+    ("hoodies", 89),
+    ("men's sets", 89),
+    ("men's clothing", 87),
 
     # Handyzubehör (94)
     ("cellphones & telecommunications", 94),
