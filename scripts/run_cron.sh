@@ -1924,7 +1924,7 @@ with conn.cursor() as cur:
 import os, psycopg2
 conn = psycopg2.connect(os.environ['DATABASE_URL'])
 with conn.cursor() as cur:
-    cur.execute('''SELECT id, title FROM products p JOIN vendors v ON v.id = p.vendor_id WHERE v.name = 'Baker Ross DE' ORDER BY id''')
+    cur.execute('''SELECT p.id, p.title FROM products p JOIN vendors v ON v.id = p.vendor_id WHERE v.name = 'Baker Ross DE' ORDER BY p.id''')
     for pid, title in cur.fetchall():
         print(f'{pid}|{title}')
 "
