@@ -1982,6 +1982,46 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  voghion-residual-check)
+    # Read-only -- the substring-collision fix (women's-clothing-before-
+    # men's-clothing reorder) dropped Herrenmode's "Damen"-titled items
+    # from 538 to 429 (jacke-specific: 124 to 85), not to zero. Checking
+    # whether the remainder is genuinely-unisex items (title says "Herren
+    # UND Damen" -- correctly ambiguous, not a bug) vs. purely-Damen
+    # titles that still land in 87 despite the fix (meaning Voghion's own
+    # feed product_type field, not just my classifier, is wrong for these
+    # -- a different, vendor-data problem). Also samples a few WITHOUT
+    # "jacke" to see if the pattern holds catalog-wide. Remove once
+    # diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT
+          COUNT(*) FILTER (WHERE title ILIKE '%herren%') AS also_has_herren,
+          COUNT(*) FILTER (WHERE title NOT ILIKE '%herren%') AS damen_only,
+          COUNT(*) AS total
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.name = 'Voghion Global' AND p.category_id = 87 AND p.is_active = TRUE
+          AND p.title ILIKE '%damen%'
+    ''')
+    print('also_has_herren | damen_only | total:', cur.fetchone())
+
+    cur.execute('''
+        SELECT p.id, p.title
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.name = 'Voghion Global' AND p.category_id = 87 AND p.is_active = TRUE
+          AND p.title ILIKE '%damen%' AND p.title NOT ILIKE '%herren%'
+        ORDER BY random() LIMIT 20
+    ''')
+    print('--- damen-only titles still in Herrenmode (sample) ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
