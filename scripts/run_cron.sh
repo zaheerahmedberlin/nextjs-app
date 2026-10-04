@@ -2052,6 +2052,78 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  apply-winterkollektion)
+    # Applies db/migrations/008_winterkollektion.sql -- creates the
+    # Winterkollektion top-level category and links it (via the existing
+    # category_links mechanism, zero product/category_id changes) to
+    # Herrenjacken (108) and Jacken & Mäntel (68). Herrenstrickjacken
+    # deliberately excluded per explicit instruction. Idempotent
+    # (ON CONFLICT on both the category slug and the links' composite
+    # PK). Ends with a verification read of the exact same aggregation
+    # logic app/kategorie/[slug]/page.jsx uses (recursive descendants +
+    # category_links), so the real product count is confirmed before
+    # ever touching the frontend. Remove once confirmed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+cur = conn.cursor()
+
+cur.execute('''
+    INSERT INTO categories (parent_id, slug, name, is_active)
+    VALUES (NULL, 'winterkollektion', 'Winterkollektion', TRUE)
+    ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, is_active = TRUE
+    RETURNING id
+''')
+WINTER_ID = cur.fetchone()[0]
+print(f'Winterkollektion category id: {WINTER_ID}')
+
+for linked_id in (108, 68):
+    cur.execute('''
+        INSERT INTO category_links (category_id, linked_category_id)
+        VALUES (%s, %s)
+        ON CONFLICT (category_id, linked_category_id) DO NOTHING
+    ''', (WINTER_ID, linked_id))
+conn.commit()
+print('COMMITTED')
+
+# Verification -- same catIds logic the real category page uses.
+cur.execute('''
+    WITH RECURSIVE descendants AS (
+        SELECT id FROM categories WHERE id = %s
+        UNION ALL
+        SELECT ch.id FROM categories ch JOIN descendants d ON ch.parent_id = d.id
+    )
+    SELECT id FROM descendants
+''', (WINTER_ID,))
+descendant_ids = [r[0] for r in cur.fetchall()]
+
+cur.execute('''
+    SELECT lc.id, lc.slug, lc.name FROM category_links cl
+    JOIN categories lc ON lc.id = cl.linked_category_id
+    WHERE cl.category_id = %s
+''', (WINTER_ID,))
+linked_rows = cur.fetchall()
+print('Linked categories:', linked_rows)
+
+cat_ids = list(set(descendant_ids + [r[0] for r in linked_rows]))
+cur.execute('''
+    SELECT COUNT(*) FROM products WHERE category_id = ANY(%s) AND is_active = TRUE AND in_stock = TRUE
+''', (cat_ids,))
+print(f'Winterkollektion real product count (active + in_stock): {cur.fetchone()[0]}')
+
+# Sanity: Herrenjacken / Jacken & Mäntel own counts unchanged by this op
+# (it only ever INSERTs into categories/category_links, never touches
+# products), confirmed by re-reading them fresh.
+cur.execute('''
+    SELECT c.id, c.slug, COUNT(p.id) FILTER (WHERE p.is_active AND p.in_stock)
+    FROM categories c LEFT JOIN products p ON p.category_id = c.id
+    WHERE c.id IN (108, 68) GROUP BY c.id, c.slug ORDER BY c.id
+''')
+print('Herrenjacken / Jacken & Mäntel own counts (should be unchanged: 291 / 473):')
+for row in cur.fetchall():
+    print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
