@@ -1915,6 +1915,20 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  bakerross-titledump)
+    # Read-only -- full title dump for Baker Ross DE so the trailing
+    # category phrase baked into each title (merchant_category is NULL
+    # for this vendor) can be extracted and mapped to the existing
+    # Basteln & Kreativbedarf subcategory tree. Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''SELECT id, title FROM products p JOIN vendors v ON v.id = p.vendor_id WHERE v.name = 'Baker Ross DE' ORDER BY id''')
+    for pid, title in cur.fetchall():
+        print(f'{pid}|{title}')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
