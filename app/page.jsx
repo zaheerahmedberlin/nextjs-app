@@ -107,10 +107,9 @@ export default async function Page() {
   }
 
   return (
-    // Required by Next for static rendering: HomeClient reads useSearchParams()
-    // (to pick up the ?category= links used elsewhere on the site), which
-    // Next.js only allows during static generation inside a Suspense boundary
-    // — this only surfaced once the page stopped being force-dynamic.
+    // HomeClient no longer reads useSearchParams() (it reads window.location
+    // after mount), so it is server-rendered into the HTML. Suspense is kept
+    // only as a harmless boundary.
     <Suspense fallback={null}>
       <HomeClient
         initialProducts={data.initialProducts}

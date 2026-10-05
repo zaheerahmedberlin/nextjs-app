@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CategoryProductGrid from "@/components/CategoryProductGrid";
 import { safeJsonLd } from "@/lib/jsonLd";
+import { BLOG_GUIDES } from "@/lib/blogGuides";
 
 const BASE_URL = "https://www.preisgucken.de";
 
@@ -255,14 +256,48 @@ export default async function KategoriePage({ params }) {
     : { rows: [] };
   const childCounts = Object.fromEntries(childCountRes.rows.map((r) => [r.slug, r.cnt]));
 
+  // Parent + sibling categories: plain links so every category page is
+  // reachable from its neighbours (the homepage sidebar uses buttons, and
+  // before this a deep category like "Kabel & Adapter" had no crawl path
+  // except the sitemap). Only siblings that really list products.
+  const relatedRes = await query(
+    `SELECT par.slug AS parent_slug, par.name AS parent_name, s.slug, s.name
+     FROM categories c
+     LEFT JOIN categories par ON par.id = c.parent_id AND par.is_active = TRUE
+     LEFT JOIN categories s ON s.parent_id IS NOT DISTINCT FROM c.parent_id
+          AND s.id <> c.id AND s.is_active = TRUE AND s.slug <> 'sonstiges'
+          AND EXISTS (
+            WITH RECURSIVE d AS (
+              SELECT s.id AS id
+              UNION ALL
+              SELECT ch.id FROM categories ch JOIN d ON ch.parent_id = d.id
+            )
+            SELECT 1 FROM products pr
+            WHERE pr.category_id IN (SELECT id FROM d) AND pr.is_active = TRUE AND pr.in_stock = TRUE
+            LIMIT 1
+          )
+     WHERE c.id = $1
+     ORDER BY s.sort_order, s.name
+     LIMIT 14`,
+    [category.id]
+  );
+  const parentCategory = relatedRes.rows[0]?.parent_slug
+    ? { slug: relatedRes.rows[0].parent_slug, name: relatedRes.rows[0].parent_name }
+    : null;
+  const siblings = relatedRes.rows.filter((r) => r.slug).map((r) => ({ slug: r.slug, name: r.name }));
+  const guides = BLOG_GUIDES[slug] ?? [];
+
   // BreadcrumbList schema
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Startseite", item: BASE_URL },
-      { "@type": "ListItem", position: 2, name: "Preisvergleich", item: `${BASE_URL}/preisvergleich` },
-      { "@type": "ListItem", position: 3, name: category.name, item: `${BASE_URL}/kategorie/${slug}` },
+      { "@type": "ListItem", position: 2, name: "Kategorien", item: `${BASE_URL}/kategorien` },
+      ...(parentCategory
+        ? [{ "@type": "ListItem", position: 3, name: parentCategory.name, item: `${BASE_URL}/kategorie/${parentCategory.slug}` }]
+        : []),
+      { "@type": "ListItem", position: parentCategory ? 4 : 3, name: category.name, item: `${BASE_URL}/kategorie/${slug}` },
     ],
   };
 
@@ -306,7 +341,10 @@ export default async function KategoriePage({ params }) {
           <nav aria-label="breadcrumb">
             <ol className="breadcrumb mb-2 small">
               <li className="breadcrumb-item"><a href="/">Startseite</a></li>
-              <li className="breadcrumb-item"><a href="/">Preisvergleich</a></li>
+              <li className="breadcrumb-item"><a href="/kategorien">Kategorien</a></li>
+              {parentCategory && (
+                <li className="breadcrumb-item"><a href={`/kategorie/${parentCategory.slug}`}>{parentCategory.name}</a></li>
+              )}
               <li className="breadcrumb-item active">{category.name}</li>
             </ol>
           </nav>
@@ -349,6 +387,34 @@ export default async function KategoriePage({ params }) {
         initialProducts={products}
         vendorCounts={vendorCounts}
       />
+
+      {(guides.length > 0 || siblings.length > 0) && (
+        <div className="container mt-5">
+          {guides.length > 0 && (
+            <section className="mb-4">
+              <h2 className="h5 fw-bold">Ratgeber: {category.name} richtig kaufen</h2>
+              <ul className="mb-0">
+                {guides.map((g) => (
+                  <li key={g.url}>
+                    <a href={g.url}>{g.title}</a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {siblings.length > 0 && (
+            <section>
+              <h2 className="h5 fw-bold">{parentCategory ? `Weitere Kategorien in ${parentCategory.name}` : "Weitere Kategorien"}</h2>
+              <div className="d-flex flex-wrap gap-2">
+                {siblings.map((r) => (
+                  <a key={r.slug} href={`/kategorie/${r.slug}`} className="btn btn-sm btn-outline-secondary">{r.name}</a>
+                ))}
+                <a href="/kategorien" className="btn btn-sm btn-outline-primary">Alle Kategorien</a>
+              </div>
+            </section>
+          )}
+        </div>
+      )}
 
       <div className="container">
         {/* SEO text block — was identical boilerplate (just {category.name}

@@ -44,6 +44,9 @@ export default function Footer() {
                   </a>
                 </li>
               ))}
+              <li className="col-12 mt-1">
+                <a href="/kategorien" className="text-decoration-none small fw-bold">Alle Kategorien →</a>
+              </li>
             </ul>
           </div>
 

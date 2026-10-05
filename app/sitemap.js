@@ -12,6 +12,7 @@
 // catalog grows. Old /sitemap/0.xml.../26.xml URLs (and the sitemap-index
 // route) are gone; robots.js now points only at /sitemap.xml.
 import { query } from "@/lib/db";
+import { buildCategoryTree } from "@/lib/categoryTree";
 
 const BASE_URL = "https://www.preisgucken.de";
 
@@ -31,6 +32,7 @@ export default async function sitemap() {
     { url: BASE_URL,                                  lastModified: new Date(), changeFrequency: "daily",   priority: 1.0 },
     { url: `${BASE_URL}/ueber-uns`,                   lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE_URL}/so-funktioniert-es`,          lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${BASE_URL}/kategorien`,                   lastModified: new Date(), changeFrequency: "daily",   priority: 0.7 },
     { url: `${BASE_URL}/gutscheine`,                  lastModified: new Date(), changeFrequency: "weekly",  priority: 0.6 },
     { url: `${BASE_URL}/affiliate-programm`,          lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
     { url: `${BASE_URL}/haendler-registrierung`,      lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
@@ -45,14 +47,26 @@ export default async function sitemap() {
   // throw so Next.js's ISR keeps serving the last known-good cached sitemap
   // instead of caching an incomplete one (missing all category URLs) for
   // the next revalidate window.
+  // Only categories that really list products (own + all descendants + linked
+  // categories, in stock). About 100 active categories were empty parents or
+  // leftovers: listing them in the sitemap sends Google to pages with no
+  // content, which reads as thin/soft-404 pages and drags down the whole set.
   const categoryRes = await query(
-    `SELECT c.slug, MAX(p.updated_at) AS last_updated
+    `SELECT c.id, c.slug, c.parent_id, c.sort_order,
+            COUNT(p.id)::int AS own_count, MAX(p.updated_at) AS last_updated
      FROM categories c
-     LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE
+     LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE AND p.in_stock = TRUE
      WHERE c.is_active = TRUE AND c.slug != 'sonstiges'
-     GROUP BY c.slug, c.sort_order
+     GROUP BY c.id, c.slug, c.parent_id, c.sort_order
      ORDER BY c.sort_order`
   );
+  const linkRes = await query(`SELECT category_id, linked_category_id FROM category_links`);
+  const rolled = new Map(); // id -> product count including all descendants
+  const walk = (nodes) => nodes.forEach((n) => { rolled.set(n.id, n.productCount); walk(n.children); });
+  walk(buildCategoryTree(categoryRes.rows.map((r) => ({ id: r.id, parentId: r.parent_id, productCount: r.own_count }))));
+  const linkedExtra = new Map();
+  for (const l of linkRes.rows) linkedExtra.set(l.category_id, (linkedExtra.get(l.category_id) || 0) + (rolled.get(l.linked_category_id) || 0));
+  categoryRes.rows = categoryRes.rows.filter((r) => (rolled.get(r.id) || 0) + (linkedExtra.get(r.id) || 0) > 0);
   const categoryPages = categoryRes.rows.map((r) => ({
     url:             `${BASE_URL}/kategorie/${r.slug}`,
     lastModified:    r.last_updated ? new Date(r.last_updated) : new Date(),
