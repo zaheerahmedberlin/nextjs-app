@@ -1,5 +1,6 @@
 // app/kategorie/[slug]/page.jsx
 // Server-rendered category landing page — fully indexable by Google
+import { getRelatedCategories } from "@/lib/categoryCounts";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
 import Navbar from "@/components/Navbar";
@@ -260,31 +261,7 @@ export default async function KategoriePage({ params }) {
   // reachable from its neighbours (the homepage sidebar uses buttons, and
   // before this a deep category like "Kabel & Adapter" had no crawl path
   // except the sitemap). Only siblings that really list products.
-  const relatedRes = await query(
-    `SELECT par.slug AS parent_slug, par.name AS parent_name, s.slug, s.name
-     FROM categories c
-     LEFT JOIN categories par ON par.id = c.parent_id AND par.is_active = TRUE
-     LEFT JOIN categories s ON s.parent_id IS NOT DISTINCT FROM c.parent_id
-          AND s.id <> c.id AND s.is_active = TRUE AND s.slug <> 'sonstiges'
-          AND EXISTS (
-            WITH RECURSIVE d AS (
-              SELECT s.id AS id
-              UNION ALL
-              SELECT ch.id FROM categories ch JOIN d ON ch.parent_id = d.id
-            )
-            SELECT 1 FROM products pr
-            WHERE pr.category_id IN (SELECT id FROM d) AND pr.is_active = TRUE AND pr.in_stock = TRUE
-            LIMIT 1
-          )
-     WHERE c.id = $1
-     ORDER BY s.sort_order, s.name
-     LIMIT 14`,
-    [category.id]
-  );
-  const parentCategory = relatedRes.rows[0]?.parent_slug
-    ? { slug: relatedRes.rows[0].parent_slug, name: relatedRes.rows[0].parent_name }
-    : null;
-  const siblings = relatedRes.rows.filter((r) => r.slug).map((r) => ({ slug: r.slug, name: r.name }));
+  const { parent: parentCategory, siblings } = await getRelatedCategories(category.id);
   const guides = BLOG_GUIDES[slug] ?? [];
 
   // BreadcrumbList schema
