@@ -2022,6 +2022,28 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  brittsuperfoods-category-check)
+    # Read-only -- Britts Superfoods DE (AWIN 102005, pending onboard) is
+    # a tiny 4-product D2C wheatgrass-juice/detox brand, same shape as
+    # the braingood onboarding (5 products, reused existing Gesundheit &
+    # Pflege instead of a new category). Checking for a fitting existing
+    # category before deciding. Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT id, parent_id, slug, name FROM categories
+        WHERE slug ILIKE '%gesundheit%' OR slug ILIKE '%ernaehrung%' OR slug ILIKE '%diaet%'
+           OR slug ILIKE '%nahrung%' OR slug ILIKE '%superfood%'
+           OR name ILIKE '%gesundheit%' OR name ILIKE '%ernährung%' OR name ILIKE '%diät%'
+           OR name ILIKE '%nahrung%' OR name ILIKE '%superfood%'
+        ORDER BY parent_id NULLS FIRST, id
+    ''')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
