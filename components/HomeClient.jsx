@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import Sidebar from "@/components/Sidebar";
@@ -140,7 +139,6 @@ const faqSchema = {
 };
 
 export default function HomeClient({ initialProducts = [], initialMaxPrice = 10000, initialAbsoluteMaxPrice = 10000, initialCategories = [], initialTotalProducts = 0 }) {
-  const searchParams = useSearchParams();
   const [products, setProducts]                         = useState(initialProducts);
   const [categories, setCategories]                     = useState(initialCategories);
   const [activeOffers, setActiveOffers]                 = useState([]);
@@ -166,14 +164,14 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   const [isLoading, setIsLoading]                       = useState(false);
 
   // Filters
-  const [searchQuery, setSearchQuery]                   = useState(searchParams.get("q") ?? "");
-  // Lazy initializer — runs once on mount only, same as searchQuery above.
-  // Supports comma-separated slugs to match how the rest of the app already
-  // builds category query strings (e.g. "sofas,betten").
-  const [selectedCategories, setSelectedCategories]     = useState(() => {
-    const cat = searchParams.get("category");
-    return cat ? cat.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  });
+  // ?q= and ?category= are read after mount (see the URL-filters effect below)
+  // instead of through useSearchParams(). useSearchParams() makes Next.js bail
+  // this whole component out to client-only rendering at build time, so the
+  // server sent an empty shell: ~8 words, no <h1>, and no links at all (no
+  // category links, no footer), which left Google with nothing to crawl.
+  // Starting from empty filters keeps server and first client render identical.
+  const [searchQuery, setSearchQuery]                   = useState("");
+  const [selectedCategories, setSelectedCategories]     = useState([]);
   const [sortOption, setSortOption]                     = useState("relevance");
   const [maxPriceFilter, setMaxPriceFilter]             = useState(initialMaxPrice);
   const [defaultMaxPrice, setDefaultMaxPrice]           = useState(initialMaxPrice);
@@ -185,6 +183,23 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
   const isFirstMount = useRef(true);
 
   const visibleLowestCount = 6;
+
+  // ── URL filters (?q=, ?category=) ───────────────────────────────
+  // Comma-separated slugs match how the rest of the app builds category
+  // query strings (e.g. "sofas,betten"). pendingUrlFilter tells the products
+  // effect below to fetch immediately (no debounce) on the render that
+  // follows, so a filtered deep link never flashes the unfiltered view.
+  const pendingUrlFilter = useRef(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q") ?? "";
+    const cat = params.get("category");
+    const cats = cat ? cat.split(",").map((x) => x.trim()).filter(Boolean) : [];
+    if (!q && cats.length === 0) return;
+    pendingUrlFilter.current = true;
+    if (q) setSearchQuery(q);
+    if (cats.length) setSelectedCategories(cats);
+  }, []);
 
   // ── Newsletter confirmation toast ──────────────────────────────
   useEffect(() => {
@@ -310,6 +325,11 @@ export default function HomeClient({ initialProducts = [], initialMaxPrice = 100
       // link), so delaying it just shows the generic SSR view for ~400ms
       // before snapping to the correct one — a visible flash of unrelated
       // products the debounce was never meant to cause.
+      loadProducts();
+      return;
+    }
+    if (pendingUrlFilter.current) {
+      pendingUrlFilter.current = false;
       loadProducts();
       return;
     }
