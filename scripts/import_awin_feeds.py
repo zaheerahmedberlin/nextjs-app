@@ -1022,6 +1022,14 @@ def guess_pinolino_category(merchant_category, title=None):
         return 139  # Möbelbeschläge — replacement caster/wheel sets, furniture hardware
     return guess_category(merchant_category, title)
 
+# Britts Superfoods DE (AWIN 102005) — tiny 4-product D2C brand, single
+# product line (wheatgrass juice + juice-detox programs), merchant_category
+# is always "Diet" for all of it. Reuses the existing Nahrungsergänzung &
+# Vitamine category (245, under Gesundheit & Pflege) rather than creating a
+# new one for 4 products — same precedent as braingood (5 products).
+def guess_brittsuperfoods_category(_merchant_category, _title=None):
+    return 245  # Nahrungsergänzung & Vitamine
+
 VENDOR_OVERRIDES = {
     # Toputure US — feed prices are labeled USD, but confirmed 2026-09-17
     # that toputure.com/en-de charges the identical face-value number in
@@ -1244,6 +1252,12 @@ VENDOR_OVERRIDES = {
         "excluded_substrings": set(),
         "excluded_title_substrings": set(),
         "category_fn": guess_pinolino_category,
+    },
+    "Britts Superfoods DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_brittsuperfoods_category,
     },
 }
 

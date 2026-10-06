@@ -2022,23 +2022,45 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
-  brittsuperfoods-category-check)
-    # Read-only -- Britts Superfoods DE (AWIN 102005, pending onboard) is
-    # a tiny 4-product D2C wheatgrass-juice/detox brand, same shape as
-    # the braingood onboarding (5 products, reused existing Gesundheit &
-    # Pflege instead of a new category). Checking for a fitting existing
-    # category before deciding. Remove once diagnosed.
+  onboard-brittsuperfoods)
+    # One-off vendor onboarding -- Britts Superfoods DE (AWIN merchant
+    # 102005), per explicit user request. Feed checked first: 4 products,
+    # 100% EUR, merchant_category always "Diet". Routes into the existing
+    # Nahrungsergänzung & Vitamine category (245) via category_fn in
+    # import_awin_feeds.py. Same idempotent-insert + scoped-import pattern
+    # as every previous vendor. Remove once confirmed.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''
+        INSERT INTO vendors (name, slug, feed_url, awin_merchant_id, is_active)
+        VALUES (%s, %s, %s, %s, TRUE)
+        ON CONFLICT (slug) DO UPDATE SET feed_url = EXCLUDED.feed_url, awin_merchant_id = EXCLUDED.awin_merchant_id
+    ''', ('Britts Superfoods DE', 'britts-superfoods-de',
+          'https://productdata.awin.com/datafeed/download/apikey/441dd8c531d5bac0a84d1df5f5ff071f/language/de/fid/97565/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/',
+          '102005'))
+print('vendor row upserted: Britts Superfoods DE (britts-superfoods-de, AWIN 102005)')
+"
+    export VENDOR_FILTER="Britts Superfoods DE"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  brittsuperfoods-verify)
+    # Read-only -- confirm Britts Superfoods DE's import landed correctly
+    # (4 products, all in Nahrungsergänzung & Vitamine). Remove once
+    # confirmed.
     exec ./scripts/.venv/bin/python3 -c "
 import os, psycopg2
 conn = psycopg2.connect(os.environ['DATABASE_URL'])
 with conn.cursor() as cur:
+    cur.execute('''SELECT COUNT(*) FROM products p JOIN vendors v ON v.id = p.vendor_id WHERE v.slug = 'britts-superfoods-de' ''')
+    print(f'Total Britts Superfoods DE products: {cur.fetchone()[0]}')
     cur.execute('''
-        SELECT id, parent_id, slug, name FROM categories
-        WHERE slug ILIKE '%gesundheit%' OR slug ILIKE '%ernaehrung%' OR slug ILIKE '%diaet%'
-           OR slug ILIKE '%nahrung%' OR slug ILIKE '%superfood%'
-           OR name ILIKE '%gesundheit%' OR name ILIKE '%ernährung%' OR name ILIKE '%diät%'
-           OR name ILIKE '%nahrung%' OR name ILIKE '%superfood%'
-        ORDER BY parent_id NULLS FIRST, id
+        SELECT p.id, p.price, c.slug, p.title FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'britts-superfoods-de' ORDER BY p.id
     ''')
     for row in cur.fetchall():
         print('|'.join(str(x) for x in row))
