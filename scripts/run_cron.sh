@@ -2066,45 +2066,6 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
-  coupons-audit)
-    # Read-only -- user reported an inactive coupon showing at
-    # /admin/coupons. The admin table deliberately shows inactive
-    # coupons too (greyed out, with an Aktivieren/Deaktivieren toggle --
-    # that's its whole purpose as a management view), so this checks
-    # whether the issue is actually that an inactive (or otherwise
-    # invalid) coupon leaks onto the PUBLIC /gutscheine page or
-    # /api/coupons, which both filter is_active/valid_from/valid_until.
-    # Full table dump plus NOW() for timezone sanity. Remove once
-    # diagnosed.
-    exec ./scripts/.venv/bin/python3 -c "
-import os, psycopg2
-conn = psycopg2.connect(os.environ['DATABASE_URL'])
-with conn.cursor() as cur:
-    cur.execute('SELECT NOW(), current_setting(\'TIMEZONE\')')
-    print('server NOW() / timezone:', cur.fetchone())
-
-    cur.execute('''
-        SELECT c.id, c.code, c.title, c.is_active, c.valid_from, c.valid_until,
-               v.name, v.is_active AS vendor_active
-        FROM coupons c JOIN vendors v ON v.id = c.vendor_id
-        ORDER BY c.id
-    ''')
-    print('--- full coupons table (id|code|title|is_active|valid_from|valid_until|vendor|vendor_active) ---')
-    for row in cur.fetchall():
-        print('|'.join(str(x) for x in row))
-
-    cur.execute('''
-        SELECT c.id, c.code, c.title
-        FROM coupons c JOIN vendors v ON v.id = c.vendor_id AND v.is_active = TRUE
-        WHERE c.is_active = TRUE
-          AND (c.valid_from IS NULL OR c.valid_from <= NOW())
-          AND (c.valid_until IS NULL OR c.valid_until >= NOW())
-    ''')
-    print('--- what the public query (gutscheine page / api) actually returns right now ---')
-    for row in cur.fetchall():
-        print('|'.join(str(x) for x in row))
-"
-    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
