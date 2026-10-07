@@ -41,6 +41,11 @@ export default function CouponsAdmin() {
   const [form, setForm]       = useState(EMPTY);
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState("");
+  // Inactive coupons (expired/disabled) are hidden from the main table by
+  // default — mostly clutter once a vendor has a dozen expired campaigns —
+  // but stay one toggle away since re-activating or editing one is a real
+  // workflow (see toggleActive/openEdit below).
+  const [showInactive, setShowInactive] = useState(false);
 
   // AWIN import review flow — fetch is read-only (nothing written until the
   // admin explicitly picks offers and clicks Import), reuses the existing
@@ -156,6 +161,12 @@ export default function CouponsAdmin() {
     return o.localVendorId && importedKeys.has(`${o.localVendorId}:${o.voucherCode}`);
   }
 
+  // Display-only filter — importedKeys above deliberately still looks at
+  // the full `coupons` list (an inactive coupon still counts as "already
+  // imported" so it isn't offered again), only the table rows are filtered.
+  const inactiveCount = coupons.filter((c) => !c.is_active).length;
+  const visibleCoupons = showInactive ? coupons : coupons.filter((c) => c.is_active);
+
   function isImportable(o) {
     // Our coupons table needs a real code — plain "promotion" entries with
     // no voucher code don't fit the schema, so they're shown for visibility
@@ -232,9 +243,25 @@ export default function CouponsAdmin() {
       <div className="container py-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h5 className="fw-bold mb-0" style={{ color: "var(--pg-blue)" }}>Gutschein-Verwaltung</h5>
-          <div className="d-flex gap-2">
-            <button className="btn btn-outline-primary" onClick={openAwinImport}>🔄 AWIN Angebote abrufen</button>
-            <button className="btn btn-primary" onClick={openAdd}>+ Gutschein hinzufügen</button>
+          <div className="d-flex align-items-center gap-3">
+            {inactiveCount > 0 && (
+              <div className="form-check form-switch mb-0">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  checked={showInactive}
+                  onChange={(e) => setShowInactive(e.target.checked)}
+                  id="showInactiveCheck"
+                />
+                <label className="form-check-label small text-muted" htmlFor="showInactiveCheck">
+                  {inactiveCount} inaktive{inactiveCount === 1 ? "n" : ""} {inactiveCount === 1 ? "Gutschein" : "Gutscheine"} anzeigen
+                </label>
+              </div>
+            )}
+            <div className="d-flex gap-2">
+              <button className="btn btn-outline-primary" onClick={openAwinImport}>🔄 AWIN Angebote abrufen</button>
+              <button className="btn btn-primary" onClick={openAdd}>+ Gutschein hinzufügen</button>
+            </div>
           </div>
         </div>
 
@@ -256,7 +283,7 @@ export default function CouponsAdmin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {coupons.map((c) => (
+                  {visibleCoupons.map((c) => (
                     <tr key={c.id} style={{ opacity: c.is_active ? 1 : 0.5 }}>
                       <td>{c.vendor_name}</td>
                       <td><code>{c.code}</code></td>
@@ -279,8 +306,14 @@ export default function CouponsAdmin() {
                       </td>
                     </tr>
                   ))}
-                  {coupons.length === 0 && (
-                    <tr><td colSpan={7} className="text-center text-muted py-4">Noch keine Gutscheine angelegt.</td></tr>
+                  {visibleCoupons.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="text-center text-muted py-4">
+                        {coupons.length === 0
+                          ? "Noch keine Gutscheine angelegt."
+                          : "Keine aktiven Gutscheine — alle sind inaktiv (siehe Schalter oben)."}
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
