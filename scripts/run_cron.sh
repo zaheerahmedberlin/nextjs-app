@@ -2066,6 +2066,27 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  box-resource-check)
+    # Read-only -- `next build` has now hung right after the "Next.js
+    # 14.2.35" banner (before any further build output) on two separate
+    # deploy attempts in one session, each surviving GH Actions'
+    # cancellation as an orphan for 30-90+ minutes. Checking actual box
+    # resources (memory, swap, disk, load, process count) to see whether
+    # this is genuine resource exhaustion rather than a one-off fluke.
+    # Remove once diagnosed.
+    echo "--- memory ---"
+    free -h
+    echo "--- disk ---"
+    df -h /var/www /tmp
+    echo "--- load average ---"
+    uptime
+    echo "--- top memory consumers ---"
+    ps -eo pid,ppid,pmem,pcpu,etime,cmd --sort=-pmem | head -15
+    echo "--- total process count ---"
+    ps -e | wc -l
+    echo "--- node process count ---"
+    pgrep -c node || echo 0
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
