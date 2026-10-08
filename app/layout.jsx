@@ -184,6 +184,53 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteSchema) }}
         />
 
+        {/* Auto-recover from stale chunk references after a deploy. Every
+            deploy runs a clean `next build`, which replaces every content-
+            hashed /_next/static/chunks/* file — a tab or cached HTML page
+            left open from before the latest deploy still points at the OLD
+            hashes, which 404/400 once that deploy lands, crashing the app
+            with an unrecoverable "ChunkLoadError" (confirmed live 2026-10-08,
+            reported as ".de not working on mobile" — not actually mobile-
+            specific, just rarely force-refreshed there). This catches it at
+            the lowest level (window 'error'/'unhandledrejection', since
+            webpack's own async chunk loader throws/rejects independent of
+            React's render cycle — app/global-error.jsx is the React-level
+            backstop for whatever still reaches a component boundary) and
+            reloads once. The sessionStorage guard — shared with
+            global-error.jsx — stops a genuinely broken deploy from reload-
+            looping forever. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+              function isChunkError(x){
+                if(!x) return false;
+                var msg = String((x && (x.message || x.reason && x.reason.message)) || x.reason || x || "");
+                return (x && x.name === "ChunkLoadError") ||
+                  (x && x.reason && x.reason.name === "ChunkLoadError") ||
+                  /Loading chunk .* failed/i.test(msg) ||
+                  /ChunkLoadError/i.test(msg);
+              }
+              function reloadOnce(){
+                var KEY = "pg_chunk_reload_attempted";
+                try {
+                  if (sessionStorage.getItem(KEY) === "1") return;
+                  sessionStorage.setItem(KEY, "1");
+                } catch (e) {}
+                window.location.reload();
+              }
+              window.addEventListener("error", function(e){
+                if (isChunkError(e.error)) { reloadOnce(); return; }
+                var t = e.target;
+                if (t && t.tagName === "SCRIPT" && typeof t.src === "string" && t.src.indexOf("/_next/static/") !== -1) {
+                  reloadOnce();
+                }
+              }, true);
+              window.addEventListener("unhandledrejection", function(e){
+                if (isChunkError(e)) reloadOnce();
+              });
+            })();`,
+          }}
+        />
 
         {/* Brand display typeface (headings only, per docs/brand-guidelines.html) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
