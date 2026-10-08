@@ -2087,6 +2087,30 @@ with conn.cursor() as cur:
     echo "--- node process count ---"
     pgrep -c node || echo 0
     ;;
+  pg-activity-check)
+    # Read-only -- box-resource-check found load average 7.35 driven by
+    # several Postgres backends stuck 5-27+ minutes each, right as a
+    # deploy's `next build` hung again. The build's static export queries
+    # this same DB heavily (every category page at build time) -- if
+    # Postgres itself is saturated by something else, that would fully
+    # explain the hang. Getting the actual query text + duration + state
+    # per backend to find the real culprit. Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'], connect_timeout=10)
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT pid, usename, application_name, client_addr, state,
+               now() - query_start AS duration, wait_event_type, wait_event,
+               left(query, 200)
+        FROM pg_stat_activity
+        WHERE datname = current_database() AND pid <> pg_backend_pid()
+        ORDER BY query_start NULLS LAST
+    ''')
+    for row in cur.fetchall():
+        print(' | '.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
