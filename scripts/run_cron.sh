@@ -2066,6 +2066,22 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  caddy-cache-check)
+    # Read-only -- reported blank-white-page crash now happening on
+    # desktop too (not just mobile), and I can't reproduce it from a
+    # fresh browser session myself -- that inconsistency (works for me,
+    # fails for the reporter, across multiple devices) points at
+    # something upstream of the browser's own cache entirely. Checking
+    # whether Caddy (confirmed as the reverse proxy via its own response
+    # header) has any caching directive that could serve stale HTML
+    # after a deploy with no purge step. Remove once diagnosed.
+    echo "--- Caddyfile ---"
+    sudo cat /etc/caddy/Caddyfile 2>&1 || cat /etc/caddy/Caddyfile 2>&1 || echo "not at /etc/caddy/Caddyfile"
+    echo "--- any other Caddy config files ---"
+    sudo find /etc/caddy -type f 2>&1
+    echo "--- caddy service status ---"
+    systemctl is-active caddy 2>&1
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
