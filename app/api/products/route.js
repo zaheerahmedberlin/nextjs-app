@@ -105,6 +105,18 @@ export async function GET(request) {
         // Subcategories remain a real narrowing tool — clicking one
         // directly still scopes to just that slug's own subtree.
         params.push(slugs[0]);
+        // UNIONed with category_links targets (e.g. Winterkollektion ->
+        // Herrenjacken + Jacken & Mäntel, Hochzeit -> Brautkleider) --
+        // those categories have no parent_id relationship to the
+        // requested slug at all, so the descendants CTE alone never
+        // finds their products. app/kategorie/[slug]/page.jsx already
+        // does this same expansion for its own (SSR) query; this route
+        // is the client-side path (vendor-filter re-fetch, homepage
+        // ?category= links) that was missing it, making every
+        // category_links-based category page appear empty the moment a
+        // user did anything other than the plain initial page load —
+        // found 2026-10-10 via a real "Keine Produkte gefunden" report
+        // on Winterkollektion.
         conditions.push(`p.category_id IN (
           WITH RECURSIVE descendants AS (
             SELECT id FROM categories WHERE slug = $${params.length}
@@ -112,6 +124,9 @@ export async function GET(request) {
             SELECT ch.id FROM categories ch JOIN descendants d ON ch.parent_id = d.id
           )
           SELECT id FROM descendants
+          UNION
+          SELECT cl.linked_category_id FROM category_links cl
+          JOIN categories c ON c.id = cl.category_id AND c.slug = $${params.length}
         )`);
       } else {
         params.push(slugs);
@@ -122,6 +137,9 @@ export async function GET(request) {
             SELECT ch.id FROM categories ch JOIN descendants d ON ch.parent_id = d.id
           )
           SELECT id FROM descendants
+          UNION
+          SELECT cl.linked_category_id FROM category_links cl
+          JOIN categories c ON c.id = cl.category_id AND c.slug = ANY($${params.length})
         )`);
       }
     }
