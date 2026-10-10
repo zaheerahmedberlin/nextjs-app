@@ -2082,6 +2082,33 @@ with conn.cursor() as cur:
     echo "--- caddy service status ---"
     systemctl is-active caddy 2>&1
     ;;
+  node-direct-check)
+    # Read-only -- Caddy is a bare reverse_proxy, no caching/rate-limit
+    # directives at all, ruling it out. Every page load shows ~13
+    # simultaneous 500s for all /_next/static/* assets on the first
+    # attempt, succeeding on retry -- 100% reproducible, even on a warm
+    # session, so it must be Next.js/Node itself on :3000, not Caddy or
+    # the browser. Hitting localhost:3000 directly (bypassing Caddy) for
+    # the same static chunk repeatedly, back to back, to see if the
+    # fail-then-succeed pattern reproduces at the Node layer, plus
+    # pulling recent journal entries for any error logged at request
+    # time. Remove once diagnosed.
+    echo "--- repeated direct requests to the same static chunk ---"
+    for i in 1 2 3 4 5; do
+      curl -s -o /dev/null -w "attempt $i: %{http_code} (%{time_total}s)\n" http://localhost:3000/_next/static/chunks/webpack-157427ba4420f98b.js
+    done
+    echo "--- same, but a fresh TCP connection each time (-H Connection: close) ---"
+    for i in 1 2 3 4 5; do
+      curl -s -o /dev/null -w "attempt $i: %{http_code} (%{time_total}s)\n" -H "Connection: close" http://localhost:3000/_next/static/chunks/webpack-157427ba4420f98b.js
+    done
+    echo "--- 13 truly concurrent requests (same burst size as a real page load) ---"
+    for i in $(seq 1 13); do
+      curl -s -o /dev/null -w "concurrent $i: %{http_code}\n" http://localhost:3000/_next/static/chunks/webpack-157427ba4420f98b.js &
+    done
+    wait
+    echo "--- recent service journal (last 60 lines) ---"
+    sudo journalctl -u preisgucken-de.service -n 60 --no-pager
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
