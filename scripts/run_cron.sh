@@ -2066,32 +2066,63 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
-  manhenke-category-check)
-    # Read-only -- Manhenke DE (AWIN 129923, pending onboard) needs a
-    # brand-aware category_fn spanning 9 existing categories. Confirming
-    # every id is still correct before writing the mapping (this many ids
-    # at once is too easy to get subtly wrong from memory). Also checks
-    # for any dedicated socks/hosiery category. Remove once diagnosed.
+  onboard-manhenke)
+    # One-off vendor onboarding -- Manhenke DE (AWIN merchant 129923), per
+    # explicit user request. Feed checked first: 2,666 products, 100% EUR,
+    # German lingerie specialist + multi-brand fashion tail. Routes into 10
+    # existing categories via guess_manhenke_category in
+    # import_awin_feeds.py (verified against the full real feed before
+    # shipping: 2,665/2,666 classified, only the genuine single Sonstiges
+    # row falls through). Same idempotent-insert + scoped-import pattern as
+    # every previous vendor. Remove once confirmed.
+    ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+conn.autocommit = True
+with conn.cursor() as cur:
+    cur.execute('''
+        INSERT INTO vendors (name, slug, feed_url, awin_merchant_id, is_active)
+        VALUES (%s, %s, %s, %s, TRUE)
+        ON CONFLICT (slug) DO UPDATE SET feed_url = EXCLUDED.feed_url, awin_merchant_id = EXCLUDED.awin_merchant_id
+    ''', ('Manhenke DE', 'manhenke-de',
+          'https://productdata.awin.com/datafeed/download/apikey/441dd8c531d5bac0a84d1df5f5ff071f/language/de/fid/117776/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/',
+          '129923'))
+print('vendor row upserted: Manhenke DE (manhenke-de, AWIN 129923)')
+"
+    export VENDOR_FILTER="Manhenke DE"
+    exec ./scripts/.venv/bin/python3 scripts/import_awin_feeds.py
+    ;;
+  manhenke-verify)
+    # Read-only -- confirm Manhenke DE's import landed correctly: total
+    # count, full category breakdown (expect 96 Unterwäsche dominant,
+    # 165 Kinderbekleidung, 108/68 jackets, 101/110 jeans, 61/87 generic
+    # fashion, 169 Socken, 70 Accessoires, ~1 Sonstiges), and a title
+    # sample. Remove once confirmed.
     exec ./scripts/.venv/bin/python3 -c "
 import os, psycopg2
 conn = psycopg2.connect(os.environ['DATABASE_URL'])
 with conn.cursor() as cur:
+    cur.execute('''SELECT COUNT(*) FROM products p JOIN vendors v ON v.id = p.vendor_id WHERE v.slug = 'manhenke-de' ''')
+    print(f'Total Manhenke DE products: {cur.fetchone()[0]}')
     cur.execute('''
-        SELECT id, slug, name FROM categories
-        WHERE id IN (96, 165, 108, 68, 101, 110, 61, 87, 70)
-        ORDER BY id
+        SELECT c.id, c.slug, c.name, COUNT(*) AS cnt
+        FROM products p JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'manhenke-de'
+        GROUP BY c.id, c.slug, c.name ORDER BY cnt DESC
     ''')
-    print('--- expected category ids ---')
+    print('--- category breakdown ---')
     for row in cur.fetchall():
-        print(row)
+        print('|'.join(str(x) for x in row))
     cur.execute('''
-        SELECT id, slug, name FROM categories
-        WHERE slug ILIKE '%socke%' OR slug ILIKE '%strumpf%'
-           OR name ILIKE '%socke%' OR name ILIKE '%strumpf%'
+        SELECT p.id, p.price, c.slug, p.title FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.slug = 'manhenke-de' ORDER BY random() LIMIT 20
     ''')
-    print('--- any socks/hosiery category ---')
+    print('--- random sample ---')
     for row in cur.fetchall():
-        print(row)
+        print('|'.join(str(x) for x in row))
 "
     ;;
   *)

@@ -1030,6 +1030,56 @@ def guess_pinolino_category(merchant_category, title=None):
 def guess_brittsuperfoods_category(_merchant_category, _title=None):
     return 245  # Nahrungsergänzung & Vitamine
 
+# Manhenke DE (AWIN 129923) — German lingerie specialist (Triumph, Mey,
+# Lascana, Anita — 73% of the 2,666-product catalog is bras/slips/
+# undergarment tops) plus a long tail of "Marken > BrandName" buckets
+# where merchant_category alone doesn't carry product-type info at all —
+# only the brand name does, confirmed by sampling every one of the feed's
+# 41 real merchant_category values before writing this (not guessed).
+# Fits entirely into 10 existing categories, no new ones needed.
+MANHENKE_UNTERWAESCHE_SUFFIXES = ("BH&#039;s", "Slips", "Tagwäsche > Oberteile", "Morgenmäntel")  # feed sends the apostrophe HTML-entity-encoded, not a real "'" — confirmed via the raw CSV (repr() showed "BH&#039;s" verbatim), not decoded by this feed anywhere else
+MANHENKE_UNTERWAESCHE_BRANDS = {"Triumph", "Mey", "Lascana", "Anita"}
+MANHENKE_HERRENJACKEN_BRANDS = {"Barbour", "Wellensteyn"}  # titles explicitly say "Herren" (Wellensteyn) / menswear heritage brand (Barbour)
+MANHENKE_DAMENJACKEN_BRANDS = {"Rino & Pelle", "Mos mosh"}  # women's-only coat/jacket labels
+MANHENKE_DAMENJEANS_BRANDS = {"Mac", "Buena Vista", "Red Button", "Future People", "Marc O'Polo Denim", "Esprit"}
+MANHENKE_DAMENMODE_BRANDS = {"Only", "Vero Moda", "Hailys", "Zero", "Marc Cain"}
+MANHENKE_HERRENMODE_BRANDS = {"Ragman", "PME Legend", "Lacoste"}
+MANHENKE_SOCKEN_BRANDS = {"Happy Socks", "Camano"}
+MANHENKE_ACCESSOIRES_BRANDS = {"Clarina", "Pieces", "Street One", "Cecil"}
+
+def guess_manhenke_category(merchant_category, title=None):
+    mc = merchant_category or ""
+    t = (title or "").lower()
+    if mc.startswith("root-catalog > root > Kinder"):
+        return 165  # Kinderbekleidung — every Kinder bucket (Wäsche, Strümpfe, Accessoires) alike
+    if any(mc.endswith(suffix) for suffix in MANHENKE_UNTERWAESCHE_SUFFIXES):
+        return 96   # Unterwäsche
+    if mc == "root-catalog > root > Herren > Bekleidung > Jacken":
+        return 108  # Herrenjacken
+    brand = mc.rsplit("> Marken > ", 1)[-1] if "> Marken > " in mc else None
+    if brand:
+        if brand in MANHENKE_UNTERWAESCHE_BRANDS:
+            return 96   # Unterwäsche
+        if brand in MANHENKE_HERRENJACKEN_BRANDS:
+            return 108  # Herrenjacken
+        if brand in MANHENKE_DAMENJACKEN_BRANDS:
+            return 68   # Jacken & Mäntel
+        if brand in MANHENKE_DAMENJEANS_BRANDS:
+            return 101  # Damenjeans
+        if brand == "Jack & Jones":
+            return 96 if "trunks" in t else 110  # Unterwäsche (men's briefs) vs Herrenjeans (denim) — this one brand sells both
+        if brand in MANHENKE_DAMENMODE_BRANDS:
+            return 61   # Damenmode
+        if brand == "Monari":
+            return 70 if "schal" in t else 61  # Accessoires (scarves) vs Damenmode (everything else, e.g. "T-Shirt")
+        if brand in MANHENKE_HERRENMODE_BRANDS:
+            return 87   # Herrenmode
+        if brand in MANHENKE_SOCKEN_BRANDS:
+            return 169  # Socken
+        if brand in MANHENKE_ACCESSOIRES_BRANDS:
+            return 70   # Accessoires
+    return guess_category(merchant_category, title)
+
 VENDOR_OVERRIDES = {
     # Toputure US — feed prices are labeled USD, but confirmed 2026-09-17
     # that toputure.com/en-de charges the identical face-value number in
@@ -1258,6 +1308,12 @@ VENDOR_OVERRIDES = {
         "excluded_substrings": set(),
         "excluded_title_substrings": set(),
         "category_fn": guess_brittsuperfoods_category,
+    },
+    "Manhenke DE": {
+        "excluded_top_level": set(),
+        "excluded_substrings": set(),
+        "excluded_title_substrings": set(),
+        "category_fn": guess_manhenke_category,
     },
 }
 
