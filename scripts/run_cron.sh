@@ -2109,6 +2109,45 @@ with conn.cursor() as cur:
     echo "--- recent service journal (last 60 lines) ---"
     sudo journalctl -u preisgucken-de.service -n 60 --no-pager
     ;;
+  winterkollektion-recheck)
+    # Read-only -- /api/products?category=winterkollektion&vendor=Peter+Hahn
+    # just worked correctly live, even though HEAD's route.js has no
+    # category_links expansion at all (should only match products with
+    # category_id = winterkollektion's own id, which should be none).
+    # Checking current category_links rows + actual category_id values
+    # on the Peter Hahn/Herrenjacken/Jacken-Maentel products to see what
+    # changed since this was set up on 2026-10-04. Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''SELECT id, slug, name FROM categories WHERE slug = 'winterkollektion' ''')
+    print('winterkollektion row:', cur.fetchone())
+
+    cur.execute('''
+        SELECT cl.category_id, c1.slug, cl.linked_category_id, c2.slug
+        FROM category_links cl
+        JOIN categories c1 ON c1.id = cl.category_id
+        JOIN categories c2 ON c2.id = cl.linked_category_id
+        WHERE c1.slug = 'winterkollektion'
+    ''')
+    print('--- category_links rows for winterkollektion ---')
+    for row in cur.fetchall():
+        print(row)
+
+    cur.execute('''
+        SELECT p.category_id, c.slug, COUNT(*)
+        FROM products p
+        JOIN vendors v ON v.id = p.vendor_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        WHERE v.name = 'Peter Hahn' AND p.is_active = TRUE
+        GROUP BY p.category_id, c.slug ORDER BY COUNT(*) DESC LIMIT 10
+    ''')
+    print('--- Peter Hahn products: current category_id distribution ---')
+    for row in cur.fetchall():
+        print(row)
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
