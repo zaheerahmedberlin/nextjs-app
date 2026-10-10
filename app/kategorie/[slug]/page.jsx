@@ -363,6 +363,21 @@ export default async function KategoriePage({ params }) {
         categoryName={category.name}
         initialProducts={products}
         vendorCounts={vendorCounts}
+        // Winterkollektion aggregates Herrenjacken + Jacken & Mäntel via
+        // category_links (see comment above) -- those two happen to be a
+        // clean Herren/Damen split, so this adds a gender filter on top of
+        // the existing vendor filter. Each option is just a real category
+        // slug already handled correctly by /api/products (same recursive +
+        // category_links expansion as this page's own query), so selecting
+        // one is a plain re-fetch with category=<that slug> instead of
+        // category=winterkollektion -- no new backend logic needed.
+        // Explicitly scoped to this one slug rather than inferred from
+        // category_links generally: Hochzeit also uses category_links
+        // (-> Brautkleider) but that's not a gender split at all.
+        genderFilters={slug === "winterkollektion" ? [
+          { label: "Herren", slug: "herrenjacken" },
+          { label: "Damen", slug: "jacken-maentel" },
+        ] : []}
       />
 
       {(guides.length > 0 || siblings.length > 0) && (
