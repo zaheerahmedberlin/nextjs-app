@@ -2066,6 +2066,34 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  manhenke-category-check)
+    # Read-only -- Manhenke DE (AWIN 129923, pending onboard) needs a
+    # brand-aware category_fn spanning 9 existing categories. Confirming
+    # every id is still correct before writing the mapping (this many ids
+    # at once is too easy to get subtly wrong from memory). Also checks
+    # for any dedicated socks/hosiery category. Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''
+        SELECT id, slug, name FROM categories
+        WHERE id IN (96, 165, 108, 68, 101, 110, 61, 87, 70)
+        ORDER BY id
+    ''')
+    print('--- expected category ids ---')
+    for row in cur.fetchall():
+        print(row)
+    cur.execute('''
+        SELECT id, slug, name FROM categories
+        WHERE slug ILIKE '%socke%' OR slug ILIKE '%strumpf%'
+           OR name ILIKE '%socke%' OR name ILIKE '%strumpf%'
+    ''')
+    print('--- any socks/hosiery category ---')
+    for row in cur.fetchall():
+        print(row)
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
