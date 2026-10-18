@@ -1,5 +1,6 @@
 // app/kategorie/[slug]/page.jsx
 // Server-rendered category landing page — fully indexable by Google
+import { getCategoryTopProducts } from "@/lib/categoryTopProducts";
 import { getRelatedCategories } from "@/lib/categoryCounts";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
@@ -205,19 +206,9 @@ export default async function KategoriePage({ params }) {
   // page always fetches the default unfiltered view, which is what keeps it
   // eligible for ISR caching (reading searchParams here would force every
   // request back into fully-dynamic, uncached rendering).
-  const prodRes = await query(
-    `SELECT p.id, p.title, p.price, p.old_price, p.image, p.url, p.in_stock,
-            v.name AS vendor, v.logo_url AS vendor_logo
-     FROM products p
-     LEFT JOIN vendors v ON v.id = p.vendor_id
-     WHERE p.category_id = ANY($1)
-       AND p.is_active = TRUE AND p.in_stock = TRUE
-     ORDER BY p.price ASC
-     LIMIT 24`,
-    [catIds]
-  );
-
-  const products = prodRes.rows;
+  // Default view: cheapest first, but with a price floor, an image and a
+  // per-vendor cap (see lib/categoryTopProducts.js).
+  const products = await getCategoryTopProducts(catIds);
 
   // Vendor chips: every vendor selling in this category, regardless of
   // which one (if any) is currently selected, so a shopper can switch
