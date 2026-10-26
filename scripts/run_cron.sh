@@ -2125,32 +2125,6 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
-  admin-coupons-check)
-    # Read-only diagnostic -- user reports https://www.preisgucken.de/admin/coupons
-    # 500ing right now. Checks service health/recent errors, hits the
-    # page directly on localhost (bypassing Caddy) to see the real
-    # Next.js error, and separately hits the /api/admin/coupons and
-    # /api/admin/vendors endpoints the page's client code depends on.
-    # Does NOT touch the running service. Remove once diagnosed.
-    echo "--- systemctl status ---"
-    systemctl status preisgucken-de.service --no-pager -l | head -15
-    echo
-    echo "--- recent error-looking log lines ---"
-    sudo journalctl -u preisgucken-de.service -n 200 --no-pager | grep -iE "error|coupons|500|exception" | tail -40
-    echo
-    echo "--- .next build directory ---"
-    echo "BUILD_ID: $(cat .next/BUILD_ID 2>&1)"
-    echo
-    echo "--- direct localhost curl (bypass Caddy) ---"
-    echo "/admin/coupons:"
-    curl -s -w '\nHTTP %{http_code}\n' http://localhost:3000/admin/coupons | tail -60
-    echo
-    echo "/api/admin/coupons:"
-    curl -s -w '\nHTTP %{http_code}\n' http://localhost:3000/api/admin/coupons | tail -40
-    echo
-    echo "/api/admin/vendors:"
-    curl -s -w '\nHTTP %{http_code}\n' http://localhost:3000/api/admin/vendors | tail -20
-    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
