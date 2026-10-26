@@ -2162,6 +2162,38 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  manhenke-remove-all)
+    # Explicit user request -- remove all Manhenke DE products and the
+    # vendor row itself, regardless of root cause for the inflated count.
+    # products.vendor_id has no ON DELETE CASCADE (schema: plain
+    # REFERENCES), so products must be deleted before the vendor row;
+    # price_history/favorites/price_alerts cascade off product_id, and
+    # vendor_uploads/coupons cascade off vendor_id, so deleting products
+    # then the vendor row cleans up everything downstream. Single
+    # transaction, explicit commit at the end -- any error rolls back
+    # the whole thing, nothing partial.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('SELECT id FROM vendors WHERE slug = %s', ('manhenke-de',))
+    row = cur.fetchone()
+    if not row:
+        print('No vendor with slug manhenke-de -- nothing to do')
+        conn.rollback()
+    else:
+        vendor_id = row[0]
+        cur.execute('SELECT COUNT(*) FROM products WHERE vendor_id = %s', (vendor_id,))
+        before = cur.fetchone()[0]
+        print(f'vendor_id={vendor_id}, products before delete={before}')
+        cur.execute('DELETE FROM products WHERE vendor_id = %s', (vendor_id,))
+        print(f'deleted {cur.rowcount} product rows')
+        cur.execute('DELETE FROM vendors WHERE id = %s', (vendor_id,))
+        print(f'deleted {cur.rowcount} vendor row')
+        conn.commit()
+        print('COMMITTED')
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
