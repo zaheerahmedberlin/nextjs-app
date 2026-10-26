@@ -2125,6 +2125,43 @@ with conn.cursor() as cur:
         print('|'.join(str(x) for x in row))
 "
     ;;
+  manhenke-duplicate-check)
+    # Read-only -- the live count (67230) is ~25x the 2666 confirmed at
+    # onboarding on 2026-10-11. Checking whether this is a duplicate-row
+    # bug (e.g. NULL external_id defeating the UNIQUE(vendor_id,
+    # external_id) constraint, so each daily AWIN sync cron inserts a
+    # fresh batch instead of upserting) rather than real catalog growth.
+    # Remove once diagnosed.
+    exec ./scripts/.venv/bin/python3 -c "
+import os, psycopg2
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+with conn.cursor() as cur:
+    cur.execute('''SELECT COUNT(*) FROM products p JOIN vendors v ON v.id = p.vendor_id WHERE v.slug = 'manhenke-de' AND p.external_id IS NULL''')
+    print(f'NULL external_id rows: {cur.fetchone()[0]}')
+    cur.execute('''
+        SELECT p.external_id, COUNT(*) AS cnt
+        FROM products p JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'manhenke-de' AND p.external_id IS NOT NULL
+        GROUP BY p.external_id HAVING COUNT(*) > 1
+        ORDER BY cnt DESC LIMIT 10
+    ''')
+    print('--- external_id values repeated more than once (top 10) ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+    cur.execute('''
+        SELECT COUNT(DISTINCT p.external_id) FROM products p JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'manhenke-de'
+    ''')
+    print(f'distinct external_id count: {cur.fetchone()[0]}')
+    cur.execute('''
+        SELECT DATE(p.created_at), COUNT(*) FROM products p JOIN vendors v ON v.id = p.vendor_id
+        WHERE v.slug = 'manhenke-de' GROUP BY DATE(p.created_at) ORDER BY 1
+    ''')
+    print('--- rows created, by day ---')
+    for row in cur.fetchall():
+        print('|'.join(str(x) for x in row))
+"
+    ;;
   *)
     echo "Rejected: unknown job '${SSH_ORIGINAL_COMMAND:-<empty>}'" >&2
     exit 1
